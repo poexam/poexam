@@ -66,7 +66,7 @@ It can perform a lot of checks via the default rules:
 
 | Rule name    | Severity | Diagnostic reported                           |
 |--------------|----------|-----------------------------------------------|
-| fuzy         | info     | Translation marked as fuzzy.                  |
+| fuzzy        | info     | Fuzzy entry.                                  |
 | obsolete     | info     | Obsolete entry.                               |
 | unchanged    | info     | Translation is the same as the source string. |
 | untranslated | info     | Untranslated entry.                           |
