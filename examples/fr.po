@@ -1,0 +1,105 @@
+#
+# SPDX-FileCopyrightText: 2026 Sébastien Helleu <flashcode@flashtux.org>
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# This file contains one error per rule and can be used for testing:
+#
+#   poexam check --select all fr.po
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: poexam\n"
+"Report-Msgid-Bugs-To: flashcode@flashtux.org\n"
+"POT-Creation-Date: 2026-02-01 18:12:08+0100\n"
+"PO-Revision-Date: 2026-02-01 18:12:08+0100\n"
+"Last-Translator: Sébastien Helleu <flashcode@flashtux.org>\n"
+"Language-Team: Sébastien Helleu <flashcode@flashtux.org>\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+# rule: blank
+msgid "Test: blank translation"
+msgstr " "
+
+# rule: brackets
+msgid "Test [brackets]"
+msgstr "Test brackets"
+
+# rule: c-formats
+#, c-format
+msgid "Name: %s, age: %d"
+msgstr "Âge : %2$d, nom : %1$f"
+
+# rule: double-quotes
+msgid "Test \"double quotes\""
+msgstr "Test guillemets doubles"
+
+# rule: double-spaces
+msgid "Test  double  spaces"
+msgstr "Test espaces doubles"
+
+# rule: encoding
+msgid "Encoding: tested"
+msgstr "Encodage : test�"
+
+# rule: escapes
+msgid "Escape: \\test"
+msgstr "Échappement : \\\\test"
+
+# rule: newlines
+msgid "Test\ntwo lines"
+msgstr "Test deux lignes"
+
+# rule: pipes
+msgid ""
+"list || add <name> || rename <name> <newname> || del <name>"
+msgstr ""
+"list || add <nom> || rename <nom> <nouveaunom> del <nom>"
+
+# rule: plurals
+msgid "%d file"
+msgid_plural "%d files"
+msgstr[0] "%d fichier"
+msgstr[1] "%d fichiers"
+msgstr[2] "%d fichiers"
+
+# rule: punc-end
+msgid "Test punctuation end."
+msgstr "Test de ponctuation à la fin"
+
+# rule: punc-start
+msgid "; test punctuation start"
+msgstr "test de ponctuation au début"
+
+# rule: tabs
+msgid "Test \t tabulation"
+msgstr "Test tabulation"
+
+# rule: whitespace-end
+msgid "Test whitespace end"
+msgstr "Test espace à la fin "
+
+# rule: whitespace-start
+msgid "Test whitespace start"
+msgstr " Test espace au début"
+
+# rule: fuzzy
+#, fuzzy
+msgid "Fuzzy entry"
+msgstr "Entrée fuzzy"
+
+# rule: unchanged
+msgid "Unchanged entry"
+msgstr "Unchanged entry"
+
+# rule: untranslated
+msgid "Untranslated entry"
+msgstr ""
+
+# rule: obsolete
+#~ msgid "Obsolete entry"
+#~ msgstr "Entrée obsolète"

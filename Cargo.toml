@@ -1,0 +1,32 @@
+# SPDX-FileCopyrightText: 2026 Sébastien Helleu <flashcode@flashtux.org>
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[package]
+name = "poexam"
+version = "0.0.1"
+authors = ["Sébastien Helleu <flashcode@flashtux.org>"]
+edition = "2024"
+description = "Blazingly fast PO linter."
+documentation = "https://docs.rs/poexam/"
+readme = "README.md"
+homepage = "https://github.com/poexam/poexam"
+repository = "https://github.com/poexam/poexam"
+license = "GPL-3.0-or-later"
+keywords = ["gettext", "po", "linter"]
+categories = [
+    "command-line-utilities",
+    "development-tools",
+    "internationalization",
+]
+
+[dependencies]
+clap = { version = "4.5.53", features = ["derive"] }
+colored = "3.0.0"
+encoding_rs = "0.8.35"
+ignore = "0.4.25"
+memchr = "2.7.6"
+path-absolutize = { version = "3.1.1", features = ["once_cell_cache"] }
+rayon = "1.11.0"
+serde_json = "1.0.149"
+serde = { version = "1.0.228", features = ["derive"] }
