@@ -21,16 +21,20 @@ enum Field {
 
 #[derive(Default)]
 pub struct Parser<'a> {
-    data: &'a [u8],
-    data_len: usize,
+    // data and some general info parsed in the header
+    pub data: &'a [u8],
+    pub data_len: usize,
+    pub language: String,
+    pub country: String,
+    pub encoding: Option<&'static Encoding>,
+    pub nplurals: u32,
+    // internal state of the parser
     iter_lines: Option<memchr::memmem::FindIter<'a, 'static>>,
     offset: usize,
     line_number: usize,
     next_line_number: usize,
     field: Field,
-    encoding: Option<&'static Encoding>,
     encoding_error: bool,
-    nplurals: u32,
 }
 
 impl<'d> Parser<'d> {
@@ -99,7 +103,14 @@ impl<'d> Parser<'d> {
         for line in msg.value.split('\n') {
             let (keyword, value) = line.split_once(':').unwrap_or(("", ""));
             let kw_lower = keyword.trim().to_lowercase();
-            if kw_lower == "content-type"
+            if kw_lower == "language" {
+                if let Some(pos) = value.find('_') {
+                    self.language = value[..pos].trim().to_string();
+                    self.country = value[pos + 1..].trim().to_string();
+                } else {
+                    self.language = value.trim().to_string();
+                }
+            } else if kw_lower == "content-type"
                 && let Some(pos) = value.find("charset=")
             {
                 let value_charset = &value[pos + 8..];
@@ -288,6 +299,7 @@ msgid ""
 msgstr "test\n"
 "Project-Id-Version: my_project\n"
 "Report-Msgid-Bugs-To: someone@example.com\n"
+"Language: fr\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 "#;
         let mut parser = Parser::new(content.as_bytes());
@@ -310,11 +322,23 @@ msgstr "test\n"
                 "test\n\
                 Project-Id-Version: my_project\n\
                 Report-Msgid-Bugs-To: someone@example.com\n\
+                Language: fr\n\
                 Plural-Forms: nplurals=2; plural=(n > 1);\n"
             ))
             .as_ref()
         );
+        assert_eq!(parser.language, "fr");
+        assert_eq!(parser.country, "");
         assert!(parser.encoding.is_none());
+
+        let content = r#"# Main comment
+msgid ""
+msgstr "Language: pt_BR\n"
+"#;
+        let mut parser = Parser::new(content.as_bytes());
+        let _ = parser.by_ref().collect::<Vec<Entry>>();
+        assert_eq!(parser.language, "pt");
+        assert_eq!(parser.country, "BR");
     }
 
     #[test]

@@ -6,6 +6,12 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 # Poexam ChangeLog
 
+## Version 0.0.2 (under dev)
+
+### Fixed
+
+- Add support of full-width and Greek punctuation
+
 ## Version 0.0.1
 
 ### Added

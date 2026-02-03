@@ -25,13 +25,16 @@ impl RuleChecker for PuncStartRule {
 
     /// Check for inconsistent leading punctuation between source and translation.
     ///
-    /// The following characters are considered as punctuation for this check:
-    /// - colon: `:`
-    /// - semicolon: `;`
+    /// The following characters are considered as punctuation for this check
+    /// (half-width and full-width):
+    /// - colon: `:`, `：`
+    /// - semicolon: `;`, `；`
     /// - full stop (period): `.`, `。` or `…`
-    /// - comma: `,`
-    /// - exclamation mark: `!`
-    /// - question mark: `?`
+    /// - comma: `,`, `，`
+    /// - exclamation mark: `!`, `！`
+    /// - question mark: `?`, `？`
+    ///
+    /// The Greek question mark is `;` and is considered the same as `?` in other languages.
     ///
     /// Special case: leading dots in the source or translation are ignored, because they
     /// are often used for hidden or filename extension.
@@ -51,15 +54,12 @@ impl RuleChecker for PuncStartRule {
     /// Diagnostics reported with severity [`info`](Severity::Info):
     /// - `inconsistent leading punctuation ('…' / '…')`
     fn check_msg(&self, checker: &mut Checker, entry: &Entry, msgid: &str, msgstr: &str) {
+        let language = checker.language();
         let id_punc = get_punc_start(msgid);
         let str_punc = get_punc_start(msgstr);
-        let id_punc_stripped = id_punc.trim();
-        let str_punc_stripped = str_punc.trim();
-        if id_punc_stripped.starts_with('.')
-            || id_punc_stripped.starts_with("。")
-            || str_punc_stripped.starts_with('.')
-            || str_punc_stripped.starts_with("。")
-        {
+        let id_punc2 = punc_to_half_width(id_punc.trim(), language);
+        let str_punc2 = punc_to_half_width(str_punc.trim(), language);
+        if id_punc2.starts_with('.') || str_punc2.starts_with('.') {
             // Ignore leading dots, often used for hidden or filename extension,
             // and the translation may change the order of words.
             // For example:
@@ -67,10 +67,10 @@ impl RuleChecker for PuncStartRule {
             //   msgstr "fichier .po cassé"
             return;
         }
-        if id_punc_stripped.replace("。", ".") != str_punc_stripped.replace("。", ".") {
+        if id_punc2 != str_punc2 {
             checker.report_msg(
                 entry,
-                format!("inconsistent leading punctuation ('{id_punc}' / '{str_punc}')"),
+                format!("inconsistent leading punctuation ('{id_punc2}' / '{str_punc2}')"),
                 msgid.highlight_pos(0, id_punc.len()),
                 msgstr.highlight_pos(0, str_punc.len()),
             );
@@ -118,14 +118,15 @@ impl RuleChecker for PuncEndRule {
     /// Diagnostics reported with severity [`info`](Severity::Info):
     /// - `inconsistent trailing punctuation ('…' / '…')`
     fn check_msg(&self, checker: &mut Checker, entry: &Entry, msgid: &str, msgstr: &str) {
+        let language = checker.language();
         let id_punc = get_punc_end(msgid);
         let str_punc = get_punc_end(msgstr);
-        let id_punc_stripped = id_punc.trim();
-        let str_punc_stripped = str_punc.trim();
-        if id_punc_stripped.replace("。", ".") != str_punc_stripped.replace("。", ".") {
+        let id_punc2 = punc_to_half_width(id_punc.trim(), language);
+        let str_punc2 = punc_to_half_width(str_punc.trim(), language);
+        if id_punc2 != str_punc2 {
             checker.report_msg(
                 entry,
-                format!("inconsistent trailing punctuation ('{id_punc}' / '{str_punc}')"),
+                format!("inconsistent trailing punctuation ('{id_punc2}' / '{str_punc2}')"),
                 msgid.highlight_pos(msgid.len() - id_punc.len(), msgid.len()),
                 msgstr.highlight_pos(msgstr.len() - str_punc.len(), msgstr.len()),
             );
@@ -135,14 +136,38 @@ impl RuleChecker for PuncEndRule {
 
 /// Check if a character is considered as punctuation for this rule.
 fn is_punc(c: char) -> bool {
-    c == ':' || c == ';' || c == '.' || c == '。' || c == '…' || c == ',' || c == '!' || c == '?'
+    c == ':'
+        || c == '：'
+        || c == ';'
+        || c == '；'
+        || c == '.'
+        || c == '。'
+        || c == '…'
+        || c == ','
+        || c == '，'
+        || c == '!'
+        || c == '！'
+        || c == '?'
+        || c == '？'
 }
 
 /// Get the leading punctuation of a string (it includes whitespace).
 fn get_punc_start(s: &str) -> &str {
+    let mut whitespace_ended: bool = false;
     let pos = s
         .chars()
-        .take_while(|c| is_punc(*c) || (c.is_whitespace() && *c != '\n'))
+        .take_while(|c| {
+            if is_punc(*c) {
+                whitespace_ended = true;
+                true
+            } else {
+                if c.is_whitespace() && *c != '\n' {
+                    !whitespace_ended
+                } else {
+                    false
+                }
+            }
+        })
         .map(char::len_utf8)
         .sum::<usize>();
     &s[..pos]
@@ -150,13 +175,44 @@ fn get_punc_start(s: &str) -> &str {
 
 /// Get the trailing punctuation of a string (it includes whitespace).
 fn get_punc_end(s: &str) -> &str {
+    let mut whitespace_ended: bool = false;
     let pos = s
         .chars()
         .rev()
-        .take_while(|c| is_punc(*c) || (c.is_whitespace() && *c != '\n'))
+        .take_while(|c| {
+            if is_punc(*c) {
+                whitespace_ended = true;
+                true
+            } else {
+                if c.is_whitespace() && *c != '\n' {
+                    !whitespace_ended
+                } else {
+                    false
+                }
+            }
+        })
         .map(char::len_utf8)
         .sum::<usize>();
     &s[s.len() - pos..]
+}
+
+/// Convert punctuation from full-width to normal width and collapse ellipsis.
+fn punc_to_half_width(s: &str, language: &str) -> String {
+    s.chars()
+        .map(|c| match c {
+            // Convert full-width to half-width.
+            '：' => ':',
+            '；' => ';',
+            '。' => '.',
+            '，' => ',',
+            '！' => '!',
+            '？' => '?',
+            // Special case for Greek question mark.
+            '?' if language == "el" => ';',
+            _ => c,
+        })
+        .collect::<String>()
+        .replace("...", "…")
 }
 
 #[cfg(test)]
@@ -198,7 +254,7 @@ mod tests {
     fn test_get_punc_start() {
         assert_eq!(get_punc_start(""), "");
         assert_eq!(get_punc_start("test"), "");
-        assert_eq!(get_punc_start(", test"), ", ");
+        assert_eq!(get_punc_start(", test"), ",");
         assert_eq!(get_punc_start("...test"), "...");
         assert_eq!(get_punc_start("…test"), "…");
         assert_eq!(get_punc_start("テスト済み"), "");
@@ -216,6 +272,16 @@ mod tests {
         assert_eq!(get_punc_end("テスト済み"), "");
         assert_eq!(get_punc_end("テスト済み。"), "。");
         assert_eq!(get_punc_end("テスト済み。。。"), "。。。");
+    }
+
+    #[test]
+    fn test_punc_to_half_width() {
+        assert_eq!(punc_to_half_width("", "fr"), "");
+        assert_eq!(punc_to_half_width("test", "fr"), "test");
+        assert_eq!(punc_to_half_width("。，！？：；。。。", "zh"), ".,!?:;…");
+        assert_eq!(punc_to_half_width("?", "fr"), "?");
+        // Special case for Greek question mark.
+        assert_eq!(punc_to_half_width("?", "el"), ";");
     }
 
     #[test]
@@ -238,6 +304,13 @@ msgstr "testé"
 
     #[test]
     fn test_punc_ok() {
+        let diags = check_punc_end(
+            r#"
+msgid "tested, ..."
+msgstr "testé…"
+"#,
+        );
+        assert!(diags.is_empty());
         let diags = check_punc_start(
             r#"
 msgid "tested."
@@ -249,6 +322,13 @@ msgstr "テスト済み。"
             r#"
 msgid "tested."
 msgstr "テスト済み。"
+"#,
+        );
+        assert!(diags.is_empty());
+        let diags = check_punc_end(
+            r#"
+msgid "tested,"
+msgstr "テスト済み，"
 "#,
         );
         assert!(diags.is_empty());
@@ -277,7 +357,7 @@ msgstr ",testé !!!"
         assert_eq!(diag.severity, Severity::Info);
         assert_eq!(
             diag.message,
-            "inconsistent trailing punctuation ('!' / ' !!!')"
+            "inconsistent trailing punctuation ('!' / '!!!')"
         );
     }
 }

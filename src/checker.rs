@@ -70,6 +70,24 @@ impl<'d, 'r> Checker<'d, 'r> {
         self
     }
 
+    /// Get the language of the file being checked.
+    ///
+    /// Examples:
+    /// - `fr` -> `fr`
+    /// - `pt_BR` -> `pt`
+    pub fn language(&self) -> &str {
+        &self.parser.language
+    }
+
+    /// Get the country of the file being checked.
+    ///
+    /// Examples:
+    /// - `fr` -> empty string
+    /// - `pt_BR` -> `BR`
+    pub fn country(&self) -> &str {
+        &self.parser.country
+    }
+
     /// Return the encoding name.
     pub fn encoding_name(&self) -> &'static str {
         self.parser.encoding_name()
