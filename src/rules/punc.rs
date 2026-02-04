@@ -280,7 +280,7 @@ mod tests {
     }
 
     #[test]
-    fn test_punc_to_half_width() {
+    fn test_punc_normalize() {
         assert_eq!(punc_normalize("", "fr"), "");
         assert_eq!(punc_normalize("test", "fr"), "test");
         assert_eq!(punc_normalize("。，！？؟：；؛。。。", "zh"), ".,!??:;;…");
