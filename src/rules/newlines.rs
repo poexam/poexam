@@ -271,17 +271,29 @@ msgstr "\ntesté\nligne 2\n"
 msgid "tested\rline 2"
 msgstr "testé ligne 2"
 
+msgid "tested line 2"
+msgstr "testé\rligne 2"
+
 msgid "tested\nline 2"
 msgstr "testé ligne 2"
+
+msgid "testedline 2"
+msgstr "testé\nligne 2"
 "#,
         );
-        assert_eq!(diags.len(), 2);
+        assert_eq!(diags.len(), 4);
         let diag = &diags[0];
         assert_eq!(diag.severity, Severity::Error);
         assert_eq!(diag.message, "missing carriage returns '\\r' (1 / 0)");
         let diag = &diags[1];
         assert_eq!(diag.severity, Severity::Error);
+        assert_eq!(diag.message, "extra carriage returns '\\r' (0 / 1)");
+        let diag = &diags[2];
+        assert_eq!(diag.severity, Severity::Error);
         assert_eq!(diag.message, "missing line feeds '\\n' (1 / 0)");
+        let diag = &diags[3];
+        assert_eq!(diag.severity, Severity::Error);
+        assert_eq!(diag.message, "extra line feeds '\\n' (0 / 1)");
     }
 
     #[test]
