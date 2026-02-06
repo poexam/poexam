@@ -6,6 +6,12 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 # Poexam ChangeLog
 
+## Version 0.0.3 (under dev)
+
+### Fixed
+
+- Fix detection of C formats in strings
+
 ## Version 0.0.2 (2026-02-04)
 
 ### Changed

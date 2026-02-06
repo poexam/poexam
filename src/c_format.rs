@@ -91,37 +91,59 @@ impl<'a> Iterator for CFormat<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         let len = self.bytes.len();
         while self.pos < len {
-            if self.bytes[self.pos] == b'%' {
-                let start = self.pos;
+            if self.bytes[self.pos] != b'%' {
                 self.pos += 1;
+                continue;
+            }
+            let start = self.pos;
+            self.pos += 1;
 
-                // Handle escaped "%%".
-                if self.pos < len && self.bytes[self.pos] == b'%' {
+            // Handle escaped "%%".
+            if self.pos < len && self.bytes[self.pos] == b'%' {
+                self.pos += 1;
+                continue;
+            }
+
+            // Skip flags / width / precision / reordering.
+            while self.pos < len {
+                let b = self.bytes[self.pos];
+                if matches!(b, b'-' | b'+' | b' ' | b'#' | b'.' | b'$' | b'0'..=b'9') {
                     self.pos += 1;
-                    continue;
+                } else {
+                    break;
                 }
+            }
 
-                // Skip flags / width / precision / reordering.
-                while self.pos < len {
-                    let b = self.bytes[self.pos];
-                    if matches!(b, b'-' | b'+' | b' ' | b'#' | b'.' | b'$' | b'0'..=b'9') {
+            // Parse length modifiers (h, hh, l, ll, q, L, j, z, Z, t).
+            if self.pos < len {
+                match self.bytes[self.pos] {
+                    b'h' => {
                         self.pos += 1;
-                    } else {
-                        break;
+                        if self.pos < len && self.bytes[self.pos] == b'h' {
+                            self.pos += 1;
+                        }
                     }
+                    b'l' => {
+                        self.pos += 1;
+                        if self.pos < len && self.bytes[self.pos] == b'l' {
+                            self.pos += 1;
+                        }
+                    }
+                    b'q' | b'L' | b'j' | b'z' | b'Z' | b't' => {
+                        self.pos += 1;
+                    }
+                    _ => {}
                 }
+            }
 
-                // Return format including the conversion specifier (e.g. s, d, f, etc.).
-                if self.pos < len {
-                    self.pos += 1;
-                    return Some(MatchCFormat {
-                        format: &self.s[start..self.pos],
-                        start,
-                        end: self.pos,
-                    });
-                }
-            } else {
+            // Return format including the conversion specifier (e.g. s, d, f, etc.).
+            if self.pos < len {
                 self.pos += 1;
+                return Some(MatchCFormat {
+                    format: &self.s[start..self.pos],
+                    start,
+                    end: self.pos,
+                });
             }
         }
         None
@@ -285,6 +307,29 @@ mod tests {
                 format: "%05.2f",
                 start: 7,
                 end: 13,
+            })
+        );
+        assert!(cf.next().is_none());
+    }
+
+    #[test]
+    fn test_flags_width_length() {
+        let s = "Hello, %ld %9llu world!";
+        let mut cf = CFormat::new(s);
+        assert_eq!(
+            cf.next(),
+            Some(MatchCFormat {
+                format: "%ld",
+                start: 7,
+                end: 10,
+            })
+        );
+        assert_eq!(
+            cf.next(),
+            Some(MatchCFormat {
+                format: "%9llu",
+                start: 11,
+                end: 16,
             })
         );
         assert!(cf.next().is_none());
