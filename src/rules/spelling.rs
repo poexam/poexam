@@ -52,10 +52,12 @@ impl RuleChecker for SpellingCtxtRule {
                 let word = &msgctxt[start..end];
                 if hash_words.contains(word) {
                     pos_words.push((start, end));
-                } else if !dict.check(word) {
-                    misspelled_words.push(word);
+                } else {
                     hash_words.insert(word);
-                    pos_words.push((start, end));
+                    if !dict.check(word) {
+                        misspelled_words.push(word);
+                        pos_words.push((start, end));
+                    }
                 }
             }
         }
@@ -114,10 +116,12 @@ impl RuleChecker for SpellingIdRule {
                 let word = &msgid[start..end];
                 if hash_words.contains(word) {
                     pos_words.push((start, end));
-                } else if !dict.check(word) {
-                    misspelled_words.push(word);
+                } else {
                     hash_words.insert(word);
-                    pos_words.push((start, end));
+                    if !dict.check(word) {
+                        misspelled_words.push(word);
+                        pos_words.push((start, end));
+                    }
                 }
             }
         }
@@ -178,10 +182,12 @@ impl RuleChecker for SpellingStrRule {
                 let word = &msgstr[start..end];
                 if hash_words.contains(word) {
                     pos_words.push((start, end));
-                } else if !dict.check(word) {
-                    misspelled_words.push(word);
+                } else {
                     hash_words.insert(word);
-                    pos_words.push((start, end));
+                    if !dict.check(word) {
+                        misspelled_words.push(word);
+                        pos_words.push((start, end));
+                    }
                 }
             }
         }
