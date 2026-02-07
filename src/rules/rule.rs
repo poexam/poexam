@@ -17,7 +17,7 @@ use crate::{
 
 pub type Rule = Box<dyn RuleChecker + Sync>;
 
-const SPECIAL_RULES: [&str; 2] = ["all", "checks"];
+const SPECIAL_RULES: [&str; 3] = ["all", "checks", "spelling"];
 
 #[derive(Default)]
 #[allow(clippy::struct_excessive_bools)]
@@ -148,6 +148,13 @@ pub fn get_selected_rules(args: &args::CheckArgs) -> Result<Rules, Box<dyn std::
         .into_iter()
         .filter(|r| r.is_check() && (all_severities || args.severity.contains(&r.severity())))
         .collect();
+    let spelling_rules: Vec<Rule> = get_all_rules()
+        .into_iter()
+        .filter(|r| {
+            r.name().starts_with("spelling-")
+                && (all_severities || args.severity.contains(&r.severity()))
+        })
+        .collect();
     let all_rules_names: HashSet<&'static str> = all_rules.iter().map(|r| r.name()).collect();
     let mut selected_rules: Vec<Rule> = Vec::new();
 
@@ -163,6 +170,8 @@ pub fn get_selected_rules(args: &args::CheckArgs) -> Result<Rules, Box<dyn std::
             selected_rules = all_rules;
         } else if names.contains(&"checks") {
             selected_rules = check_rules;
+        } else if names.contains(&"spelling") {
+            selected_rules = spelling_rules;
         } else {
             for rule in all_rules {
                 if names.contains(&rule.name()) {
