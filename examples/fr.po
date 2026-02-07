@@ -100,10 +100,10 @@ msgstr ""
 #~ msgid "Obsolete entry"
 #~ msgstr "Entrée obsolète"
 
-# rule: spell-id
+# rule: spelling-id
 msgid "This is a tyypo"
 msgstr "Ceci est une faute"
 
-# rule: spell-str
+# rule: spelling-str
 msgid "This is a typo"
 msgstr "Ceci est une fôte"
