@@ -18,6 +18,10 @@ impl RuleChecker for FuzzyRule {
         false
     }
 
+    fn is_check(&self) -> bool {
+        false
+    }
+
     fn severity(&self) -> Severity {
         Severity::Info
     }

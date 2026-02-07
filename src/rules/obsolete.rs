@@ -18,6 +18,10 @@ impl RuleChecker for ObsoleteRule {
         false
     }
 
+    fn is_check(&self) -> bool {
+        false
+    }
+
     fn severity(&self) -> Severity {
         Severity::Info
     }

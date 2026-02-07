@@ -60,7 +60,7 @@ pub struct CheckArgs {
     #[arg(long)]
     pub obsolete: bool,
 
-    /// Select rules to apply (comma-separated list), the special rule "all" can be used to select all rules
+    /// Select rules to apply (comma-separated list), see `poexam rules`
     #[arg(short, long)]
     pub select: Option<String>,
 

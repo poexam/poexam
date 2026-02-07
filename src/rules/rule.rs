@@ -17,6 +17,8 @@ use crate::{
 
 pub type Rule = Box<dyn RuleChecker + Sync>;
 
+const SPECIAL_RULES: [&str; 2] = ["all", "checks"];
+
 #[derive(Default)]
 #[allow(clippy::struct_excessive_bools)]
 pub struct Rules {
@@ -69,6 +71,9 @@ impl Rules {
 pub trait RuleChecker {
     fn name(&self) -> &'static str;
     fn is_default(&self) -> bool;
+    fn is_check(&self) -> bool {
+        true
+    }
     fn severity(&self) -> crate::diagnostic::Severity;
     fn check_entry(&self, _checker: &mut Checker, _entry: &Entry) {}
     fn check_msg(&self, _checker: &mut Checker, _entry: &Entry, _msgid: &str, _msgstr: &str) {}
@@ -110,8 +115,10 @@ pub fn get_unknown_rules<'a>(
         .difference(all_rules_names)
         .copied()
         .collect();
-    // The special rule "all" is always known, we just ignore it.
-    unknown_rules_names.remove(&"all");
+    // Some special rules like "all" and "check" are always known, we just ignore them.
+    for name in SPECIAL_RULES {
+        unknown_rules_names.remove(name);
+    }
     if unknown_rules_names.is_empty() {
         return vec![];
     }
@@ -131,6 +138,10 @@ pub fn get_selected_rules(args: &args::CheckArgs) -> Result<Rules, Box<dyn std::
         .into_iter()
         .filter(|r| all_severities || args.severity.contains(&r.severity()))
         .collect();
+    let check_rules: Vec<Rule> = get_all_rules()
+        .into_iter()
+        .filter(|r| r.is_check() && (all_severities || args.severity.contains(&r.severity())))
+        .collect();
     let all_rules_names: HashSet<&'static str> = all_rules.iter().map(|r| r.name()).collect();
     let mut selected_rules: Vec<Rule> = Vec::new();
 
@@ -144,6 +155,8 @@ pub fn get_selected_rules(args: &args::CheckArgs) -> Result<Rules, Box<dyn std::
         }
         if names.contains(&"all") {
             selected_rules = all_rules;
+        } else if names.contains(&"checks") {
+            selected_rules = check_rules;
         } else {
             for rule in all_rules {
                 if names.contains(&rule.name()) {
@@ -199,5 +212,10 @@ pub fn run_rules(_args: &args::RulesArgs) -> i32 {
         }
     }
     println!("Total: {} rules", default_rules.len() + other_rules.len());
+    println!("Special rules:");
+    println!("  all: select all rules");
+    println!(
+        "  checks: select rules that actually check (all rules except fuzzy, obsolete and untranslated)"
+    );
     0
 }
