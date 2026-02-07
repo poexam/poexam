@@ -26,6 +26,7 @@ pub struct Rules {
     pub fuzzy_rule: bool,
     pub obsolete_rule: bool,
     pub untranslated_rule: bool,
+    pub spelling_ctxt_rule: bool,
     pub spelling_id_rule: bool,
     pub spelling_str_rule: bool,
 }
@@ -37,6 +38,7 @@ impl<'a> Default for &'a Rules {
             fuzzy_rule: false,
             obsolete_rule: false,
             untranslated_rule: false,
+            spelling_ctxt_rule: false,
             spelling_id_rule: false,
             spelling_str_rule: false,
         };
@@ -55,6 +57,7 @@ impl Rules {
         let fuzzy_rule = rules.iter().any(|r| r.name() == "fuzzy");
         let obsolete_rule = rules.iter().any(|r| r.name() == "obsolete");
         let untranslated_rule = rules.iter().any(|r| r.name() == "untranslated");
+        let spelling_ctxt_rule = rules.iter().any(|r| r.name() == "spelling-ctxt");
         let spelling_id_rule = rules.iter().any(|r| r.name() == "spelling-id");
         let spelling_str_rule = rules.iter().any(|r| r.name() == "spelling-str");
         Self {
@@ -62,6 +65,7 @@ impl Rules {
             fuzzy_rule,
             obsolete_rule,
             untranslated_rule,
+            spelling_ctxt_rule,
             spelling_id_rule,
             spelling_str_rule,
         }
@@ -76,6 +80,7 @@ pub trait RuleChecker {
     }
     fn severity(&self) -> crate::diagnostic::Severity;
     fn check_entry(&self, _checker: &mut Checker, _entry: &Entry) {}
+    fn check_ctxt(&self, _checker: &mut Checker, _entry: &Entry, _ctxt: &str) {}
     fn check_msg(&self, _checker: &mut Checker, _entry: &Entry, _msgid: &str, _msgstr: &str) {}
 }
 
@@ -95,6 +100,7 @@ pub fn get_all_rules() -> Vec<Rule> {
         Box::new(plurals::PluralsRule {}),
         Box::new(punc::PuncEndRule {}),
         Box::new(punc::PuncStartRule {}),
+        Box::new(spelling::SpellingCtxtRule {}),
         Box::new(spelling::SpellingIdRule {}),
         Box::new(spelling::SpellingStrRule {}),
         Box::new(tabs::TabsRule {}),

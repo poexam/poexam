@@ -27,7 +27,7 @@ msgstr " "
 
 # rule: brackets
 msgid "Test [brackets]"
-msgstr "Test brackets"
+msgstr "Test crochets"
 
 # rule: c-formats
 #, c-format
@@ -99,6 +99,11 @@ msgstr ""
 # rule: obsolete
 #~ msgid "Obsolete entry"
 #~ msgstr "Entrée obsolète"
+
+# rule: spelling-ctxt
+msgctxt "Month of the yearr"
+msgid "May"
+msgstr "Mai"
 
 # rule: spelling-id
 msgid "This is a tyypo"

@@ -10,7 +10,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 ### Added
 
-- Add rules "spelling-id" and "spelling-str"
+- Add rules "spelling-ctxt", "spelling-id" and "spelling-str"
 - Add special rule "checks" to select all rules except fuzzy, obsolete and untranslated
 
 ### Fixed

@@ -65,14 +65,15 @@ It can perform a lot of checks via the default rules:
 
  You can enable them on-demand:
 
-| Rule name    | Severity | Diagnostic reported                           |
-|--------------|----------|-----------------------------------------------|
-| fuzzy        | info     | Fuzzy entry.                                  |
-| obsolete     | info     | Obsolete entry.                               |
-| spelling-id  | info     | Spelling error in the source string.          |
-| spelling-str | info     | Spelling error in the translated string.      |
-| unchanged    | info     | Translation is the same as the source string. |
-| untranslated | info     | Untranslated entry.                           |
+| Rule name     | Severity | Diagnostic reported                           |
+|---------------|----------|-----------------------------------------------|
+| fuzzy         | info     | Fuzzy entry.                                  |
+| obsolete      | info     | Obsolete entry.                               |
+| spelling-ctxt | info     | Spelling error in the context string.         |
+| spelling-id   | info     | Spelling error in the source string.          |
+| spelling-str  | info     | Spelling error in the translated string.      |
+| unchanged     | info     | Translation is the same as the source string. |
+| untranslated  | info     | Untranslated entry.                           |
 
 The result is very clear, almost all errors are highlighted in the strings so you can immediately see where the issue is.
 
@@ -91,7 +92,7 @@ examples/fr.po:29: [info:brackets] missing opening and closing square brackets '
         |
      29 | Test [brackets]
         |
-     30 | Test brackets
+     30 | Test crochets
         |
 
 examples/fr.po:34: [error:c-formats] inconsistent C format strings
@@ -110,7 +111,7 @@ examples/fr.po:38: [info:double-quotes] missing double quotes (2 / 0)
 
 (...)
 
-1 files checked: 18 problems in 1 files (5 errors, 1 warnings, 12 info) [848.884µs]
+1 files checked: 24 problems in 1 files (5 errors, 1 warnings, 18 info) [23.890354ms]
 ```
 
 Poexam can also give statistics about the translation progress and number of lines/words/charecters, see: `poexam help stats`.

@@ -36,6 +36,7 @@ pub struct Checker<'d, 'r, 't> {
     path_dicts: PathBuf,
     current_rule: &'static str,
     current_severity: Severity,
+    current_line_ctxt: usize,
     current_line_id: usize,
     current_line_str: usize,
 }
@@ -135,6 +136,24 @@ impl<'d, 'r, 't> Checker<'d, 'r, 't> {
         self.diagnostics.push(diagnostic);
     }
 
+    /// Report a diagnostic for a given context of a PO entry (msgctxt).
+    pub fn report_ctxt(
+        &mut self,
+        _entry: &Entry,
+        message: String,
+        msgctxt: &str,
+        hl_ctxt: &[(usize, usize)],
+    ) {
+        let mut diagnostic = Diagnostic::new(
+            self.path.as_path(),
+            self.current_rule,
+            self.current_severity,
+            message,
+        );
+        diagnostic.add_message(self.current_line_id, msgctxt, hl_ctxt);
+        self.diagnostics.push(diagnostic);
+    }
+
     /// Report a diagnostic for a given message of a PO entry (couple source/translated).
     pub fn report_msg(
         &mut self,
@@ -170,6 +189,10 @@ impl<'d, 'r, 't> Checker<'d, 'r, 't> {
         self.current_severity = rule.severity();
         let rule_is_untranslated = self.current_rule == "untranslated";
         rule.check_entry(self, entry);
+        if let Some(msgctxt) = &entry.msgctxt {
+            self.current_line_ctxt = msgctxt.line_number;
+            rule.check_ctxt(self, entry, &msgctxt.value);
+        }
         if let (Some(msgid), Some(msgstr_0)) = (&entry.msgid, entry.msgstr.get(&0))
             && (!msgstr_0.value.is_empty()
                 || (self.rules.untranslated_rule && rule_is_untranslated))
@@ -473,7 +496,7 @@ pub fn run_check(args: &args::CheckArgs) -> i32 {
     };
     display_settings(args, &rules);
     let po_files = find_po_files(&args.files);
-    let dict_id = if rules.spelling_id_rule {
+    let dict_id = if rules.spelling_ctxt_rule || rules.spelling_id_rule {
         match get_dict(args.path_dicts.as_path(), &args.lang_id) {
             Ok(dict) => Some(dict),
             Err(err) => {

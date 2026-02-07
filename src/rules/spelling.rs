@@ -10,6 +10,70 @@ use crate::po::entry::Entry;
 use crate::rules::rule::RuleChecker;
 use crate::words::WordPos;
 
+pub struct SpellingCtxtRule {}
+
+impl RuleChecker for SpellingCtxtRule {
+    fn name(&self) -> &'static str {
+        "spelling-ctxt"
+    }
+
+    fn is_default(&self) -> bool {
+        false
+    }
+
+    fn severity(&self) -> Severity {
+        Severity::Info
+    }
+
+    /// Check spelling in the context stirng (English).
+    ///
+    /// Wrong entry:
+    /// ```text
+    /// msgctxt "month of the yearr"
+    /// msgid "May"
+    /// msgstr "Mai"
+    /// ```
+    ///
+    /// Correct entry:
+    /// ```text
+    /// msgctxt "month of the year"
+    /// msgid "May"
+    /// msgstr "Mai"
+    /// ```
+    ///
+    /// Diagnostics reported with severity [`warning`](Severity::Info):
+    /// - `misspelled words in context: xxx`
+    fn check_ctxt(&self, checker: &mut Checker, entry: &Entry, msgctxt: &str) {
+        let mut misspelled_words: Vec<&str> = Vec::new();
+        let mut hash_words: HashSet<&str> = HashSet::new();
+        let mut pos_words = Vec::new();
+        if let Some(dict) = &checker.dict_id {
+            for (start, end) in WordPos::new(msgctxt, &entry.format) {
+                let word = &msgctxt[start..end];
+                if hash_words.contains(word) {
+                    pos_words.push((start, end));
+                } else if !dict.check(word) {
+                    misspelled_words.push(word);
+                    hash_words.insert(word);
+                    pos_words.push((start, end));
+                }
+            }
+        }
+        if !misspelled_words.is_empty() {
+            misspelled_words.sort_unstable();
+            checker.report_ctxt(
+                entry,
+                format!(
+                    "misspelled words in context: {}",
+                    misspelled_words.join(", ")
+                ),
+                msgctxt,
+                &pos_words,
+            );
+        }
+    }
+}
+
 pub struct SpellingIdRule {}
 
 impl RuleChecker for SpellingIdRule {
@@ -149,6 +213,7 @@ mod tests {
 
     fn check_spelling(content: &str) -> Vec<Diagnostic> {
         let rules = Rules::new(vec![
+            Box::new(SpellingCtxtRule {}),
             Box::new(SpellingIdRule {}),
             Box::new(SpellingStrRule {}),
         ]);
@@ -169,6 +234,7 @@ mod tests {
 msgid ""
 msgstr "Language: fr\n"
 
+msgctxt "some context"
 msgid "tested"
 msgstr "testé"
 "#,
@@ -183,22 +249,20 @@ msgstr "testé"
 msgid ""
 msgstr "Language: fr\n"
 
-msgid "this is a tyypo"
-msgstr "ceci est une fôte"
+msgctxt "some contxet, some contxet"
+msgid "this is a tyypo, this is a tyypo"
+msgstr "ceci est unz fôte, ceci est unz fôte"
 "#,
         );
-        assert_eq!(diags.len(), 2);
+        assert_eq!(diags.len(), 3);
         let diag = &diags[0];
         assert_eq!(diag.severity, Severity::Info);
-        assert_eq!(
-            diag.message,
-            "misspelled words in source: a, is, this, tyypo"
-        );
+        assert_eq!(diag.message, "misspelled words in context: contxet");
         let diag = &diags[1];
         assert_eq!(diag.severity, Severity::Info);
-        assert_eq!(
-            diag.message,
-            "misspelled words in translation: ceci, est, fôte, une"
-        );
+        assert_eq!(diag.message, "misspelled words in source: tyypo");
+        let diag = &diags[2];
+        assert_eq!(diag.severity, Severity::Info);
+        assert_eq!(diag.message, "misspelled words in translation: fôte, unz");
     }
 }
