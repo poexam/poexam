@@ -128,8 +128,7 @@ impl<'d, 'r, 't> Checker<'d, 'r, 't> {
             self.current_rule,
             self.current_severity,
             message,
-        )
-        .with_msgid_raw(entry.msgid.as_ref().map(|msgid| msgid.value.clone()));
+        );
         for (line_no, line) in entry.to_po_lines() {
             diagnostic.add_message(line_no, &line, &[]);
         }
@@ -139,7 +138,7 @@ impl<'d, 'r, 't> Checker<'d, 'r, 't> {
     /// Report a diagnostic for a given message of a PO entry (couple source/translated).
     pub fn report_msg(
         &mut self,
-        entry: &Entry,
+        _entry: &Entry,
         message: String,
         msgid: &str,
         hl_id: &[(usize, usize)],
@@ -151,8 +150,7 @@ impl<'d, 'r, 't> Checker<'d, 'r, 't> {
             self.current_rule,
             self.current_severity,
             message,
-        )
-        .with_msgid_raw(entry.msgid.as_ref().map(|msgid| msgid.value.clone()));
+        );
         diagnostic.add_message(self.current_line_id, msgid, hl_id);
         diagnostic.add_message(0, "", &[]);
         diagnostic.add_message(self.current_line_str, msgstr, hl_str);
@@ -334,7 +332,7 @@ fn display_errors_human(result: &[(PathBuf, Vec<Diagnostic>)], args: &args::Chec
         args::CheckSort::Message => {
             diags.sort_by_key(|diag| {
                 (
-                    diag.msgid_raw.as_ref(),
+                    diag.lines.first().map_or("", |line| &line.message),
                     diag.path.as_path(),
                     diag.lines
                         .iter()

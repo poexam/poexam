@@ -40,7 +40,6 @@ pub struct Diagnostic {
     pub rule: &'static str,
     pub severity: Severity,
     pub message: String,
-    pub msgid_raw: Option<String>,
     pub lines: Vec<DiagnosticLine>,
 }
 
@@ -127,11 +126,6 @@ impl Diagnostic {
             message,
             ..Default::default()
         }
-    }
-
-    pub fn with_msgid_raw(mut self, msgid_raw: Option<String>) -> Self {
-        self.msgid_raw = msgid_raw;
-        self
     }
 
     pub fn add_message(&mut self, line: usize, message: &str, highlights: &[(usize, usize)]) {
