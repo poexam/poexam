@@ -464,7 +464,11 @@ fn display_result(
     }
     if files_with_errors == 0 {
         if !args.quiet && args.output == args::OutputFormat::Human {
-            println!("{files_checked} files checked: all OK! [{elapsed:?}]");
+            if files_checked > 0 {
+                println!("{files_checked} files checked: all OK! [{elapsed:?}]");
+            } else {
+                println!("No files checked [{elapsed:?}]");
+            }
         }
         0
     } else {
