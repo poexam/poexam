@@ -6,6 +6,12 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 # Poexam ChangeLog
 
+## Version 0.0.6 (under dev)
+
+### Fixed
+
+- Use severity "Warning" when a dictionary is not found for a language
+
 ## Version 0.0.5 (2026-02-08)
 
 ### Fixed

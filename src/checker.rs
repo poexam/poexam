@@ -225,7 +225,11 @@ impl<'d, 'r, 't> Checker<'d, 'r, 't> {
                         Ok(dict) => Some(dict),
                         Err(err) => {
                             if !error_dict_str {
-                                self.report_file("spelling-str", Severity::Error, err.to_string());
+                                self.report_file(
+                                    "spelling-str",
+                                    Severity::Warning,
+                                    err.to_string(),
+                                );
                             }
                             error_dict_str = true;
                             None

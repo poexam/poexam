@@ -30,7 +30,7 @@ pub fn get_dict(path: &Path, language: &str) -> Result<Dictionary, Box<dyn Error
         return Ok(dict);
     }
     Err(format!(
-        "dictionary not found for language '{language}' (path: {})",
+        "dictionary not found for language '{language}' (path: {}), spelling rule ignored",
         path.to_string_lossy()
     )
     .into())
