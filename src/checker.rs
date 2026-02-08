@@ -337,8 +337,8 @@ fn display_settings(args: &args::CheckArgs, rules: &Rules) {
     println!("  Output format: {}", args.output);
 }
 
-/// Display errors in human format.
-fn display_errors_human(result: &[(PathBuf, Vec<Diagnostic>)], args: &args::CheckArgs) {
+/// Display diagnostics in human format.
+fn display_diagnostics_human(result: &[(PathBuf, Vec<Diagnostic>)], args: &args::CheckArgs) {
     let mut diags: Vec<&Diagnostic> = result.iter().flat_map(|x| &x.1).collect();
     match args.sort {
         args::CheckSort::Line => {
@@ -382,7 +382,8 @@ fn display_errors_human(result: &[(PathBuf, Vec<Diagnostic>)], args: &args::Chec
     }
 }
 
-fn display_errors_json(result: &[(PathBuf, Vec<Diagnostic>)], _args: &args::CheckArgs) {
+/// Display diagnostics in JSON format.
+fn display_diagnostics_json(result: &[(PathBuf, Vec<Diagnostic>)], _args: &args::CheckArgs) {
     let diags: Vec<&Diagnostic> = result.iter().flat_map(|x| &x.1).collect();
     println!("{}", serde_json::to_string(&diags).unwrap_or_default());
 }
@@ -436,7 +437,7 @@ fn display_result(
         match args.output {
             args::OutputFormat::Human => {
                 if !args.no_errors {
-                    display_errors_human(result, args);
+                    display_diagnostics_human(result, args);
                 }
                 if args.file_status {
                     for (filename, info, warnings, errors) in file_errors {
@@ -457,7 +458,7 @@ fn display_result(
             }
             args::OutputFormat::Json => {
                 if !args.no_errors {
-                    display_errors_json(result, args);
+                    display_diagnostics_json(result, args);
                 }
             }
         }
