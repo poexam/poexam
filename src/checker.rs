@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::{
+    collections::HashSet,
     fs::File,
     io::Read,
     path::{Path, PathBuf},
@@ -22,6 +23,8 @@ use crate::{
     rules::rule::{Rule, Rules, get_selected_rules},
 };
 
+type CheckResult = (PathBuf, Vec<Diagnostic>, HashSet<String>);
+
 #[derive(Default)]
 pub struct Checker<'d, 'r, 't> {
     pub path: PathBuf,
@@ -35,6 +38,7 @@ pub struct Checker<'d, 'r, 't> {
     check_obsolete: bool,
     path_dicts: PathBuf,
     path_words: Option<PathBuf>,
+    misspelled_words: HashSet<String>,
     current_rule: &'static str,
     current_severity: Severity,
     current_line_ctxt: usize,
@@ -92,6 +96,10 @@ impl<'d, 'r, 't> Checker<'d, 'r, 't> {
     pub fn with_path_words(mut self, path_words: Option<&PathBuf>) -> Self {
         self.path_words = path_words.cloned();
         self
+    }
+
+    pub fn add_misspelled_word(&mut self, word: &str) {
+        self.misspelled_words.insert(word.to_string());
     }
 
     /// Get the language of the file being checked (eg: `pt_BR`).
@@ -273,7 +281,7 @@ pub fn check_file(
     args: &args::CheckArgs,
     rules: &Rules,
     dict_id: Option<&Dictionary>,
-) -> (PathBuf, Vec<Diagnostic>) {
+) -> CheckResult {
     let Ok(mut file) = File::open(path) else {
         return (
             PathBuf::from(path.as_path()),
@@ -283,6 +291,7 @@ pub fn check_file(
                 Severity::Error,
                 "could not open file".to_string(),
             )],
+            HashSet::new(),
         );
     };
     let mut buf = Vec::new();
@@ -295,6 +304,7 @@ pub fn check_file(
                 Severity::Error,
                 "could not read file".to_string(),
             )],
+            HashSet::new(),
         );
     };
     let mut checker = Checker::new(&buf, rules)
@@ -306,7 +316,11 @@ pub fn check_file(
         .with_path_dicts(&args.path_dicts)
         .with_path_words(args.path_words.as_ref());
     checker.do_all_checks();
-    (PathBuf::from(path.as_path()), checker.diagnostics)
+    (
+        PathBuf::from(path.as_path()),
+        checker.diagnostics,
+        checker.misspelled_words,
+    )
 }
 
 /// Display the settings used to check files.
@@ -353,7 +367,7 @@ fn display_settings(args: &args::CheckArgs, rules: &Rules) {
 }
 
 /// Display diagnostics in human format.
-fn display_diagnostics_human(result: &[(PathBuf, Vec<Diagnostic>)], args: &args::CheckArgs) {
+fn display_diagnostics_human(result: &[CheckResult], args: &args::CheckArgs) {
     let mut diags: Vec<&Diagnostic> = result.iter().flat_map(|x| &x.1).collect();
     match args.sort {
         args::CheckSort::Line => {
@@ -398,24 +412,31 @@ fn display_diagnostics_human(result: &[(PathBuf, Vec<Diagnostic>)], args: &args:
 }
 
 /// Display diagnostics in JSON format.
-fn display_diagnostics_json(result: &[(PathBuf, Vec<Diagnostic>)], _args: &args::CheckArgs) {
+fn display_diagnostics_json(result: &[CheckResult], _args: &args::CheckArgs) {
     let diags: Vec<&Diagnostic> = result.iter().flat_map(|x| &x.1).collect();
     println!("{}", serde_json::to_string(&diags).unwrap_or_default());
 }
 
+/// Display misspelled words.
+fn display_misspelled_words(result: &[CheckResult], _args: &args::CheckArgs) {
+    let hash_misspelled_words: HashSet<_> =
+        result.iter().flat_map(|x| &x.2).collect::<HashSet<_>>();
+    let mut misspelled_words = hash_misspelled_words.iter().copied().collect::<Vec<_>>();
+    misspelled_words.sort_unstable();
+    for word in misspelled_words {
+        println!("{word}");
+    }
+}
+
 /// Display the result of the checks and return the appropriate exit code.
-fn display_result(
-    result: &[(PathBuf, Vec<Diagnostic>)],
-    args: &args::CheckArgs,
-    elapsed: &Duration,
-) -> i32 {
+fn display_result(result: &[CheckResult], args: &args::CheckArgs, elapsed: &Duration) -> i32 {
     let mut files_checked = 0;
     let mut files_with_errors = 0;
     let mut count_info = 0;
     let mut count_warnings = 0;
     let mut count_errors = 0;
     let mut file_errors: Vec<(PathBuf, usize, usize, usize)> = Vec::new();
-    for (filename, errors) in result {
+    for (filename, errors, _) in result {
         let mut count_file_info = 0;
         let mut count_file_warnings = 0;
         let mut count_file_errors = 0;
@@ -450,7 +471,7 @@ fn display_result(
     }
     if !args.quiet {
         match args.output {
-            args::OutputFormat::Human => {
+            args::CheckOutputFormat::Human => {
                 if !args.no_errors {
                     display_diagnostics_human(result, args);
                 }
@@ -472,15 +493,20 @@ fn display_result(
                     }
                 }
             }
-            args::OutputFormat::Json => {
+            args::CheckOutputFormat::Json => {
                 if !args.no_errors {
                     display_diagnostics_json(result, args);
+                }
+            }
+            args::CheckOutputFormat::Misspelled => {
+                if !args.no_errors {
+                    display_misspelled_words(result, args);
                 }
             }
         }
     }
     if files_with_errors == 0 {
-        if !args.quiet && args.output == args::OutputFormat::Human {
+        if !args.quiet && args.output == args::CheckOutputFormat::Human {
             if files_checked > 0 {
                 println!("{files_checked} files checked: all OK! [{elapsed:?}]");
             } else {
@@ -489,7 +515,7 @@ fn display_result(
         }
         0
     } else {
-        if !args.quiet && args.output == args::OutputFormat::Human {
+        if !args.quiet && args.output == args::CheckOutputFormat::Human {
             println!(
                 "{files_checked} files checked: \
                 {} problems \
@@ -532,7 +558,7 @@ pub fn run_check(args: &args::CheckArgs) -> i32 {
     } else {
         None
     };
-    let result: Vec<(PathBuf, Vec<Diagnostic>)> = po_files
+    let result: Vec<CheckResult> = po_files
         .par_iter()
         .map(|f| check_file(f, args, &rules, dict_id.as_ref()))
         .collect();

@@ -98,7 +98,7 @@ pub struct CheckArgs {
 
     /// Output format
     #[arg(short, long, value_enum, default_value_t)]
-    pub output: OutputFormat,
+    pub output: CheckOutputFormat,
 
     /// Quiet mode: do not report any error, only set the exit code
     #[arg(short, long)]
@@ -131,7 +131,7 @@ pub struct StatsArgs {
 
     /// Output format
     #[arg(short, long, value_enum, default_value_t)]
-    pub output: OutputFormat,
+    pub output: StatsOutputFormat,
 
     /// Sort files displayed
     #[arg(short, long, value_enum, default_value_t)]
@@ -142,9 +142,33 @@ pub struct StatsArgs {
     pub words: bool,
 }
 
-/// Output format.
+/// Output format for `check` command.
 #[derive(Clone, Debug, Default, PartialEq, Eq, ValueEnum)]
-pub enum OutputFormat {
+pub enum CheckOutputFormat {
+    #[default]
+    /// Human readable text format
+    Human,
+
+    /// JSON
+    Json,
+
+    /// List of all misspelled words (one per line)
+    Misspelled,
+}
+
+impl std::fmt::Display for CheckOutputFormat {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            CheckOutputFormat::Human => write!(f, "human"),
+            CheckOutputFormat::Json => write!(f, "json"),
+            CheckOutputFormat::Misspelled => write!(f, "misspelled"),
+        }
+    }
+}
+
+/// Output format for `stats` command.
+#[derive(Clone, Debug, Default, PartialEq, Eq, ValueEnum)]
+pub enum StatsOutputFormat {
     #[default]
     /// Human readable text format
     Human,
@@ -153,11 +177,11 @@ pub enum OutputFormat {
     Json,
 }
 
-impl std::fmt::Display for OutputFormat {
+impl std::fmt::Display for StatsOutputFormat {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            OutputFormat::Human => write!(f, "human"),
-            OutputFormat::Json => write!(f, "json"),
+            StatsOutputFormat::Human => write!(f, "human"),
+            StatsOutputFormat::Json => write!(f, "json"),
         }
     }
 }

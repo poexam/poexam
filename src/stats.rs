@@ -505,7 +505,7 @@ fn display_stats(stats: &Vec<StatsFile>, args: &args::StatsArgs) -> i32 {
         .unwrap_or(0);
     if args.words {
         match args.output {
-            args::OutputFormat::Human => {
+            args::StatsOutputFormat::Human => {
                 for (idx, stat) in stats.iter().enumerate() {
                     if idx > 0 {
                         println!();
@@ -513,13 +513,13 @@ fn display_stats(stats: &Vec<StatsFile>, args: &args::StatsArgs) -> i32 {
                     println!("{}:\n{}", stat.path.display(), stat.to_string_words());
                 }
             }
-            args::OutputFormat::Json => {
+            args::StatsOutputFormat::Json => {
                 println!("{}", serde_json::to_string(&stats).unwrap_or_default());
             }
         }
     } else {
         match args.output {
-            args::OutputFormat::Human => {
+            args::StatsOutputFormat::Human => {
                 for stat in stats {
                     println!(
                         "{:width$} {}",
@@ -532,7 +532,7 @@ fn display_stats(stats: &Vec<StatsFile>, args: &args::StatsArgs) -> i32 {
                     }
                 }
             }
-            args::OutputFormat::Json => {
+            args::StatsOutputFormat::Json => {
                 println!("{}", serde_json::to_string(&stats).unwrap_or_default());
             }
         }

@@ -58,6 +58,9 @@ impl RuleChecker for SpellingCtxtRule {
                     msgctxt,
                     &pos_words,
                 );
+                for word in misspelled_words {
+                    checker.add_misspelled_word(word);
+                }
             }
         }
     }
@@ -109,6 +112,9 @@ impl RuleChecker for SpellingIdRule {
                     msgstr,
                     &[],
                 );
+                for word in misspelled_words {
+                    checker.add_misspelled_word(word);
+                }
             }
         }
     }
@@ -160,6 +166,9 @@ impl RuleChecker for SpellingStrRule {
                     msgstr,
                     &pos_words,
                 );
+                for word in misspelled_words {
+                    checker.add_misspelled_word(word);
+                }
             }
         }
     }
