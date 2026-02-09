@@ -140,20 +140,9 @@ pub fn get_unknown_rules<'a>(
 /// Then, any rules specified in `--ignore` are removed from the selection.
 pub fn get_selected_rules(args: &args::CheckArgs) -> Result<Rules, Box<dyn std::error::Error>> {
     let all_severities = args.severity.is_empty();
-    let all_rules: Vec<Rule> = get_all_rules()
+    let mut all_rules: Vec<Rule> = get_all_rules()
         .into_iter()
         .filter(|r| all_severities || args.severity.contains(&r.severity()))
-        .collect();
-    let check_rules: Vec<Rule> = get_all_rules()
-        .into_iter()
-        .filter(|r| r.is_check() && (all_severities || args.severity.contains(&r.severity())))
-        .collect();
-    let spelling_rules: Vec<Rule> = get_all_rules()
-        .into_iter()
-        .filter(|r| {
-            r.name().starts_with("spelling-")
-                && (all_severities || args.severity.contains(&r.severity()))
-        })
         .collect();
     let all_rules_names: HashSet<&'static str> = all_rules.iter().map(|r| r.name()).collect();
     let mut selected_rules: Vec<Rule> = Vec::new();
@@ -166,26 +155,21 @@ pub fn get_selected_rules(args: &args::CheckArgs) -> Result<Rules, Box<dyn std::
                 format!("unknown selected rules: {}", unknown_rules_names.join(", ")).into(),
             );
         }
-        if names.contains(&"all") {
-            selected_rules = all_rules;
-        } else if names.contains(&"checks") {
-            selected_rules = check_rules;
-        } else if names.contains(&"spelling") {
-            selected_rules = spelling_rules;
-        } else {
-            for rule in all_rules {
-                if names.contains(&rule.name()) {
-                    selected_rules.push(rule);
-                }
+        for name in names {
+            if name == "all" {
+                selected_rules.extend(all_rules.extract_if(.., |_| true));
+            } else if name == "checks" {
+                selected_rules.extend(all_rules.extract_if(.., |rule| rule.is_check()));
+            } else if name == "spelling" {
+                selected_rules
+                    .extend(all_rules.extract_if(.., |rule| rule.name().starts_with("spelling-")));
+            } else {
+                selected_rules.extend(all_rules.extract_if(.., |rule| rule.name() == name));
             }
         }
     } else {
         // If no selection was provided, start with all default rules.
-        for rule in all_rules {
-            if rule.is_default() {
-                selected_rules.push(rule);
-            }
-        }
+        selected_rules.extend(all_rules.extract_if(.., |rule| rule.is_default()));
     }
 
     // Remove the ignored rules.
@@ -201,6 +185,9 @@ pub fn get_selected_rules(args: &args::CheckArgs) -> Result<Rules, Box<dyn std::
         }
         selected_rules.retain(|rule| !names.contains(&rule.name()));
     }
+
+    // Sort rules by name.
+    selected_rules.sort_by(|a, b| a.name().cmp(b.name()));
 
     Ok(Rules::new(selected_rules))
 }

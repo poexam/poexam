@@ -15,6 +15,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 ### Fixed
 
+- Fix selection of rules when special rules are used
 - Use severity "Warning" when a dictionary is not found for a language
 
 ## Version 0.0.5 (2026-02-08)
