@@ -41,7 +41,7 @@ fn add_words_to_dict(path: &Path, language: &str, dict: &mut Dictionary) {
     }
 }
 
-// Get the dictionary for a language (eg: `fr` or `pt_BR`).
+// Get the dictionary for a language (e.g. `fr` or `pt_BR`).
 //
 // Words are added to the dictionary if path_words is set and if a file with ignored words exists
 // in this directory.
@@ -50,14 +50,14 @@ pub fn get_dict(
     path_words: Option<&PathBuf>,
     language: &str,
 ) -> Result<Dictionary, Box<dyn Error>> {
-    // First look for the dictionary with complete language (eg: `pt_BR`).
+    // First look for the dictionary with complete language (e.g. `pt_BR`).
     if let Some(mut dict) = get_dict_name(path_dicts, language) {
         if let Some(path) = path_words {
             add_words_to_dict(path.as_path(), language, &mut dict);
         }
         return Ok(dict);
     }
-    // Then look for the dictionary with language without country (eg: `pt`).
+    // Then look for the dictionary with language without country (e.g. `pt`).
     if let Some(pos) = language.find('_')
         && let Some(mut dict) = get_dict_name(path_dicts, &language[..pos])
     {

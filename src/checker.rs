@@ -102,17 +102,17 @@ impl<'d, 'r, 't> Checker<'d, 'r, 't> {
         self.misspelled_words.insert(word.to_string());
     }
 
-    /// Get the language of the file being checked (eg: `pt_BR`).
+    /// Get the language of the file being checked (e.g. `pt_BR`).
     pub fn language(&self) -> &str {
         &self.parser.language
     }
 
-    /// Get the language code of the file being checked (eg: `pt`).
+    /// Get the language code of the file being checked (e.g. `pt`).
     pub fn language_code(&self) -> &str {
         &self.parser.language_code
     }
 
-    /// Get the country of the file being checked (eg: `BR`).
+    /// Get the country of the file being checked (e.g. `BR`).
     pub fn country(&self) -> &str {
         &self.parser.country
     }

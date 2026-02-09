@@ -72,7 +72,7 @@ pub struct CheckArgs {
     #[arg(long, default_value = DEFAULT_PATH_DICTS)]
     pub path_dicts: PathBuf,
 
-    /// Path to a directory containing files with list of words to add per language (files are `*.dic`, eg: `en_US.dic`, with one word per line)
+    /// Path to a directory containing files with list of words to add per language (files are `*.dic`, e.g. `en_US.dic`, with one word per line)
     #[arg(long)]
     pub path_words: Option<PathBuf>,
 

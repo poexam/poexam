@@ -74,7 +74,7 @@ impl MatchCFormat<'_> {
 
 impl Ord for MatchCFormat<'_> {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        // Sort matching formats by reordering index first (eg "%1$s" before "%2$d"),
+        // Sort matching formats by reordering index first (e.g. "%1$s" before "%2$d"),
         // then by start position, then by end position.
         self.sort_index()
             .cmp(&other.sort_index())
