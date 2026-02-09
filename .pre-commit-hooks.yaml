@@ -6,5 +6,6 @@
   name: poexam
   description: 'Perform various checks on PO files'
   entry: poexam
+  args: [check]
   language: rust
   types: [pofile]
