@@ -1,0 +1,10 @@
+# SPDX-FileCopyrightText: 2026 Sébastien Helleu <flashcode@flashtux.org>
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+- id: poexam
+  name: poexam
+  description: 'Perform various checks on PO files'
+  entry: poexam
+  language: rust
+  types: [pofile]
