@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+//! Implementation of the `newlines` rule: check missing/extra newlines.
+
 use crate::checker::Checker;
 use crate::diagnostic::Severity;
 use crate::po::entry::Entry;

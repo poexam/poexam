@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+//! A message of a PO entry.
+
 use serde::Serialize;
 
 use crate::po::escape::EscapePoExt;

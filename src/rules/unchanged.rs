@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+//! Implementation of the `unchanged` rule: check unchanged translations.
+
 use crate::checker::Checker;
 use crate::diagnostic::Severity;
 use crate::po::entry::Entry;
@@ -26,7 +28,7 @@ impl RuleChecker for UnchangedRule {
     ///
     /// If the source message contains only upper case characters, it is ignored.
     ///
-    /// This check is not enabled by default.
+    /// This rule is not enabled by default.
     ///
     /// Wrong entry:
     /// ```text

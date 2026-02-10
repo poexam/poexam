@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+//! Load rules and execute the `rules` command.
+
 use std::collections::HashSet;
 
 use crate::{

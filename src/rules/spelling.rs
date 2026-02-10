@@ -2,6 +2,11 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+//! Implementation of the spelling rules: check spelling:
+//! - `spelling-ctxt`: in the context (`msgctxt`)
+//! - `spelling-id`: in the source (`msgid`)
+//! - `spelling-str`: in the translation (`msgstr`)
+
 use std::collections::HashSet;
 
 use spellbook::Dictionary;
@@ -28,6 +33,8 @@ impl RuleChecker for SpellingCtxtRule {
     }
 
     /// Check spelling in the context string (English).
+    ///
+    /// This rule is not enabled by default.
     ///
     /// Wrong entry:
     /// ```text
@@ -83,6 +90,8 @@ impl RuleChecker for SpellingIdRule {
 
     /// Check spelling in the source string (English).
     ///
+    /// This rule is not enabled by default.
+    ///
     /// Wrong entry:
     /// ```text
     /// msgid "this is a tyypo"
@@ -136,6 +145,8 @@ impl RuleChecker for SpellingStrRule {
     }
 
     /// Check spelling in the translated string (using language detected in PO file).
+    ///
+    /// This rule is not enabled by default.
     ///
     /// Wrong entry:
     /// ```text

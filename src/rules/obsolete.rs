@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+//! Implementation of the `obsolete` rule: report obsolete entries.
+
 use crate::checker::Checker;
 use crate::diagnostic::Severity;
 use crate::po::entry::Entry;
@@ -26,12 +28,12 @@ impl RuleChecker for ObsoleteRule {
         Severity::Info
     }
 
-    /// Check for obsolete entry.
+    /// Report entry if obsolete.
     ///
     /// Obsolete is not strictly speaking an error, but this check helps to identify
     /// obsolete entries in a PO file.
     ///
-    /// This check is not enabled by default.
+    /// This rule is not enabled by default.
     ///
     /// Reported:
     /// ```text

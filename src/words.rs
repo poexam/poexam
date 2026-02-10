@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+//! Utilities for working with words and characters in PO file entries.
+
 use crate::c_format::get_index_end_c_format;
 
 pub struct WordPos<'a> {

@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+//! Statistics for PO files.
+
 use std::fs::File;
 use std::io::Read;
 use std::ops::AddAssign;

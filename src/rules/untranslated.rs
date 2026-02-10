@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+//! Implementation of the `untranslated` rule: report untranslated entries.
+
 use crate::checker::Checker;
 use crate::diagnostic::Severity;
 use crate::po::entry::Entry;
@@ -26,12 +28,12 @@ impl RuleChecker for UntranslatedRule {
         Severity::Info
     }
 
-    /// Check for untranslated entry.
+    /// Report entry if untranslated.
     ///
     /// Untranslated is not strictly speaking an error, but this check helps to identify
     /// untranslated entries in a PO file.
     ///
-    /// This check is not enabled by default.
+    /// This rule is not enabled by default.
     ///
     /// Reported:
     /// ```text

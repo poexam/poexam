@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+//! Checker for PO files.
+
 use std::{
     collections::{BTreeMap, HashSet},
     fs::File,

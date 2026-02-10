@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+//! Utilities for C-format strings.
+
 pub struct CFormat<'a> {
     s: &'a str,
     bytes: &'a [u8],

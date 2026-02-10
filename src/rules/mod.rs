@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+//! Implementation of all rules.
+
 pub mod blank;
 pub mod brackets;
 pub mod c_formats;

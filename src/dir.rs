@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+//! Directory utilities.
+
 use std::path::PathBuf;
 use std::sync::Mutex;
 use std::{collections::HashSet, sync::Arc};

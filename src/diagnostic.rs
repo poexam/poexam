@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+//! Diagnostic for PO files.
+
 use std::{
     borrow::Cow,
     path::{Path, PathBuf},

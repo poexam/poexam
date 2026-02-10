@@ -2,6 +2,10 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+//! Implementation of the whitespace rules: check inconsistent whitespace:
+//! - `whitespace-start`: whitespace at the beginning of the string
+//! - `whitespace-end`: whitespace at the end of the string
+
 use crate::checker::Checker;
 use crate::diagnostic::Severity;
 use crate::po::entry::Entry;

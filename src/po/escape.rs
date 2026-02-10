@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+//! Utilities for escaping and unescaping strings for PO file format.
+
 pub trait EscapePoExt {
     fn escape_po(&self) -> String;
     fn unescape_po(&self) -> String;

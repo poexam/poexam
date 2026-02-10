@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+//! Implementation of the `c-formats` rule: check inconsistent C format strings.
+
 use crate::c_format::{CFormat, MatchCFormat};
 use crate::checker::Checker;
 use crate::diagnostic::Severity;

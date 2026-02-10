@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+//! Dictionary for spell checking in PO files.
+
 use std::{
     error::Error,
     path::{Path, PathBuf},

@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+//! PO file entry.
+
 use serde::Serialize;
 
 use std::collections::BTreeMap;
