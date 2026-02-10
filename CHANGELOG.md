@@ -10,6 +10,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 ### Changed
 
+- Add French "guillemets" in rule "double-quotes"
 - Rename parameter `--file-status` to `--file-stats`
 
 ### Added

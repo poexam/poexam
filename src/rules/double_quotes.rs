@@ -9,7 +9,7 @@ use crate::diagnostic::Severity;
 use crate::po::entry::Entry;
 use crate::rules::rule::RuleChecker;
 
-const DOUBLE_QUOTES: [char; 3] = ['"', '„', '”'];
+const DOUBLE_QUOTES: [char; 5] = ['"', '„', '”', '«', '»'];
 
 pub struct DoubleQuotesRule {}
 
@@ -26,7 +26,9 @@ impl RuleChecker for DoubleQuotesRule {
         Severity::Info
     }
 
-    /// Check for missing or extra double quotes (`"`, `„` and `”`) in the translation.
+    /// Check for missing or extra double quotes in the translation.
+    ///
+    /// The following quotes are considered: `"`, `„`, `”`, `«` and `»`.
     ///
     /// Wrong entry:
     /// ```text
@@ -114,7 +116,7 @@ msgstr "testé"
         let diags = check_double_quotes(
             r#"
 msgid "this is a \"test\""
-msgstr "ceci est un \"test\""
+msgstr "ceci est un « test »"
 "#,
         );
         assert!(diags.is_empty());
