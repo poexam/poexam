@@ -28,7 +28,7 @@ impl RuleChecker for ObsoleteRule {
 
     /// Check for obsolete entry.
     ///
-    /// Obsolete is not stricly speaking an error, but this check helps to identify
+    /// Obsolete is not strictly speaking an error, but this check helps to identify
     /// obsolete entries in a PO file.
     ///
     /// This check is not enabled by default.

@@ -28,7 +28,7 @@ impl RuleChecker for UntranslatedRule {
 
     /// Check for untranslated entry.
     ///
-    /// Untranslated is not stricly speaking an error, but this check helps to identify
+    /// Untranslated is not strictly speaking an error, but this check helps to identify
     /// untranslated entries in a PO file.
     ///
     /// This check is not enabled by default.

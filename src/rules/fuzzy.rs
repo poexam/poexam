@@ -28,7 +28,7 @@ impl RuleChecker for FuzzyRule {
 
     /// Check for fuzzy entry.
     ///
-    /// Fuzzy is not stricly speaking an error, but this check helps to identify fuzzy
+    /// Fuzzy is not strictly speaking an error, but this check helps to identify fuzzy
     /// entries in a PO file.
     ///
     /// This check is not enabled by default.
