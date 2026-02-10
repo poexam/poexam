@@ -73,6 +73,9 @@ It can perform a lot of checks via the default rules:
 | tabs             | error    | Missing/extra tabs.                    |
 | whitespace-end   | info     | Missing/extra whitespace at the end.   |
 | whitespace-start | info     | Missing/extra whitespace at the start. |
+| spelling-str  | info     | Spelling error in the translated string.      |
+| unchanged     | info     | Translation is the same as the source string. |
+| untranslated  | info     | Untranslated entry.                           |
 
  Some extra rules are not used by default because they are not really "checks",
  report too many false positives or can slow down the process.
@@ -85,9 +88,6 @@ It can perform a lot of checks via the default rules:
 | obsolete      | info     | Obsolete entry.                               |
 | spelling-ctxt | info     | Spelling error in the context string.         |
 | spelling-id   | info     | Spelling error in the source string.          |
-| spelling-str  | info     | Spelling error in the translated string.      |
-| unchanged     | info     | Translation is the same as the source string. |
-| untranslated  | info     | Untranslated entry.                           |
 
 The result is very clear, almost all errors are highlighted in the strings so you can immediately see where the issue is.
 
