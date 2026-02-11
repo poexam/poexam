@@ -123,7 +123,6 @@ msgstr[0] "%d fichier"
 msgstr[1] "%d fichiers"
 "#,
         );
-        println!("diags: {diags:?}");
         assert!(diags.is_empty());
     }
 
