@@ -11,8 +11,8 @@ use crate::{
     checker::Checker,
     po::entry::Entry,
     rules::{
-        blank, brackets, c_formats, double_quotes, double_spaces, encoding, escapes, fuzzy,
-        newlines, obsolete, pipes, plurals, punc, spelling, tabs, unchanged, untranslated,
+        blank, brackets, c_formats, changed, double_quotes, double_spaces, encoding, escapes,
+        fuzzy, newlines, obsolete, pipes, plurals, punc, spelling, tabs, unchanged, untranslated,
         whitespace,
     },
 };
@@ -91,6 +91,7 @@ pub fn get_all_rules() -> Vec<Rule> {
         Box::new(blank::BlankRule {}),
         Box::new(brackets::BracketsRule {}),
         Box::new(c_formats::CFormatsRule {}),
+        Box::new(changed::ChangedRule {}),
         Box::new(double_quotes::DoubleQuotesRule {}),
         Box::new(double_spaces::DoubleSpacesRule {}),
         Box::new(encoding::EncodingRule {}),

@@ -7,6 +7,7 @@
 pub mod blank;
 pub mod brackets;
 pub mod c_formats;
+pub mod changed;
 pub mod double_quotes;
 pub mod double_spaces;
 pub mod encoding;

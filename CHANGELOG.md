@@ -15,6 +15,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 ### Added
 
+- Add rule "changed"
 - Add option `--rule-stats` to display rule statistics
 - Add pre-commit hook
 - Add special rule "default" to allow add of extra rules

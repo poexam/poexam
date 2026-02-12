@@ -79,22 +79,23 @@ It can perform a lot of checks via the default rules:
 
  You can enable them on-demand:
 
-| Rule name     | Severity | Diagnostic reported                           |
-|---------------|----------|-----------------------------------------------|
-| fuzzy         | info     | Fuzzy entry.                                  |
-| obsolete      | info     | Obsolete entry.                               |
-| spelling-ctxt | info     | Spelling error in the context string.         |
-| spelling-id   | info     | Spelling error in the source string.          |
-| spelling-str  | info     | Spelling error in the translated string.      |
-| unchanged     | info     | Translation is the same as the source string. |
-| untranslated  | info     | Untranslated entry.                           |
+| Rule name     | Severity | Diagnostic reported                              |
+|---------------|----------|--------------------------------------------------|
+| changed       | info     | Translation is different from the source string. |
+| fuzzy         | info     | Fuzzy entry.                                     |
+| obsolete      | info     | Obsolete entry.                                  |
+| spelling-ctxt | info     | Spelling error in the context string.            |
+| spelling-id   | info     | Spelling error in the source string.             |
+| spelling-str  | info     | Spelling error in the translated string.         |
+| unchanged     | info     | Translation is the same as the source string.    |
+| untranslated  | info     | Untranslated entry.                              |
 
 The result is very clear, almost all errors are highlighted in the strings so you can immediately see where the issue is.
 
 You can check by yourself with the following command executed in the root directory of the project (output is truncated here):
 
 ```text
-$ poexam check --select all examples/fr.po
+$ poexam check --select all --ignore changed examples/fr.po
 examples/fr.po:25: [warning:blank] blank translation
         |
      25 | Test: blank translation
