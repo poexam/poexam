@@ -69,7 +69,7 @@ mod tests {
     use super::*;
     use crate::{diagnostic::Diagnostic, rules::rule::Rules};
 
-    fn check_blank(content: &str) -> Vec<Diagnostic> {
+    fn check_unchanged(content: &str) -> Vec<Diagnostic> {
         let rules = Rules::new(vec![Box::new(UnchangedRule {})]);
         let mut checker = Checker::new(content.as_bytes(), &rules);
         checker.do_all_checks();
@@ -78,7 +78,7 @@ mod tests {
 
     #[test]
     fn test_not_translated() {
-        let diags = check_blank(
+        let diags = check_unchanged(
             r#"
 msgid "tested"
 msgstr ""
@@ -89,7 +89,7 @@ msgstr ""
 
     #[test]
     fn test_changed() {
-        let diags = check_blank(
+        let diags = check_unchanged(
             r#"
 msgid "tested"
 msgstr "testé"
@@ -101,7 +101,7 @@ msgstr "testé"
     #[test]
     fn test_unchanged_but_ok() {
         // Unchanged but considered ok (only one word).
-        let diags = check_blank(
+        let diags = check_unchanged(
             r#"
 msgid "ACRONYM"
 msgstr "ACRONYM"
@@ -112,7 +112,7 @@ msgstr "ACRONYM"
 
     #[test]
     fn test_unchanged_error() {
-        let diags = check_blank(
+        let diags = check_unchanged(
             r#"
 msgid "this is a test"
 msgstr "this is a test"
