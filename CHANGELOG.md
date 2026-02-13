@@ -6,16 +6,24 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 # Poexam ChangeLog
 
-## Version 0.0.6 (2026-02-09)
+## Version 0.0.7 (under dev)
 
 ### Changed
 
 - Add French "guillemets" in rule "double-quotes"
-- Rename parameter `--file-status` to `--file-stats`
 
 ### Added
 
 - Add rule "changed"
+
+## Version 0.0.6 (2026-02-09)
+
+### Changed
+
+- Rename parameter `--file-status` to `--file-stats`
+
+### Added
+
 - Add option `--rule-stats` to display rule statistics
 - Add pre-commit hook
 - Add special rule "default" to allow add of extra rules
