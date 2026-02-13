@@ -9,7 +9,7 @@ use crate::diagnostic::Severity;
 use crate::po::entry::Entry;
 use crate::rules::rule::RuleChecker;
 
-pub struct PluralsRule {}
+pub struct PluralsRule;
 
 impl RuleChecker for PluralsRule {
     fn name(&self) -> &'static str {

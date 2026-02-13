@@ -9,7 +9,7 @@ use crate::diagnostic::Severity;
 use crate::po::entry::Entry;
 use crate::rules::rule::RuleChecker;
 
-pub struct EscapesRule {}
+pub struct EscapesRule;
 
 impl RuleChecker for EscapesRule {
     fn name(&self) -> &'static str {

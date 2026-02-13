@@ -127,7 +127,7 @@ pub enum CheckSort {
 
 /// Arguments for the `rules` command.
 #[derive(Debug, Args)]
-pub struct RulesArgs {}
+pub struct RulesArgs;
 
 /// Arguments for the `stats` command.
 #[derive(Debug, Args)]

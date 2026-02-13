@@ -17,7 +17,7 @@ use crate::po::entry::Entry;
 use crate::rules::rule::RuleChecker;
 use crate::words::WordPos;
 
-pub struct SpellingCtxtRule {}
+pub struct SpellingCtxtRule;
 
 impl RuleChecker for SpellingCtxtRule {
     fn name(&self) -> &'static str {
@@ -73,7 +73,7 @@ impl RuleChecker for SpellingCtxtRule {
     }
 }
 
-pub struct SpellingIdRule {}
+pub struct SpellingIdRule;
 
 impl RuleChecker for SpellingIdRule {
     fn name(&self) -> &'static str {
@@ -129,7 +129,7 @@ impl RuleChecker for SpellingIdRule {
     }
 }
 
-pub struct SpellingStrRule {}
+pub struct SpellingStrRule;
 
 impl RuleChecker for SpellingStrRule {
     fn name(&self) -> &'static str {

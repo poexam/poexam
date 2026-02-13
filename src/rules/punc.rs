@@ -11,7 +11,7 @@ use crate::diagnostic::Severity;
 use crate::po::entry::Entry;
 use crate::rules::rule::RuleChecker;
 
-pub struct PuncStartRule {}
+pub struct PuncStartRule;
 
 impl RuleChecker for PuncStartRule {
     fn name(&self) -> &'static str {
@@ -83,7 +83,7 @@ impl RuleChecker for PuncStartRule {
     }
 }
 
-pub struct PuncEndRule {}
+pub struct PuncEndRule;
 
 impl RuleChecker for PuncEndRule {
     fn name(&self) -> &'static str {

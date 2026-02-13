@@ -11,7 +11,7 @@ use crate::rules::rule::RuleChecker;
 
 const DOUBLE_QUOTES: [char; 5] = ['"', '„', '”', '«', '»'];
 
-pub struct DoubleQuotesRule {}
+pub struct DoubleQuotesRule;
 
 impl RuleChecker for DoubleQuotesRule {
     fn name(&self) -> &'static str {

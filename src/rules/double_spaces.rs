@@ -9,7 +9,7 @@ use crate::diagnostic::Severity;
 use crate::po::entry::Entry;
 use crate::rules::rule::RuleChecker;
 
-pub struct DoubleSpacesRule {}
+pub struct DoubleSpacesRule;
 
 impl RuleChecker for DoubleSpacesRule {
     fn name(&self) -> &'static str {

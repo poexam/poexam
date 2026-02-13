@@ -9,7 +9,7 @@ use crate::diagnostic::Severity;
 use crate::po::entry::Entry;
 use crate::rules::rule::RuleChecker;
 
-pub struct NewlinesRule {}
+pub struct NewlinesRule;
 
 impl NewlinesRule {
     /// Check the number of CR ('\r') and LF ('\n') characters.

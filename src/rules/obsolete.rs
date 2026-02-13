@@ -9,7 +9,7 @@ use crate::diagnostic::Severity;
 use crate::po::entry::Entry;
 use crate::rules::rule::RuleChecker;
 
-pub struct ObsoleteRule {}
+pub struct ObsoleteRule;
 
 impl RuleChecker for ObsoleteRule {
     fn name(&self) -> &'static str {

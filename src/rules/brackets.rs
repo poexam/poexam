@@ -12,7 +12,7 @@ use crate::rules::rule::RuleChecker;
 const BRACKET_PAIRS: &[(char, char)] = &[('(', ')'), ('[', ']'), ('{', '}'), ('<', '>')];
 const BRACKET_NAMES: &[&str] = &["round", "square", "curly", "angle"];
 
-pub struct BracketsRule {}
+pub struct BracketsRule;
 
 impl RuleChecker for BracketsRule {
     fn name(&self) -> &'static str {

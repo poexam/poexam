@@ -9,7 +9,7 @@ use crate::diagnostic::Severity;
 use crate::po::entry::Entry;
 use crate::rules::rule::RuleChecker;
 
-pub struct FuzzyRule {}
+pub struct FuzzyRule;
 
 impl RuleChecker for FuzzyRule {
     fn name(&self) -> &'static str {

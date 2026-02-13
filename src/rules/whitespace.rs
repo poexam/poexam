@@ -11,7 +11,7 @@ use crate::diagnostic::Severity;
 use crate::po::entry::Entry;
 use crate::rules::rule::RuleChecker;
 
-pub struct WhitespaceStartRule {}
+pub struct WhitespaceStartRule;
 
 impl RuleChecker for WhitespaceStartRule {
     fn name(&self) -> &'static str {
@@ -61,7 +61,7 @@ impl RuleChecker for WhitespaceStartRule {
     }
 }
 
-pub struct WhitespaceEndRule {}
+pub struct WhitespaceEndRule;
 
 impl RuleChecker for WhitespaceEndRule {
     fn name(&self) -> &'static str {
