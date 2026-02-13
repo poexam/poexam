@@ -48,7 +48,7 @@ impl RuleChecker for FuzzyRule {
     /// msgstr "ceci est un test"
     /// ```
     ///
-    /// Diagnostics reportedwith severity [`info`](Severity::Info):
+    /// Diagnostics reported with severity [`info`](Severity::Info):
     /// - `fuzzy entry`
     fn check_entry(&self, checker: &mut Checker, entry: &Entry) {
         if entry.fuzzy {
