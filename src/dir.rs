@@ -40,7 +40,13 @@ pub fn find_po_files(paths: &[PathBuf]) -> HashSet<PathBuf> {
                         && dirent.path().extension().is_some_and(|ext| ext == "po")
                     {
                         let mut files = files.lock().unwrap();
-                        files.insert(dirent.path().to_path_buf());
+                        files.insert(
+                            dirent
+                                .path()
+                                .strip_prefix("./")
+                                .unwrap_or(dirent.path())
+                                .to_path_buf(),
+                        );
                     }
                 }
                 Err(err) => {

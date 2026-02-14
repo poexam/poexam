@@ -17,6 +17,10 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 - Add rule "changed"
 
+### Fixed
+
+- Remove leading "./" from file paths
+
 ## Version 0.0.6 (2026-02-09)
 
 ### Changed
