@@ -31,7 +31,6 @@
 //! detailed statistics with the number of entries, words and characters.
 
 mod args;
-mod c_format;
 mod checker;
 mod diagnostic;
 mod dict;
@@ -39,7 +38,6 @@ mod dir;
 mod po;
 mod rules;
 mod stats;
-mod words;
 
 use clap::Parser;
 

@@ -8,7 +8,7 @@ use serde::Serialize;
 
 use std::collections::BTreeMap;
 
-use crate::{po::escape::EscapePoExt, po::message::Message};
+use crate::{po::escape::EscapePoExt, po::format::language::Language, po::message::Message};
 
 #[derive(Debug, Default, PartialEq, Serialize)]
 #[allow(clippy::struct_excessive_bools)]
@@ -20,7 +20,7 @@ pub struct Entry {
     pub noqa: bool,
     pub noqa_rules: Vec<String>,
     pub nowrap: bool,
-    pub format: String,
+    pub format_language: Language,
     pub encoding_error: bool,
     pub msgctxt: Option<Message>,
     pub msgid: Option<Message>,

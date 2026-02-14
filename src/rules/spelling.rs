@@ -14,8 +14,8 @@ use spellbook::Dictionary;
 use crate::checker::Checker;
 use crate::diagnostic::Severity;
 use crate::po::entry::Entry;
+use crate::po::format::word_pos::WordPos;
 use crate::rules::rule::RuleChecker;
-use crate::words::WordPos;
 
 pub struct SpellingCtxtRule;
 
@@ -196,17 +196,16 @@ fn check_words<'s>(
     let mut misspelled_words: HashSet<&str> = HashSet::new();
     let mut hash_words: HashSet<&str> = HashSet::new();
     let mut pos_words = Vec::new();
-    for (start, end) in WordPos::new(s, &entry.format) {
-        let word = &s[start..end];
-        if hash_words.contains(word) {
-            if misspelled_words.contains(word) {
-                pos_words.push((start, end));
+    for word in WordPos::new(s, &entry.format_language) {
+        if hash_words.contains(word.s) {
+            if misspelled_words.contains(word.s) {
+                pos_words.push((word.start, word.end));
             }
         } else {
-            hash_words.insert(word);
-            if !dict.check(word) {
-                misspelled_words.insert(word);
-                pos_words.push((start, end));
+            hash_words.insert(word.s);
+            if !dict.check(word.s) {
+                misspelled_words.insert(word.s);
+                pos_words.push((word.start, word.end));
             }
         }
     }

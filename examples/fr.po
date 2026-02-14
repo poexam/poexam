@@ -29,7 +29,7 @@ msgstr " "
 msgid "Test [brackets]"
 msgstr "Test crochets"
 
-# rule: c-formats
+# rule: formats
 #, c-format
 msgid "Name: %s, age: %d"
 msgstr "Âge : %2$d, nom : %1$f"

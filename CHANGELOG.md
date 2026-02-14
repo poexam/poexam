@@ -10,6 +10,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 ### Changed
 
+- Rename rule "c-formats" to "formats"
 - Add French "guillemets" in rule "double-quotes"
 
 ### Added

@@ -60,11 +60,11 @@ It can perform a lot of checks via the default rules:
 |------------------|----------|----------------------------------------|
 | blank            | warning  | Blank translation (only whitespace).   |
 | brackets         | info     | Missing/extra brackets.                |
-| c-formats        | error    | Inconsistent C format strings.         |
 | double-quotes    | info     | Missing/extra double quotes.           |
 | double-spaces    | info     | Missing or extra double spaces.        |
 | encoding         | info     | Incorrect encoding (charset).          |
 | escapes          | error    | Missing/extra escape characters.       |
+| formats          | error    | Inconsistent format strings.           |
 | newlines         | error    | Missing/extra newlines.                |
 | pipes            | info     | Missing/extra pipes.                   |
 | plurals          | error    | Incorrect number of plurals.           |
@@ -110,7 +110,7 @@ examples/fr.po:29: [info:brackets] missing opening and closing square brackets '
      30 | Test crochets
         |
 
-examples/fr.po:34: [error:c-formats] inconsistent C format strings
+examples/fr.po:34: [error:formats] inconsistent format strings (C)
         |
      34 | Name: %s, age: %d
         |

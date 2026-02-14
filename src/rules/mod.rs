@@ -6,12 +6,12 @@
 
 pub mod blank;
 pub mod brackets;
-pub mod c_formats;
 pub mod changed;
 pub mod double_quotes;
 pub mod double_spaces;
 pub mod encoding;
 pub mod escapes;
+pub mod formats;
 pub mod fuzzy;
 pub mod newlines;
 pub mod obsolete;

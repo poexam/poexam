@@ -8,7 +8,7 @@ use std::borrow::Cow;
 
 use memchr::memmem;
 
-use crate::{po::entry::Entry, po::message::Message};
+use crate::{po::entry::Entry, po::format::language::Language, po::message::Message};
 use encoding_rs::Encoding;
 
 #[derive(Default)]
@@ -161,7 +161,7 @@ impl<'d> Parser<'d> {
                     } else if kw == "no-wrap" {
                         entry.nowrap = true;
                     } else if let Some(stripped) = kw.strip_suffix("-format") {
-                        entry.format = stripped.to_string();
+                        entry.format_language = Language::from(stripped);
                     }
                     kw
                 })
@@ -313,7 +313,7 @@ msgstr "test\n"
         assert!(!entries[0].fuzzy);
         assert!(!entries[0].noqa);
         assert!(!entries[0].nowrap);
-        assert!(entries[0].format.is_empty());
+        assert_eq!(entries[0].format_language, Language::Null);
         assert!(!entries[0].encoding_error);
         assert_eq!(parser.nplurals, 2);
         assert!(entries[0].msgctxt.is_none());
@@ -360,7 +360,7 @@ msgstr "bonjour"
         assert!(!entries[0].fuzzy);
         assert!(!entries[0].noqa);
         assert!(!entries[0].nowrap);
-        assert!(entries[0].format.is_empty());
+        assert_eq!(entries[0].format_language, Language::Null);
         assert!(!entries[0].encoding_error);
         assert!(entries[0].msgctxt.is_none());
         assert_eq!(entries[0].msgid, Some(Message::new(2, "hello")));
@@ -389,7 +389,7 @@ msgstr "testé"
         assert!(!entries[0].fuzzy);
         assert!(!entries[0].noqa);
         assert!(!entries[0].nowrap);
-        assert!(entries[0].format.is_empty());
+        assert_eq!(entries[0].format_language, Language::Null);
         assert!(!entries[0].encoding_error);
         assert!(entries[0].msgctxt.is_none());
         assert_eq!(entries[0].msgid, Some(Message::new(2, "")));
@@ -406,7 +406,7 @@ msgstr "testé"
         assert!(!entries[1].fuzzy);
         assert!(!entries[1].noqa);
         assert!(!entries[1].nowrap);
-        assert!(entries[1].format.is_empty());
+        assert_eq!(entries[1].format_language, Language::Null);
         assert!(!entries[1].encoding_error);
         assert!(entries[1].msgctxt.is_none());
         assert_eq!(entries[1].msgid, Some(Message::new(5, "tested")));
@@ -434,7 +434,7 @@ msgstr "testé"
         assert!(entries[0].keywords.is_empty());
         assert!(!entries[0].noqa);
         assert!(!entries[0].nowrap);
-        assert!(entries[0].format.is_empty());
+        assert_eq!(entries[0].format_language, Language::Null);
         assert!(!entries[0].encoding_error);
         assert!(entries[0].msgctxt.is_none());
         assert_eq!(entries[0].msgid, Some(Message::new(2, "")));
@@ -447,7 +447,7 @@ msgstr "testé"
         assert!(!entries[1].fuzzy);
         assert!(!entries[1].noqa);
         assert!(!entries[1].nowrap);
-        assert!(entries[1].format.is_empty());
+        assert_eq!(entries[1].format_language, Language::Null);
         assert!(entries[1].encoding_error);
         assert!(entries[1].msgctxt.is_none());
         assert_eq!(entries[1].msgid, Some(Message::new(5, "tested")));
@@ -472,7 +472,7 @@ msgstr "mai"
         assert!(!entries[0].fuzzy);
         assert!(!entries[0].noqa);
         assert!(!entries[0].nowrap);
-        assert!(entries[0].format.is_empty());
+        assert_eq!(entries[0].format_language, Language::Null);
         assert!(!entries[0].encoding_error);
         assert_eq!(
             entries[0].msgctxt,
@@ -502,7 +502,7 @@ msgstr ""
         assert!(!entries[0].fuzzy);
         assert!(!entries[0].noqa);
         assert!(!entries[0].nowrap);
-        assert!(entries[0].format.is_empty());
+        assert_eq!(entries[0].format_language, Language::Null);
         assert!(!entries[0].encoding_error);
         assert!(entries[0].msgctxt.is_none());
         assert_eq!(entries[0].msgid, Some(Message::new(2, "hello")));
@@ -516,7 +516,7 @@ msgstr ""
         assert!(!entries[1].fuzzy);
         assert!(!entries[1].noqa);
         assert!(!entries[1].nowrap);
-        assert!(entries[1].format.is_empty());
+        assert_eq!(entries[1].format_language, Language::Null);
         assert!(!entries[1].encoding_error);
         assert!(entries[1].msgctxt.is_none());
         assert_eq!(entries[1].msgid, Some(Message::new(5, "hello 2")));
@@ -542,7 +542,7 @@ msgstr[1] "fichiers"
         assert!(!entries[0].fuzzy);
         assert!(!entries[0].noqa);
         assert!(!entries[0].nowrap);
-        assert!(entries[0].format.is_empty());
+        assert_eq!(entries[0].format_language, Language::Null);
         assert!(!entries[0].encoding_error);
         assert!(entries[0].msgctxt.is_none());
         assert_eq!(entries[0].msgid, Some(Message::new(2, "file")));
@@ -561,7 +561,7 @@ msgstr[1] "fichiers"
     fn parse_comments() {
         let content = r#"
 # Translator comment
-#, fuzzy, python-format,   noqa, noqa:blank;pipes, no-wrap
+#, fuzzy, c-format,   noqa, noqa:blank;pipes, no-wrap
 #= keyword
 #: src/main.rs:42
 msgid "hello"
@@ -574,7 +574,7 @@ msgstr "bonjour"
             entries[0].keywords,
             vec![
                 "fuzzy".to_string(),
-                "python-format".to_string(),
+                "c-format".to_string(),
                 "noqa".to_string(),
                 "noqa:blank;pipes".to_string(),
                 "no-wrap".to_string(),
@@ -585,7 +585,7 @@ msgstr "bonjour"
         assert!(entries[0].noqa);
         assert!(entries[0].nowrap);
         assert_eq!(entries[0].noqa_rules, vec!["blank", "pipes"]);
-        assert_eq!(entries[0].format, "python");
+        assert_eq!(entries[0].format_language, Language::C);
         assert!(!entries[0].encoding_error);
         assert!(entries[0].msgctxt.is_none());
         assert_eq!(entries[0].msgid, Some(Message::new(6, "hello")));
@@ -613,7 +613,7 @@ msgstr ""
         assert!(!entries[0].fuzzy);
         assert!(!entries[0].noqa);
         assert!(!entries[0].nowrap);
-        assert!(entries[0].format.is_empty());
+        assert_eq!(entries[0].format_language, Language::Null);
         assert!(!entries[0].encoding_error);
         assert!(entries[0].msgctxt.is_none());
         assert_eq!(entries[0].msgid, Some(Message::new(2, "hello world")));
