@@ -72,30 +72,25 @@ mod tests {
 
     #[test]
     fn test_chars() {
-        let mut char_pos = CharPos::new("Hé, w!", &Language::Null);
         assert_eq!(
-            char_pos.next(),
-            Some(MatchStrPos {
-                s: "H",
-                start: 0,
-                end: 1,
-            })
-        );
-        assert_eq!(
-            char_pos.next(),
-            Some(MatchStrPos {
-                s: "é",
-                start: 1,
-                end: 3,
-            })
-        );
-        assert_eq!(
-            char_pos.next(),
-            Some(MatchStrPos {
-                s: "w",
-                start: 5,
-                end: 6,
-            })
+            CharPos::new("Hé, w!", &Language::Null).collect::<Vec<_>>(),
+            vec![
+                MatchStrPos {
+                    s: "H",
+                    start: 0,
+                    end: 1,
+                },
+                MatchStrPos {
+                    s: "é",
+                    start: 1,
+                    end: 3,
+                },
+                MatchStrPos {
+                    s: "w",
+                    start: 5,
+                    end: 6,
+                },
+            ]
         );
     }
 }

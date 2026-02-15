@@ -82,82 +82,60 @@ mod tests {
 
     #[test]
     fn test_words() {
-        let mut word_pos = WordPos::new("Hello, world! %llu test-word 42.", &Language::Null);
         assert_eq!(
-            word_pos.next(),
-            Some(MatchStrPos {
-                s: "Hello",
-                start: 0,
-                end: 5,
-            })
+            WordPos::new("Hello, world! %llu test-word 42.", &Language::Null).collect::<Vec<_>>(),
+            vec![
+                MatchStrPos {
+                    s: "Hello",
+                    start: 0,
+                    end: 5,
+                },
+                MatchStrPos {
+                    s: "world",
+                    start: 7,
+                    end: 12,
+                },
+                MatchStrPos {
+                    s: "llu",
+                    start: 15,
+                    end: 18,
+                },
+                MatchStrPos {
+                    s: "test-word",
+                    start: 19,
+                    end: 28,
+                },
+                MatchStrPos {
+                    s: "42",
+                    start: 29,
+                    end: 31,
+                },
+            ]
         );
         assert_eq!(
-            word_pos.next(),
-            Some(MatchStrPos {
-                s: "world",
-                start: 7,
-                end: 12,
-            })
+            WordPos::new("héllo, мир! %lld 你好", &Language::Null).collect::<Vec<_>>(),
+            vec![
+                MatchStrPos {
+                    s: "héllo",
+                    start: 0,
+                    end: 6,
+                },
+                MatchStrPos {
+                    s: "мир",
+                    start: 8,
+                    end: 14,
+                },
+                MatchStrPos {
+                    s: "lld",
+                    start: 17,
+                    end: 20,
+                },
+                MatchStrPos {
+                    s: "你好",
+                    start: 21,
+                    end: 27,
+                },
+            ]
         );
-        assert_eq!(
-            word_pos.next(),
-            Some(MatchStrPos {
-                s: "llu",
-                start: 15,
-                end: 18,
-            })
-        );
-        assert_eq!(
-            word_pos.next(),
-            Some(MatchStrPos {
-                s: "test-word",
-                start: 19,
-                end: 28,
-            })
-        );
-        assert_eq!(
-            word_pos.next(),
-            Some(MatchStrPos {
-                s: "42",
-                start: 29,
-                end: 31,
-            })
-        );
-        assert!(word_pos.next().is_none());
-
-        let mut word_pos = WordPos::new("héllo, мир! %lld 你好", &Language::Null);
-        assert_eq!(
-            word_pos.next(),
-            Some(MatchStrPos {
-                s: "héllo",
-                start: 0,
-                end: 6,
-            })
-        );
-        assert_eq!(
-            word_pos.next(),
-            Some(MatchStrPos {
-                s: "мир",
-                start: 8,
-                end: 14,
-            })
-        );
-        assert_eq!(
-            word_pos.next(),
-            Some(MatchStrPos {
-                s: "lld",
-                start: 17,
-                end: 20,
-            })
-        );
-        assert_eq!(
-            word_pos.next(),
-            Some(MatchStrPos {
-                s: "你好",
-                start: 21,
-                end: 27,
-            })
-        );
-        assert!(word_pos.next().is_none());
     }
 }
