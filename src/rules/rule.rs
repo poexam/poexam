@@ -219,6 +219,7 @@ pub fn run_rules(_args: &args::RulesArgs) -> i32 {
         }
     }
     println!("Total: {} rules", default_rules.len() + other_rules.len());
+    println!();
     println!("Special rules to enable multiple rules at once:");
     println!("  all: all available rules");
     println!(
