@@ -8,6 +8,7 @@ pub mod char_pos;
 pub mod format_pos;
 pub mod lang_c;
 pub mod lang_null;
+pub mod lang_python;
 pub mod language;
 pub mod word_pos;
 

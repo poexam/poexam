@@ -6,19 +6,28 @@
 
 use serde::Serialize;
 
-use crate::po::format::{FormatParser, lang_c::FormatC, lang_null::FormatNull};
+use crate::po::format::{
+    FormatParser,
+    lang_c::FormatC,
+    lang_null::FormatNull,
+    lang_python::{FormatPython, FormatPythonBrace},
+};
 
 #[derive(Debug, Default, PartialEq, Serialize)]
 pub enum Language {
     #[default]
     Null,
     C,
+    Python,
+    PythonBrace,
 }
 
 impl From<&str> for Language {
     fn from(language: &str) -> Self {
         match language {
             "c" => Self::C,
+            "python" => Self::Python,
+            "python-brace" => Self::PythonBrace,
             _ => Self::Null,
         }
     }
@@ -29,6 +38,8 @@ impl std::fmt::Display for Language {
         match self {
             Language::Null => write!(f, "none"),
             Language::C => write!(f, "C"),
+            Language::Python => write!(f, "Python"),
+            Language::PythonBrace => write!(f, "Python brace"),
         }
     }
 }
@@ -37,6 +48,8 @@ impl Language {
     pub fn format_parser(&self) -> Box<dyn FormatParser> {
         match self {
             Language::C => Box::new(FormatC),
+            Language::Python => Box::new(FormatPython),
+            Language::PythonBrace => Box::new(FormatPythonBrace),
             Language::Null => Box::new(FormatNull),
         }
     }
@@ -49,6 +62,8 @@ mod tests {
     #[test]
     fn test_language() {
         assert_eq!(Language::from("c"), Language::C);
+        assert_eq!(Language::from("python"), Language::Python);
+        assert_eq!(Language::from("python-brace"), Language::PythonBrace);
         assert_eq!(Language::from(""), Language::Null);
         assert_eq!(Language::from("unknown"), Language::Null);
     }

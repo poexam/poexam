@@ -74,6 +74,12 @@ It can perform a lot of checks via the default rules:
 | whitespace-end   | info     | Missing/extra whitespace at the end.   |
 | whitespace-start | info     | Missing/extra whitespace at the start. |
 
+For the rule `formats`, the following languages are supported:
+
+- C (`c-format`): printf format (e.g. `%s %12lld`)
+- Python (`python-format`): Python % format strings (e.g. `%s %(age)d`)
+- Python brace (`python-brace-format`): Python brace format strings (e.g. `{0!r:20} {1}`).
+
  Some extra rules are not used by default because they are not really "checks",
  report too many false positives or can slow down the process.
 

@@ -30,69 +30,51 @@ mod tests {
     #[test]
     fn test_no_format() {
         let s = "Hello, %s world!";
-        // Formats: none.
         assert!(FormatPos::new(s, &Language::Null).next().is_none());
-        // Words: "Hello", "s", "world".
-        let mut word_pos = WordPos::new(s, &Language::Null);
         assert_eq!(
-            word_pos.next(),
-            Some(MatchStrPos {
-                s: "Hello",
-                start: 0,
-                end: 5,
-            })
+            WordPos::new(s, &Language::Null).collect::<Vec<_>>(),
+            vec![
+                MatchStrPos {
+                    s: "Hello",
+                    start: 0,
+                    end: 5,
+                },
+                MatchStrPos {
+                    s: "s",
+                    start: 8,
+                    end: 9,
+                },
+                MatchStrPos {
+                    s: "world",
+                    start: 10,
+                    end: 15,
+                },
+            ]
         );
         assert_eq!(
-            word_pos.next(),
-            Some(MatchStrPos {
-                s: "s",
-                start: 8,
-                end: 9,
-            })
+            CharPos::new("Hé, %s w!", &Language::Null).collect::<Vec<_>>(),
+            vec![
+                MatchStrPos {
+                    s: "H",
+                    start: 0,
+                    end: 1,
+                },
+                MatchStrPos {
+                    s: "é",
+                    start: 1,
+                    end: 3,
+                },
+                MatchStrPos {
+                    s: "s",
+                    start: 6,
+                    end: 7,
+                },
+                MatchStrPos {
+                    s: "w",
+                    start: 8,
+                    end: 9,
+                },
+            ]
         );
-        assert_eq!(
-            word_pos.next(),
-            Some(MatchStrPos {
-                s: "world",
-                start: 10,
-                end: 15,
-            })
-        );
-        assert!(word_pos.next().is_none());
-        // Chars: 'H', 'é', 's', 'w'.
-        let mut char_pos = CharPos::new("Hé, %s w!", &Language::Null);
-        assert_eq!(
-            char_pos.next(),
-            Some(MatchStrPos {
-                s: "H",
-                start: 0,
-                end: 1,
-            })
-        );
-        assert_eq!(
-            char_pos.next(),
-            Some(MatchStrPos {
-                s: "é",
-                start: 1,
-                end: 3,
-            })
-        );
-        assert_eq!(
-            char_pos.next(),
-            Some(MatchStrPos {
-                s: "s",
-                start: 6,
-                end: 7,
-            })
-        );
-        assert_eq!(
-            char_pos.next(),
-            Some(MatchStrPos {
-                s: "w",
-                start: 8,
-                end: 9,
-            })
-        );
-        assert!(char_pos.next().is_none());
     }
 }

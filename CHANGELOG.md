@@ -15,6 +15,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 ### Added
 
+- Add support of format strings "python-format" and "python-brace-format"
 - Add rule "changed"
 
 ### Fixed
