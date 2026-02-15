@@ -34,9 +34,9 @@ impl RuleChecker for FormatsRule {
     /// Check for inconsistent format strings.
     ///
     /// The following languages are supported:
-    /// - C (`c-format`): printf format (e.g. `%s %12lld`)
-    /// - Python (`python-format`): Python % format strings (e.g. `%s %(age)d`)
-    /// - Python brace (`python-brace-format`): Python brace format strings (e.g. `{0!r:20} {1}`).
+    /// - C (`c-format`): printf format (e.g. `%s`, `%12lld`)
+    /// - Python (`python-format`): Python % format strings (e.g. `%s`, `%(age)d`)
+    /// - Python brace (`python-brace-format`): Python brace format strings (e.g. `{0}`, `{1!r:20}`).
     ///
     /// For the C format, the reordering of format specifiers is supported:
     /// `%3$d %1$s %2$f` is considered equivalent to `%s %f %d`.
