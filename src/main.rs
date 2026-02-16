@@ -36,6 +36,7 @@ mod diagnostic;
 mod dict;
 mod dir;
 mod po;
+mod result;
 mod rules;
 mod stats;
 
