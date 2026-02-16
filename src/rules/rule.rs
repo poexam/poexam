@@ -12,8 +12,8 @@ use crate::{
     po::entry::Entry,
     rules::{
         blank, brackets, changed, double_quotes, double_spaces, encoding, escapes, formats, fuzzy,
-        newlines, obsolete, pipes, plurals, punc, spelling, tabs, unchanged, untranslated,
-        whitespace,
+        long, newlines, obsolete, pipes, plurals, punc, short, spelling, tabs, unchanged,
+        untranslated, whitespace,
     },
 };
 
@@ -97,12 +97,14 @@ pub fn get_all_rules() -> Vec<Rule> {
         Box::new(escapes::EscapesRule {}),
         Box::new(formats::FormatsRule {}),
         Box::new(fuzzy::FuzzyRule {}),
+        Box::new(long::LongRule {}),
         Box::new(newlines::NewlinesRule {}),
         Box::new(obsolete::ObsoleteRule {}),
         Box::new(pipes::PipesRule {}),
         Box::new(plurals::PluralsRule {}),
         Box::new(punc::PuncEndRule {}),
         Box::new(punc::PuncStartRule {}),
+        Box::new(short::ShortRule {}),
         Box::new(spelling::SpellingCtxtRule {}),
         Box::new(spelling::SpellingIdRule {}),
         Box::new(spelling::SpellingStrRule {}),

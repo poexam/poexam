@@ -29,11 +29,6 @@ msgstr " "
 msgid "Test [brackets]"
 msgstr "Test crochets"
 
-# rule: formats
-#, c-format
-msgid "Name: %s, age: %d"
-msgstr "Âge : %2$d, nom : %1$f"
-
 # rule: double-quotes
 msgid "Test \"double quotes\""
 msgstr "Test guillemets doubles"
@@ -45,6 +40,15 @@ msgstr "Test espaces doubles"
 # rule: escapes
 msgid "Escape: \\test"
 msgstr "Échappement : \\\\test"
+
+# rule: formats
+#, c-format
+msgid "Name: %s, age: %d"
+msgstr "Âge : %2$d, nom : %1$f"
+
+# rule: long
+msgid " :"
+msgstr " ... :"
 
 # rule: newlines
 msgid "Test\ntwo lines"
@@ -70,6 +74,10 @@ msgstr "Test de ponctuation à la fin"
 # rule: punc-start
 msgid "; test punctuation start"
 msgstr "test de ponctuation au début"
+
+# rule: short
+msgid " ... :"
+msgstr " :"
 
 # rule: tabs
 msgid "Test \t tabulation"

@@ -65,11 +65,13 @@ It can perform a lot of checks via the default rules:
 | encoding         | info     | Incorrect encoding (charset).          |
 | escapes          | error    | Missing/extra escape characters.       |
 | formats          | error    | Inconsistent format strings.           |
+| long             | warning  | Translation too long.                  |
 | newlines         | error    | Missing/extra newlines.                |
 | pipes            | info     | Missing/extra pipes.                   |
 | plurals          | error    | Incorrect number of plurals.           |
 | punc-end         | info     | Inconsistent trailing punctuation.     |
 | punc-start       | info     | Inconsistent leading punctuation.      |
+| short            | warning  | Translation too short.                 |
 | tabs             | error    | Missing/extra tabs.                    |
 | whitespace-end   | info     | Missing/extra whitespace at the end.   |
 | whitespace-start | info     | Missing/extra whitespace at the start. |
@@ -116,23 +118,37 @@ examples/fr.po:29: [info:brackets] missing opening and closing square brackets '
      30 | Test crochets
         |
 
-examples/fr.po:34: [error:formats] inconsistent format strings (C)
-        |
-     34 | Name: %s, age: %d
-        |
-     35 | Âge : %2$d, nom : %1$f
-        |
-
-examples/fr.po:38: [info:double-quotes] missing double quotes (2 / 0)
+examples/fr.po:33: [info:double-quotes] missing double quotes (2 / 0)
         |
      38 | Test "double quotes"
         |
      39 | Test guillemets doubles
         |
 
+examples/fr.po:37: [info:double-spaces] missing double spaces '  ' (2 / 0)
+        |
+     37 | Test  double  spaces
+        |
+     38 | Test espaces doubles
+        |
+
+examples/fr.po:41: [error:escapes] extra escaped escape characters '\\' (0 / 1)
+        |
+     41 | Escape: \test
+        |
+     42 | Échappement : \\test
+        |
+
+examples/fr.po:46: [error:formats] inconsistent format strings (C)
+        |
+     46 | Name: %s, age: %d
+        |
+     47 | Âge : %2$d, nom : %1$f
+        |
+
 (...)
 
-1 files checked: 24 problems in 1 files (5 errors, 1 warnings, 18 info) [23.890354ms]
+1 files checked: 28 problems in 1 files (5 errors, 3 warnings, 20 info) [25.431828ms]
 ```
 
 ### Spell checking
