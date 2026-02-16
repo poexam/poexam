@@ -61,7 +61,7 @@ It can perform a lot of checks via the default rules:
 | blank            | warning  | Blank translation (only whitespace).   |
 | brackets         | info     | Missing/extra brackets.                |
 | double-quotes    | info     | Missing/extra double quotes.           |
-| double-spaces    | info     | Missing or extra double spaces.        |
+| double-spaces    | info     | Missing/extra double spaces.           |
 | encoding         | info     | Incorrect encoding (charset).          |
 | escapes          | error    | Missing/extra escape characters.       |
 | formats          | error    | Inconsistent format strings.           |
