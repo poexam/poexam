@@ -66,7 +66,9 @@ impl RuleChecker for ShortRule {
         if len_msgstr == 0 {
             return;
         }
-        if len_msgstr * 10 <= len_msgid || (len_msgstr == 1 && len_msgid > 1) {
+        if len_msgstr * 10 <= len_msgid
+            || (len_msgstr == 1 && len_msgid > 1 && msgid.chars().any(char::is_whitespace))
+        {
             checker.report_msg(
                 entry,
                 format!("translation too short ({len_msgid} / {len_msgstr})"),
