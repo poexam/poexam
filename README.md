@@ -76,13 +76,7 @@ The following options are available in the `check` section:
 | land_id    | `--lang-id`    | String           | Language used to check source strings.                                   |
 | severity   | `--severity`   | Array of strings | Perform only checks with these severities (`info`, `warning`, `error`).  |
 
-Example of file:
-
-```toml
-[check]
-select = ["default", "spelling"]
-path_words = "./dicts"
-```
+See configuration file example: [poexam.toml](examples/poexam.toml).
 
 ### Rules
 
@@ -135,7 +129,7 @@ The result is very clear, almost all errors are highlighted in the strings so yo
 You can check by yourself with the following command executed in the root directory of the project (output is truncated here):
 
 ```text
-$ poexam check --select all --ignore changed examples/fr.po
+$ poexam check examples/fr.po
 examples/fr.po:25: [warning:blank] blank translation
         |
      25 | Test: blank translation
@@ -143,44 +137,44 @@ examples/fr.po:25: [warning:blank] blank translation
      26 |
         |
 
-examples/fr.po:29: [info:brackets] missing opening and closing square brackets '[' (1 / 0) and ']' (1 / 0)
+examples/fr.po:34: [info:brackets] missing opening and closing square brackets '[' (1 / 0) and ']' (1 / 0)
         |
-     29 | Test [brackets]
+     34 | Test [brackets]
         |
-     30 | Test crochets
+     35 | Test crochets
         |
 
-examples/fr.po:33: [info:double-quotes] missing double quotes (2 / 0)
+examples/fr.po:38: [info:double-quotes] missing double quotes (2 / 0)
         |
      38 | Test "double quotes"
         |
      39 | Test guillemets doubles
         |
 
-examples/fr.po:37: [info:double-spaces] missing double spaces '  ' (2 / 0)
+examples/fr.po:42: [info:double-spaces] missing double spaces '  ' (2 / 0)
         |
-     37 | Test  double  spaces
+     42 | Test  double  spaces
         |
-     38 | Test espaces doubles
-        |
-
-examples/fr.po:41: [error:escapes] extra escaped escape characters '\\' (0 / 1)
-        |
-     41 | Escape: \test
-        |
-     42 | Échappement : \\test
+     43 | Test espaces doubles
         |
 
-examples/fr.po:46: [error:formats] inconsistent format strings (C)
+examples/fr.po:46: [error:escapes] extra escaped escape characters '\\' (0 / 1)
         |
-     46 | Name: %s, age: %d
+     46 | Escape: \test
         |
-     47 | Âge : %2$d, nom : %1$f
+     47 | Échappement : \\test
+        |
+
+examples/fr.po:51: [error:formats] inconsistent format strings (C)
+        |
+     51 | Name: %s, age: %d
+        |
+     52 | Âge : %2$d, nom : %1$f
         |
 
 (...)
 
-1 files checked: 28 problems in 1 files (5 errors, 3 warnings, 20 info) [25.431828ms]
+1 files checked: 27 problems in 1 files (5 errors, 2 warnings, 20 info) [25.508932ms]
 ```
 
 ### Spell checking

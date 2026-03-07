@@ -1,0 +1,32 @@
+# SPDX-FileCopyrightText: 2026 Sébastien Helleu <flashcode@flashtux.org>
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[check]
+
+# select all rules
+select = ["all"]
+
+# ignore special rule "changed"
+ignore = ["changed"]
+
+# check fuzzy entries
+# fuzzy = true
+
+# check entries marked as "noqa"
+# noqa = true
+
+# check obsolete entries
+# obsolete = true
+
+# path to hunspell dictionary
+# path_dicts = "/usr/share/hunspell"
+
+# path to a directory containing files with list of words
+# path_words = "."
+
+# language used to check source strings
+# lang = "en_US"
+
+# perform only checks with these severities
+# severity = ["error", "warning", "info"]
