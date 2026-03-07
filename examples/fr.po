@@ -81,8 +81,8 @@ msgid "; test punctuation start"
 msgstr "test de ponctuation au début"
 
 # rule: short
-msgid " ... :"
-msgstr " :"
+msgid "message:"
+msgstr ":"
 
 # rule: tabs
 msgid "Test \t tabulation"
