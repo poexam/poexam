@@ -23,6 +23,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ### Fixed
 
 - Always exit with code 0 with `--output misspelled`
+- Consider apostrophe as part of word if found inside a word
 - Parse "noqa" in simple comments (lines starting with "# noqa")
 - Fix error on unknown rules when using `--severity`
 - Remove leading "./" from file paths

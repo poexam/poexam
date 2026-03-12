@@ -30,6 +30,7 @@ impl<'a> Iterator for WordPos<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         let mut idx_start = None;
         let mut idx_end = None;
+        let mut start_apostrophe = false;
         while self.pos < self.len {
             if idx_start.is_none() {
                 let (new_pos, is_format) = self.fmt.next_char(self.s, self.pos, self.len);
@@ -45,7 +46,13 @@ impl<'a> Iterator for WordPos<'a> {
             match self.s[self.pos..].chars().next() {
                 Some(c) => {
                     let len_c = c.len_utf8();
-                    if c.is_alphanumeric() || (idx_start.is_some() && c == '-') {
+                    if idx_start.is_none() && c == '\'' {
+                        start_apostrophe = true;
+                    }
+                    if c.is_alphanumeric()
+                        || (idx_start.is_some() && (c == '-' || c == '\'' || c == '’')
+                            || (c == 'ʼ'))
+                    {
                         if idx_start.is_none() {
                             idx_start = Some(self.pos);
                         }
@@ -59,11 +66,18 @@ impl<'a> Iterator for WordPos<'a> {
             }
         }
         match (idx_start, idx_end) {
-            (Some(start), Some(end)) => Some(MatchStrPos {
-                s: &self.s[start..end],
-                start,
-                end,
-            }),
+            (Some(start), Some(end)) => {
+                let s = &self.s[start..end];
+                if start_apostrophe && let Some(s2) = s.strip_suffix('\'') {
+                    Some(MatchStrPos {
+                        s: s2,
+                        start,
+                        end: end - 1,
+                    })
+                } else {
+                    Some(MatchStrPos { s, start, end })
+                }
+            }
             _ => None,
         }
     }
@@ -83,7 +97,11 @@ mod tests {
     #[test]
     fn test_words() {
         assert_eq!(
-            WordPos::new("Hello, world! %llu test-word 42.", &Language::Null).collect::<Vec<_>>(),
+            WordPos::new(
+                "Hello, world! %llu test-word didn't didn’t didnʼt 'test' 42.",
+                &Language::Null
+            )
+            .collect::<Vec<_>>(),
             vec![
                 MatchStrPos {
                     s: "Hello",
@@ -106,9 +124,29 @@ mod tests {
                     end: 28,
                 },
                 MatchStrPos {
-                    s: "42",
+                    s: "didn't", // U+0027: APOSTROPHE
                     start: 29,
-                    end: 31,
+                    end: 35,
+                },
+                MatchStrPos {
+                    s: "didn’t", // U+2019: RIGHT SINGLE QUOTATION MARK
+                    start: 36,
+                    end: 44,
+                },
+                MatchStrPos {
+                    s: "didnʼt", // U+02BC: MODIFIER LETTER APOSTROPHE
+                    start: 45,
+                    end: 52,
+                },
+                MatchStrPos {
+                    s: "test",
+                    start: 54,
+                    end: 58,
+                },
+                MatchStrPos {
+                    s: "42",
+                    start: 60,
+                    end: 62,
                 },
             ]
         );
