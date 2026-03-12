@@ -226,6 +226,9 @@ pub fn display_result(
                 count_errors + count_warnings + count_info
             );
         }
+        if args.output == args::CheckOutputFormat::Misspelled {
+            return 0;
+        }
         1
     }
 }
