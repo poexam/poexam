@@ -48,6 +48,14 @@ pub struct CheckArgs {
     #[arg(long)]
     pub show_settings: bool,
 
+    /// Force a configuration file
+    #[arg(short, long)]
+    pub config: Option<PathBuf>,
+
+    /// Ignore all configuration files
+    #[arg(long)]
+    pub no_config: bool,
+
     /// Check fuzzy entries (not checked by default)
     #[arg(long)]
     pub fuzzy: bool,

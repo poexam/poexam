@@ -267,7 +267,17 @@ impl<'d> Checker<'d> {
 
 /// Check a single PO file and return the list of diagnostics found.
 pub fn check_file(path: &PathBuf, args: &args::CheckArgs) -> CheckFileResult {
-    let path_config = find_config_path(path);
+    let path_config = if args.no_config {
+        None
+    } else {
+        match args.config.as_ref() {
+            Some(path) => match path.canonicalize() {
+                Ok(abs_path) => Some(abs_path),
+                Err(_) => Some(PathBuf::from(path)),
+            },
+            None => find_config_path(path),
+        }
+    };
     let config = match Config::new(path_config.as_ref()) {
         Ok(cfg) => cfg.with_args_check(args),
         Err(err) => {

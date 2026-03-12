@@ -16,7 +16,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 ### Added
 
-- Add support of configuration file "poexam.toml"
+- Add support of configuration file "poexam.toml", add options `--config` and `--no-config`
 - Add support of format strings "python-format" and "python-brace-format"
 - Add rules "changed", "long" and "short"
 
