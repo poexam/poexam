@@ -201,6 +201,10 @@ fn check_words<'s>(
         if word.s.chars().any(|c| c.is_ascii_digit()) {
             continue;
         }
+        // Ignore with at least two chars and only uppercase chars (e.g. "HTTP").
+        if word.s.len() >= 2 && word.s.chars().all(|c| c.is_ascii_uppercase()) {
+            continue;
+        }
         if hash_words.contains(word.s) {
             if misspelled_words.contains(word.s) {
                 pos_words.push((word.start, word.end));

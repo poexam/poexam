@@ -11,7 +11,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ### Changed
 
 - Rename rule "c-formats" to "formats"
-- Ignore words with digits in spelling rules
+- Ignore words with digits and words with at least two chars and only uppercase chars in spelling rules
 - Add French "guillemets" in rule "double-quotes"
 
 ### Added
