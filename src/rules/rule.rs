@@ -198,6 +198,7 @@ pub fn run_rules(_args: &args::RulesArgs) -> i32 {
     let rules = get_all_rules();
     let default_rules: Vec<&Rule> = rules.iter().filter(|r| r.is_default()).collect();
     let other_rules: Vec<&Rule> = rules.iter().filter(|r| !r.is_default()).collect();
+    let non_check_rules: Vec<&Rule> = rules.iter().filter(|r| !r.is_check()).collect();
     if default_rules.is_empty() {
         println!("No default rules.");
     } else {
@@ -219,7 +220,12 @@ pub fn run_rules(_args: &args::RulesArgs) -> i32 {
     println!("Special rules to enable multiple rules at once:");
     println!("  all: all available rules");
     println!(
-        "  checks: all rules that actually check (all rules except fuzzy, obsolete and untranslated)"
+        "  checks: all rules that actually check (all rules except: {})",
+        non_check_rules
+            .iter()
+            .map(|rule| rule.name())
+            .collect::<Vec<_>>()
+            .join(", "),
     );
     println!(
         "  default: default rules (can be used to add extra rules, e.g. \"default,spelling,fuzzy\")"
