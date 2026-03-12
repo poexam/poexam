@@ -197,6 +197,10 @@ fn check_words<'s>(
     let mut hash_words: HashSet<&str> = HashSet::new();
     let mut pos_words = Vec::new();
     for word in WordPos::new(s, &entry.format_language) {
+        // Ignore word if it contains at least one digit.
+        if word.s.chars().any(|c| c.is_ascii_digit()) {
+            continue;
+        }
         if hash_words.contains(word.s) {
             if misspelled_words.contains(word.s) {
                 pos_words.push((word.start, word.end));
