@@ -73,7 +73,7 @@ The following options are available in the `check` section:
 | ignore     | `--ignore`     | Array of strings | Ignored rules.                                                           |
 | path_dicts | `--path-dicts` | String (path)    | Path to the Hunspell dictionaries.                                       |
 | path_words | `--path-words` | String (path)    | Path with custom words (can be absolute or relative to the config file). |
-| land_id    | `--lang-id`    | String           | Language used to check source strings.                                   |
+| lang_id    | `--lang-id`    | String           | Language used to check source strings.                                   |
 | severity   | `--severity`   | Array of strings | Perform only checks with these severities (`info`, `warning`, `error`).  |
 
 See configuration file example: [poexam.toml](examples/poexam.toml).
