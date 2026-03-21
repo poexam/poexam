@@ -28,5 +28,8 @@ ignore = ["changed"]
 # language used to check source strings
 # lang = "en_US"
 
+# check spelling only for these languages
+# langs = ["en_US", "fr"]
+
 # perform only checks with these severities
 # severity = ["error", "warning", "info"]

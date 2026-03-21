@@ -88,6 +88,10 @@ pub struct CheckArgs {
     #[arg(long)]
     pub lang_id: Option<String>,
 
+    /// Check spelling only for these languages (comma-separated list of language ids, e.g. `en_US,fr`); by default all languages are checked
+    #[arg(long)]
+    pub langs: Option<String>,
+
     /// Perform only checks with this severity (can be given multiple times); by default all checks are performed
     #[arg(short = 'e', long, value_enum)]
     pub severity: Vec<Severity>,

@@ -6,6 +6,12 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 # Poexam ChangeLog
 
+## Version 0.0.8 (under dev)
+
+### Added
+
+- Add option `--langs` to check spelling only for these languages
+
 ## Version 0.0.7 (2026-03-12)
 
 ### Changed

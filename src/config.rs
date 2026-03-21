@@ -49,6 +49,9 @@ pub struct CheckConfig {
     #[serde(default = "default_lang_id")]
     pub lang_id: String,
 
+    #[serde(default = "default_langs")]
+    pub langs: Vec<String>,
+
     #[serde(default = "default_severity")]
     pub severity: Vec<Severity>,
 }
@@ -85,6 +88,10 @@ fn default_lang_id() -> String {
     String::from(dict::DEFAULT_LANG_ID)
 }
 
+fn default_langs() -> Vec<String> {
+    vec![]
+}
+
 fn default_severity() -> Vec<Severity> {
     vec![]
 }
@@ -100,12 +107,14 @@ impl Default for CheckConfig {
             path_dicts: default_path_dicts(),
             path_words: default_path_words(),
             lang_id: default_lang_id(),
+            langs: default_langs(),
             severity: default_severity(),
         }
     }
 }
 
 impl Config {
+    /// Create a configuration by reading a configuration file.
     pub fn new(path: Option<&PathBuf>) -> Result<Config, Box<dyn Error>> {
         let content = match path {
             Some(cfg_path) => match read_to_string(cfg_path) {
@@ -121,6 +130,7 @@ impl Config {
         Ok(config)
     }
 
+    /// Update the configuration with command-line arguments.
     pub fn with_args_check(mut self, args: &args::CheckArgs) -> Self {
         if args.fuzzy {
             self.check.fuzzy = true;
@@ -155,6 +165,9 @@ impl Config {
         }
         if let Some(lang_id) = &args.lang_id {
             self.check.lang_id = String::from(lang_id);
+        }
+        if let Some(langs) = &args.langs {
+            self.check.langs = langs.split(',').map(|s| s.trim().to_string()).collect();
         }
         if !args.severity.is_empty() {
             self.check.severity.clone_from(&args.severity);

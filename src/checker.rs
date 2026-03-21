@@ -205,7 +205,10 @@ impl<'d> Checker<'d> {
         let mut error_dict_str = false;
         while let Some(entry) = self.parser.next() {
             if entry.is_header() {
-                if rules.spelling_ctxt_rule || rules.spelling_id_rule {
+                if (rules.spelling_ctxt_rule || rules.spelling_id_rule)
+                    && (self.config.check.langs.is_empty()
+                        || self.config.check.langs.contains(&self.config.check.lang_id))
+                {
                     self.dict_id = match dict::get_dict(
                         self.config.check.path_dicts.as_path(),
                         self.config.check.path_words.as_ref(),
@@ -225,7 +228,10 @@ impl<'d> Checker<'d> {
                         }
                     }
                 }
-                if rules.spelling_str_rule && self.dict_str.is_none() {
+                if (rules.spelling_str_rule && self.dict_str.is_none())
+                    && (self.config.check.langs.is_empty()
+                        || self.config.check.langs.contains(&self.parser.language))
+                {
                     self.dict_str = match dict::get_dict(
                         self.config.check.path_dicts.as_path(),
                         self.config.check.path_words.as_ref(),
