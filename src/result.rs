@@ -86,6 +86,10 @@ fn display_rule_stats(result: &[CheckFileResult]) {
         *count_rule_errors.entry(rule).or_insert(0) += 1;
     }
     let mut items: Vec<_> = count_rule_errors.iter().collect();
+    if items.is_empty() {
+        println!("No errors found.");
+        return;
+    }
     items.sort_by(|a, b| b.1.cmp(a.1));
     println!("Errors by rule:");
     for (rule, count) in items {

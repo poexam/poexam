@@ -12,6 +12,10 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 - Add option `--langs` to check spelling only for these languages
 
+### Fixed
+
+- Display a specific message with `--rule-stats` when no errors are found
+
 ## Version 0.0.7 (2026-03-12)
 
 ### Changed
