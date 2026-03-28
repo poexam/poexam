@@ -101,13 +101,21 @@ impl<'d> Checker<'d> {
     }
 
     /// Report a diagnostic for the given PO file.
-    pub fn report_file(&mut self, rule: &'static str, severity: Severity, message: String) {
-        self.diagnostics.push(Diagnostic::new(
-            self.path.as_path(),
-            rule,
-            severity,
-            message,
-        ));
+    pub fn report_file(
+        &mut self,
+        rule: &'static str,
+        severity: Severity,
+        message: String,
+        detail: Option<String>,
+    ) {
+        let mut diagnostic = Diagnostic::new(self.path.as_path(), rule, severity, message);
+        if let Some(content) = detail {
+            // Split lines in detail and add them to the diagnostic with no line number (0).
+            for line in content.lines() {
+                diagnostic.add_message(0, line, &[]);
+            }
+        }
+        self.diagnostics.push(diagnostic);
     }
 
     /// Report a diagnostic for the given PO entry.
@@ -201,6 +209,10 @@ impl<'d> Checker<'d> {
 
     /// Perform all checks on every entry of the PO file.
     pub fn do_all_checks(&mut self, rules: &Rules) {
+        // Run rules for the entire file (e.g. check compilation of the file with msgfmt command).
+        for rule in &rules.enabled {
+            rule.check_file(self);
+        }
         let mut error_dict_id = false;
         let mut error_dict_str = false;
         while let Some(entry) = self.parser.next() {
@@ -221,6 +233,7 @@ impl<'d> Checker<'d> {
                                     "spelling-id-ctxt",
                                     Severity::Warning,
                                     err.to_string(),
+                                    None,
                                 );
                             }
                             error_dict_id = true;
@@ -244,6 +257,7 @@ impl<'d> Checker<'d> {
                                     "spelling-str",
                                     Severity::Warning,
                                     err.to_string(),
+                                    None,
                                 );
                             }
                             error_dict_str = true;

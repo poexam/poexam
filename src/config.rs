@@ -13,6 +13,8 @@ use crate::args;
 use crate::diagnostic::Severity;
 use crate::dict;
 
+pub const DEFAULT_PATH_MSGFMT: &str = "/usr/bin/msgfmt";
+
 #[derive(Default, Debug, Serialize, Deserialize)]
 pub struct Config {
     #[serde(skip)]
@@ -39,6 +41,9 @@ pub struct CheckConfig {
 
     #[serde(default = "default_ignore")]
     pub ignore: Vec<String>,
+
+    #[serde(default = "default_path_msgfmt")]
+    pub path_msgfmt: PathBuf,
 
     #[serde(default = "default_path_dicts")]
     pub path_dicts: PathBuf,
@@ -76,6 +81,10 @@ fn default_ignore() -> Vec<String> {
     vec![]
 }
 
+fn default_path_msgfmt() -> PathBuf {
+    PathBuf::from(DEFAULT_PATH_MSGFMT)
+}
+
 fn default_path_dicts() -> PathBuf {
     PathBuf::from(dict::DEFAULT_PATH_DICTS)
 }
@@ -104,6 +113,7 @@ impl Default for CheckConfig {
             obsolete: default_obsolete(),
             select: default_select(),
             ignore: default_ignore(),
+            path_msgfmt: default_path_msgfmt(),
             path_dicts: default_path_dicts(),
             path_words: default_path_words(),
             lang_id: default_lang_id(),
@@ -146,6 +156,9 @@ impl Config {
         }
         if let Some(ignore) = &args.ignore {
             self.check.ignore = ignore.split(',').map(|s| s.trim().to_string()).collect();
+        }
+        if let Some(path_msgfmt) = &args.path_msgfmt {
+            self.check.path_msgfmt = PathBuf::from(path_msgfmt);
         }
         if let Some(path_dicts) = &args.path_dicts {
             self.check.path_dicts = PathBuf::from(path_dicts);

@@ -64,18 +64,19 @@ The configuration file used is the closest file found by order, where `<path>` i
 
 The following options are available in the `check` section:
 
-| Option     | Overridden by… | Type             | Description                                                              |
-|------------|----------------|------------------|--------------------------------------------------------------------------|
-| fuzzy      | `--fuzzy`      | Boolean          | Check fuzzy entries.                                                     |
-| noqa       | `--noqa`       | Boolean          | Check entries marked as "noqa".                                          |
-| obsolete   | `--obsolete`   | Boolean          | Check obsolete entries.                                                  |
-| select     | `--select`     | Array of strings | Selected rules.                                                          |
-| ignore     | `--ignore`     | Array of strings | Ignored rules.                                                           |
-| path_dicts | `--path-dicts` | String (path)    | Path to the Hunspell dictionaries.                                       |
-| path_words | `--path-words` | String (path)    | Path with custom words (can be absolute or relative to the config file). |
-| lang_id    | `--lang-id`    | String           | Language used to check source strings.                                   |
-| langs      | `--langs`      | Array of strings | Check spelling only for these languages.                                 |
-| severity   | `--severity`   | Array of strings | Perform only checks with these severities (`info`, `warning`, `error`).  |
+| Option      | Overridden by…  | Type             | Description                                                       |
+|-------------|-----------------|------------------|-------------------------------------------------------------------|
+| fuzzy       | `--fuzzy`       | Boolean          | Check fuzzy entries.                                              |
+| noqa        | `--noqa`        | Boolean          | Check entries marked as "noqa".                                   |
+| obsolete    | `--obsolete`    | Boolean          | Check obsolete entries.                                           |
+| select      | `--select`      | Array of strings | Selected rules.                                                   |
+| ignore      | `--ignore`      | Array of strings | Ignored rules.                                                    |
+| path_msgfmt | `--path-msgfmt` | String (path)    | Path to `msgfmt` for PO file compilation.                         |
+| path_dicts  | `--path-dicts`  | String (path)    | Path to the Hunspell dictionaries.                                |
+| path_words  | `--path-words`  | String (path)    | Path with custom words (absolute or relative to the config file). |
+| lang_id     | `--lang-id`     | String           | Language used to check source strings.                            |
+| langs       | `--langs`       | Array of strings | Check spelling only for these languages.                          |
+| severity    | `--severity`    | Array of strings | Run only checks with these severities (`info`/`warning`/`error`). |
 
 See configuration file example: [poexam.toml](examples/poexam.toml).
 
@@ -117,6 +118,7 @@ For the rule `formats`, the following languages are supported:
 | Rule name     | Severity | Diagnostic reported                              |
 |---------------|----------|--------------------------------------------------|
 | changed       | info     | Translation is different from the source string. |
+| compilation   | error    | Compilation with `msgfmt`.                       |
 | fuzzy         | info     | Fuzzy entry.                                     |
 | obsolete      | info     | Obsolete entry.                                  |
 | spelling-ctxt | info     | Spelling error in the context string.            |
@@ -131,6 +133,12 @@ You can check by yourself with the following command executed in the root direct
 
 ```text
 $ poexam check examples/fr.po
+examples/fr.po: [error:compilation] command `/usr/bin/msgfmt` reported errors
+        |
+        | examples/fr.po:52: format specifications in 'msgid' and 'msgstr' for argument 1 are not the same
+        | /usr/bin/msgfmt: found 1 fatal error
+        |
+
 examples/fr.po:25: [warning:blank] blank translation
         |
      25 | Test: blank translation

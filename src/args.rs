@@ -76,6 +76,10 @@ pub struct CheckArgs {
     #[arg(short, long)]
     pub ignore: Option<String>,
 
+    /// Path to msgfmt command (default: `/usr/bin/msgfmt`)
+    #[arg(long)]
+    pub path_msgfmt: Option<PathBuf>,
+
     /// Path to hunspell dictionaries (default: `/usr/share/hunspell`)
     #[arg(long)]
     pub path_dicts: Option<PathBuf>,

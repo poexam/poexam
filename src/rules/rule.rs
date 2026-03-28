@@ -12,9 +12,9 @@ use crate::{
     config::Config,
     po::entry::Entry,
     rules::{
-        blank, brackets, changed, double_quotes, double_spaces, encoding, escapes, formats, fuzzy,
-        long, newlines, obsolete, pipes, plurals, punc, short, spelling, tabs, unchanged,
-        untranslated, whitespace,
+        blank, brackets, changed, compilation, double_quotes, double_spaces, encoding, escapes,
+        formats, fuzzy, long, newlines, obsolete, pipes, plurals, punc, short, spelling, tabs,
+        unchanged, untranslated, whitespace,
     },
 };
 
@@ -80,6 +80,7 @@ pub trait RuleChecker {
     fn is_default(&self) -> bool;
     fn is_check(&self) -> bool;
     fn severity(&self) -> crate::diagnostic::Severity;
+    fn check_file(&self, _checker: &mut Checker) {}
     fn check_entry(&self, _checker: &mut Checker, _entry: &Entry) {}
     fn check_ctxt(&self, _checker: &mut Checker, _entry: &Entry, _ctxt: &str) {}
     fn check_msg(&self, _checker: &mut Checker, _entry: &Entry, _msgid: &str, _msgstr: &str) {}
@@ -90,6 +91,7 @@ pub fn get_all_rules() -> Vec<Rule> {
         Box::new(blank::BlankRule {}),
         Box::new(brackets::BracketsRule {}),
         Box::new(changed::ChangedRule {}),
+        Box::new(compilation::CompilationRule {}),
         Box::new(double_quotes::DoubleQuotesRule {}),
         Box::new(double_spaces::DoubleSpacesRule {}),
         Box::new(encoding::EncodingRule {}),

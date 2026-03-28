@@ -243,7 +243,8 @@ mod tests {
 
     fn check_spelling(content: &str) -> Vec<Diagnostic> {
         let mut test_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_dir.push("resources/test");
+        test_dir.push("resources");
+        test_dir.push("test");
         let mut config = Config::default();
         config.check.path_dicts = test_dir;
         let mut checker = Checker::new(content.as_bytes()).with_config(config);

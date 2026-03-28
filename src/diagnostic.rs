@@ -197,8 +197,8 @@ impl std::fmt::Display for Diagnostic {
     /// Format the `Diagnostic` for display, including file, severity, message, and context.
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let str_first_line = match self.lines.first() {
-            Some(line) => format!(":{}", line.line_number),
-            None => String::new(),
+            Some(line) if line.line_number > 0 => format!(":{}", line.line_number),
+            _ => String::new(),
         };
         write!(
             f,
