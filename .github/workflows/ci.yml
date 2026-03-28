@@ -26,6 +26,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Install dependencies
+        if: startsWith(${{ matrix.os }}, 'ubuntu')
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get --yes --no-install-recommends install gettext
+
       - name: Build
         run: cargo build --verbose
 
