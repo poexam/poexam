@@ -178,10 +178,13 @@ impl Config {
 
 /// Find the configuration file for a PO file.
 ///
-/// Look for paths in this order (<path> being the path to the PO file):
-/// - <path>/.poexam/poexam.toml
-/// - <path>/poexam.toml
-/// - <path>/.poexam.toml
+/// Look for paths in this order (``{path}`` being the path to the PO file):
+/// - ``{path}/.poexam/poexam.toml``
+/// - ``{path}/poexam.toml``
+/// - ``{path}/.poexam.toml``
+///
+/// If no configuration file is found, search in the parent directory, and so on until
+/// the root directory is reached.
 pub fn find_config_path(po_path: &Path) -> Option<PathBuf> {
     let Ok(abs_path) = po_path.canonicalize() else {
         return None;
