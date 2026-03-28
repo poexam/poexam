@@ -178,7 +178,7 @@ examples/fr.po:51: [error:formats] inconsistent format strings (C)
 
 (...)
 
-1 files checked: 27 problems in 1 files (5 errors, 2 warnings, 20 info) [25.508932ms]
+1 files checked: 28 problems in 1 files (6 errors, 2 warnings, 20 info) [27.938269ms]
 ```
 
 ### Spell checking
