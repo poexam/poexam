@@ -105,12 +105,20 @@ mod tests {
 
     #[test]
     fn test_compilation_ok() {
+        // Skip this test if the msgfmt command is not available.
+        if !Path::new(DEFAULT_PATH_MSGFMT).exists() {
+            return;
+        }
         let diags = check_compilation("fr_compilation_ok.po", Path::new(DEFAULT_PATH_MSGFMT));
         assert!(diags.is_empty());
     }
 
     #[test]
     fn test_compilation_error() {
+        // Skip this test if the msgfmt command is not available.
+        if !Path::new(DEFAULT_PATH_MSGFMT).exists() {
+            return;
+        }
         let diags = check_compilation("fr_compilation_error.po", Path::new(DEFAULT_PATH_MSGFMT));
         assert_eq!(diags.len(), 1);
         let diag = &diags[0];
