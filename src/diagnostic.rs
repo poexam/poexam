@@ -142,6 +142,7 @@ impl Diagnostic {
         }
     }
 
+    /// Add a message to the diagnostic with the given line number and highlights.
     pub fn add_message(&mut self, line: usize, message: &str, highlights: &[(usize, usize)]) {
         self.lines.push(DiagnosticLine {
             line_number: line,
@@ -174,6 +175,7 @@ impl Diagnostic {
         out
     }
 
+    /// Format the diagnostic lines with colors for display.
     fn format_lines(&self) -> String {
         if self.lines.is_empty() {
             "\n".to_string()
