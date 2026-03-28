@@ -20,6 +20,10 @@ impl RuleChecker for TabsRule {
         true
     }
 
+    fn is_check(&self) -> bool {
+        true
+    }
+
     fn severity(&self) -> Severity {
         Severity::Error
     }

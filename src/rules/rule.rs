@@ -78,9 +78,7 @@ impl Rules {
 pub trait RuleChecker {
     fn name(&self) -> &'static str;
     fn is_default(&self) -> bool;
-    fn is_check(&self) -> bool {
-        true
-    }
+    fn is_check(&self) -> bool;
     fn severity(&self) -> crate::diagnostic::Severity;
     fn check_entry(&self, _checker: &mut Checker, _entry: &Entry) {}
     fn check_ctxt(&self, _checker: &mut Checker, _entry: &Entry, _ctxt: &str) {}

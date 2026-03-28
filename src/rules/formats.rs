@@ -27,6 +27,10 @@ impl RuleChecker for FormatsRule {
         true
     }
 
+    fn is_check(&self) -> bool {
+        true
+    }
+
     fn severity(&self) -> Severity {
         Severity::Error
     }

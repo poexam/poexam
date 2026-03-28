@@ -23,6 +23,10 @@ impl RuleChecker for BracketsRule {
         true
     }
 
+    fn is_check(&self) -> bool {
+        true
+    }
+
     fn severity(&self) -> Severity {
         Severity::Info
     }

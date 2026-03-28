@@ -22,6 +22,10 @@ impl RuleChecker for WhitespaceStartRule {
         true
     }
 
+    fn is_check(&self) -> bool {
+        true
+    }
+
     fn severity(&self) -> Severity {
         Severity::Info
     }
@@ -69,6 +73,10 @@ impl RuleChecker for WhitespaceEndRule {
     }
 
     fn is_default(&self) -> bool {
+        true
+    }
+
+    fn is_check(&self) -> bool {
         true
     }
 

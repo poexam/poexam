@@ -22,6 +22,10 @@ impl RuleChecker for PuncStartRule {
         true
     }
 
+    fn is_check(&self) -> bool {
+        true
+    }
+
     fn severity(&self) -> Severity {
         Severity::Info
     }
@@ -91,6 +95,10 @@ impl RuleChecker for PuncEndRule {
     }
 
     fn is_default(&self) -> bool {
+        true
+    }
+
+    fn is_check(&self) -> bool {
         true
     }
 

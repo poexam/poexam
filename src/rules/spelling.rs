@@ -28,6 +28,10 @@ impl RuleChecker for SpellingCtxtRule {
         false
     }
 
+    fn is_check(&self) -> bool {
+        true
+    }
+
     fn severity(&self) -> Severity {
         Severity::Info
     }
@@ -84,6 +88,10 @@ impl RuleChecker for SpellingIdRule {
         false
     }
 
+    fn is_check(&self) -> bool {
+        true
+    }
+
     fn severity(&self) -> Severity {
         Severity::Info
     }
@@ -138,6 +146,10 @@ impl RuleChecker for SpellingStrRule {
 
     fn is_default(&self) -> bool {
         false
+    }
+
+    fn is_check(&self) -> bool {
+        true
     }
 
     fn severity(&self) -> Severity {

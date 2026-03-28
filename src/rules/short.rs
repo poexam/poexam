@@ -20,6 +20,10 @@ impl RuleChecker for ShortRule {
         true
     }
 
+    fn is_check(&self) -> bool {
+        true
+    }
+
     fn severity(&self) -> Severity {
         Severity::Warning
     }

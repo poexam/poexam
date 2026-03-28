@@ -20,6 +20,10 @@ impl RuleChecker for EncodingRule {
         true
     }
 
+    fn is_check(&self) -> bool {
+        true
+    }
+
     fn severity(&self) -> Severity {
         Severity::Info
     }
