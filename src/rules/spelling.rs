@@ -54,7 +54,7 @@ impl RuleChecker for SpellingCtxtRule {
     /// msgstr "Mai"
     /// ```
     ///
-    /// Diagnostics reported with severity [`warning`](Severity::Info):
+    /// Diagnostics reported with severity [`info`](Severity::Info):
     /// - `misspelled words in context: xxx`
     fn check_ctxt(&self, checker: &mut Checker, entry: &Entry, msgctxt: &str) {
         if let Some(dict) = &checker.dict_id {
@@ -112,7 +112,7 @@ impl RuleChecker for SpellingIdRule {
     /// msgstr "ceci est une faute"
     /// ```
     ///
-    /// Diagnostics reported with severity [`warning`](Severity::Info):
+    /// Diagnostics reported with severity [`info`](Severity::Info):
     /// - `misspelled words in source: xxx`
     fn check_msg(&self, checker: &mut Checker, entry: &Entry, msgid: &str, msgstr: &str) {
         if let Some(dict) = &checker.dict_id {
@@ -172,7 +172,7 @@ impl RuleChecker for SpellingStrRule {
     /// msgstr "ceci est une faute"
     /// ```
     ///
-    /// Diagnostics reported with severity [`warning`](Severity::Info):
+    /// Diagnostics reported with severity [`info`](Severity::Info):
     /// - `misspelled words in translation: xxx`
     fn check_msg(&self, checker: &mut Checker, entry: &Entry, msgid: &str, msgstr: &str) {
         if let Some(dict) = &checker.dict_str {
