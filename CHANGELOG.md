@@ -10,6 +10,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 ### Added
 
+- Add rule "urls"
 - Add rule "compilation" and option `--path-msgfmt`
 
 ## Version 0.0.8 (2026-03-25)

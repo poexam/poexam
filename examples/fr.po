@@ -88,6 +88,10 @@ msgstr ":"
 msgid "Test \t tabulation"
 msgstr "Test tabulation"
 
+# rule: urls
+msgid "URL example: https://github.com/about"
+msgstr "Exemple d'URL : https://github.com/à_propos"
+
 # rule: whitespace-end
 msgid "Test whitespace end"
 msgstr "Test espace à la fin "

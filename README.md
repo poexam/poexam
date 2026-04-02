@@ -96,6 +96,7 @@ It can perform a lot of checks via the default rules:
 | punc-start       | info     | Inconsistent leading punctuation.      |
 | short            | warning  | Translation too short.                 |
 | tabs             | error    | Missing/extra tabs.                    |
+| urls             | warning  | Missing/extra/different URLs.          |
 | whitespace-end   | info     | Missing/extra whitespace at the end.   |
 | whitespace-start | info     | Missing/extra whitespace at the start. |
 
@@ -178,7 +179,7 @@ examples/fr.po:51: [error:formats] inconsistent format strings (C)
 
 (...)
 
-1 files checked: 28 problems in 1 files (6 errors, 2 warnings, 20 info) [27.938269ms]
+1 files checked: 29 problems in 1 files (6 errors, 3 warnings, 20 info) [27.938269ms]
 ```
 
 ### Spell checking

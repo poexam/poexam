@@ -26,4 +26,5 @@ pub mod spelling;
 pub mod tabs;
 pub mod unchanged;
 pub mod untranslated;
+pub mod urls;
 pub mod whitespace;

@@ -14,7 +14,7 @@ use crate::{
     rules::{
         blank, brackets, changed, compilation, double_quotes, double_spaces, encoding, escapes,
         formats, fuzzy, long, newlines, obsolete, pipes, plurals, punc, short, spelling, tabs,
-        unchanged, untranslated, whitespace,
+        unchanged, untranslated, urls, whitespace,
     },
 };
 
@@ -112,6 +112,7 @@ pub fn get_all_rules() -> Vec<Rule> {
         Box::new(tabs::TabsRule {}),
         Box::new(unchanged::UnchangedRule {}),
         Box::new(untranslated::UntranslatedRule {}),
+        Box::new(urls::UrlsRule {}),
         Box::new(whitespace::WhitespaceEndRule {}),
         Box::new(whitespace::WhitespaceStartRule {}),
     ]

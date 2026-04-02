@@ -10,6 +10,7 @@ pub mod lang_c;
 pub mod lang_null;
 pub mod lang_python;
 pub mod language;
+pub mod url_pos;
 pub mod word_pos;
 
 #[derive(Clone, Debug, PartialEq, Eq)]

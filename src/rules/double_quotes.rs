@@ -9,7 +9,7 @@ use crate::diagnostic::Severity;
 use crate::po::entry::Entry;
 use crate::rules::rule::RuleChecker;
 
-const DOUBLE_QUOTES: [char; 5] = ['"', '„', '”', '«', '»'];
+pub const DOUBLE_QUOTES: [char; 5] = ['"', '„', '”', '«', '»'];
 
 pub struct DoubleQuotesRule;
 

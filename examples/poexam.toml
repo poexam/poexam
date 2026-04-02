@@ -23,7 +23,7 @@ ignore = ["changed"]
 # path_dicts = "/usr/share/hunspell"
 
 # path to a directory containing files with list of words
-# path_words = "."
+path_words = "."
 
 # language used to check source strings
 # lang = "en_US"
