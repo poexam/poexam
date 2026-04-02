@@ -27,7 +27,7 @@ pub struct Cli {
 #[derive(Debug, Subcommand)]
 pub enum Command {
     /// Check files
-    Check(CheckArgs),
+    Check(Box<CheckArgs>),
 
     /// Display rules used to check files
     Rules(RulesArgs),
