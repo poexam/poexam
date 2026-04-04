@@ -56,7 +56,7 @@ impl RuleChecker for PipesRule {
             .collect();
         match id_pipes.len().cmp(&str_pipes.len()) {
             std::cmp::Ordering::Greater => {
-                checker.report_msg(
+                checker.report_id_str(
                     entry,
                     format!(
                         "missing pipes '|' ({} / {})",
@@ -70,7 +70,7 @@ impl RuleChecker for PipesRule {
                 );
             }
             std::cmp::Ordering::Less => {
-                checker.report_msg(
+                checker.report_id_str(
                     entry,
                     format!("extra pipes '|' ({} / {})", id_pipes.len(), str_pipes.len()),
                     msgid,

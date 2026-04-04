@@ -58,7 +58,7 @@ impl RuleChecker for EscapesRule {
             .collect();
         match id_esc.len().cmp(&str_esc.len()) {
             std::cmp::Ordering::Greater => {
-                checker.report_msg(
+                checker.report_id_str(
                     entry,
                     format!(
                         "missing escaped escape characters '\\\\' ({} / {})",
@@ -72,7 +72,7 @@ impl RuleChecker for EscapesRule {
                 );
             }
             std::cmp::Ordering::Less => {
-                checker.report_msg(
+                checker.report_id_str(
                     entry,
                     format!(
                         "extra escaped escape characters '\\\\' ({} / {})",
@@ -96,7 +96,7 @@ impl RuleChecker for EscapesRule {
                     .collect();
                 match id_esc.len().cmp(&str_esc.len()) {
                     std::cmp::Ordering::Greater => {
-                        checker.report_msg(
+                        checker.report_id_str(
                             entry,
                             format!(
                                 "missing escape characters '\\' ({} / {})",
@@ -110,7 +110,7 @@ impl RuleChecker for EscapesRule {
                         );
                     }
                     std::cmp::Ordering::Less => {
-                        checker.report_msg(
+                        checker.report_id_str(
                             entry,
                             format!(
                                 "extra escape characters '\\' ({} / {})",

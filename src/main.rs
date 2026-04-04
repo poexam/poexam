@@ -40,6 +40,8 @@ mod po;
 mod result;
 mod rules;
 mod stats;
+mod url_pos;
+mod word_pos;
 
 use clap::Parser;
 

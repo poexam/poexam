@@ -56,7 +56,7 @@ impl RuleChecker for TabsRule {
             .collect();
         match id_tabs.len().cmp(&str_tabs.len()) {
             std::cmp::Ordering::Greater => {
-                checker.report_msg(
+                checker.report_id_str(
                     entry,
                     format!(
                         "missing tabs '\\t' ({} / {})",
@@ -70,7 +70,7 @@ impl RuleChecker for TabsRule {
                 );
             }
             std::cmp::Ordering::Less => {
-                checker.report_msg(
+                checker.report_id_str(
                     entry,
                     format!("extra tabs '\\t' ({} / {})", id_tabs.len(), str_tabs.len()),
                     msgid,

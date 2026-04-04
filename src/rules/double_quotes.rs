@@ -60,7 +60,7 @@ impl RuleChecker for DoubleQuotesRule {
             .collect();
         match id_quotes.len().cmp(&str_quotes.len()) {
             std::cmp::Ordering::Greater => {
-                checker.report_msg(
+                checker.report_id_str(
                     entry,
                     format!(
                         "missing double quotes ({} / {})",
@@ -74,7 +74,7 @@ impl RuleChecker for DoubleQuotesRule {
                 );
             }
             std::cmp::Ordering::Less => {
-                checker.report_msg(
+                checker.report_id_str(
                     entry,
                     format!(
                         "extra double quotes ({} / {})",

@@ -10,12 +10,20 @@ pub struct FormatC;
 
 impl FormatParser for FormatC {
     #[inline]
-    fn next_char(&self, s: &str, pos: usize, len: usize) -> (usize, bool) {
-        let bytes = s.as_bytes();
-        if pos + 1 >= len || bytes[pos] != b'%' {
-            (pos, false)
-        } else {
-            (pos + 1, bytes[pos + 1] != b'%')
+    fn next_char(&self, s: &str, pos: usize) -> Option<(char, usize, bool)> {
+        match s[pos..].chars().next() {
+            Some('%') => match s[pos + 1..].chars().next() {
+                // Escaped percent: "%%" is not a format string.
+                Some('%') => Some(('%', pos + 2, false)),
+                // Start of a format string.
+                Some(_) => Some(('%', pos + 1, true)),
+                // Invalid format string: '%' at the end of the string.
+                None => Some(('%', pos + 1, false)),
+            },
+            // Other character: not a format string.
+            Some(c) => Some((c, pos + c.len_utf8(), false)),
+            // End of string: no more character.
+            None => None,
         }
     }
 
@@ -112,8 +120,9 @@ pub fn fmt_strip_index(fmt: &str) -> String {
 mod tests {
     use super::*;
     use crate::po::format::{
-        MatchStrPos, char_pos::CharPos, format_pos::FormatPos, language::Language, url_pos::UrlPos,
-        word_pos::WordPos,
+        MatchStrPos,
+        format_pos::{FormatPos, strip_formats},
+        language::Language,
     };
 
     #[test]
@@ -146,56 +155,15 @@ mod tests {
                 .is_none()
         );
         assert_eq!(
-            WordPos::new("Hello, world!", &Language::C).collect::<Vec<_>>(),
-            vec![
-                MatchStrPos {
-                    s: "Hello",
-                    start: 0,
-                    end: 5,
-                },
-                MatchStrPos {
-                    s: "world",
-                    start: 7,
-                    end: 12,
-                },
-            ]
-        );
-        assert_eq!(
-            CharPos::new("Hé, w!", &Language::C).collect::<Vec<_>>(),
-            vec![
-                MatchStrPos {
-                    s: "H",
-                    start: 0,
-                    end: 1,
-                },
-                MatchStrPos {
-                    s: "é",
-                    start: 1,
-                    end: 3,
-                },
-                MatchStrPos {
-                    s: "w",
-                    start: 5,
-                    end: 6,
-                },
-            ]
-        );
-        assert_eq!(
-            UrlPos::new("Hello, world! https://example.com", &Language::C).collect::<Vec<_>>(),
-            vec![MatchStrPos {
-                s: "https://example.com",
-                start: 14,
-                end: 33,
-            }]
+            strip_formats("Hello, world!", &Language::C),
+            "Hello, world!"
         );
     }
 
     #[test]
     fn test_invalid_format() {
         assert!(FormatPos::new("%", &Language::C).next().is_none());
-        assert!(WordPos::new("%", &Language::C).next().is_none());
-        assert!(CharPos::new("%", &Language::C).next().is_none());
-        assert!(UrlPos::new("%", &Language::C).next().is_none());
+        assert_eq!(strip_formats("%", &Language::C), "%");
         assert_eq!(
             FormatPos::new("%é", &Language::C).collect::<Vec<_>>(),
             vec![MatchStrPos {
@@ -204,30 +172,7 @@ mod tests {
                 end: 1,
             }]
         );
-        assert_eq!(
-            WordPos::new("%é", &Language::C).collect::<Vec<_>>(),
-            vec![MatchStrPos {
-                s: "é",
-                start: 1,
-                end: 3,
-            }]
-        );
-        assert_eq!(
-            CharPos::new("%é", &Language::C).collect::<Vec<_>>(),
-            vec![MatchStrPos {
-                s: "é",
-                start: 1,
-                end: 3,
-            }]
-        );
-        assert_eq!(
-            UrlPos::new("%ïrc://test", &Language::C).collect::<Vec<_>>(),
-            vec![MatchStrPos {
-                s: "ïrc://test",
-                start: 1,
-                end: 12,
-            }]
-        );
+        assert_eq!(strip_formats("%é", &Language::C), "é");
     }
 
     #[test]
@@ -241,55 +186,15 @@ mod tests {
             }]
         );
         assert_eq!(
-            WordPos::new("Hello, %s world!", &Language::C).collect::<Vec<_>>(),
-            vec![
-                MatchStrPos {
-                    s: "Hello",
-                    start: 0,
-                    end: 5,
-                },
-                MatchStrPos {
-                    s: "world",
-                    start: 10,
-                    end: 15,
-                },
-            ]
-        );
-        assert_eq!(
-            CharPos::new("Hé, %s w!", &Language::C).collect::<Vec<_>>(),
-            vec![
-                MatchStrPos {
-                    s: "H",
-                    start: 0,
-                    end: 1,
-                },
-                MatchStrPos {
-                    s: "é",
-                    start: 1,
-                    end: 3,
-                },
-                MatchStrPos {
-                    s: "w",
-                    start: 8,
-                    end: 9,
-                },
-            ]
-        );
-        assert_eq!(
-            UrlPos::new("Hello, world! %shttps://example.com", &Language::C).collect::<Vec<_>>(),
-            vec![MatchStrPos {
-                s: "https://example.com",
-                start: 16,
-                end: 35,
-            }]
+            strip_formats("Hello, %s world!", &Language::C),
+            "Hello,  world!"
         );
     }
 
     #[test]
     fn test_multiple_formats() {
-        let s = "%d%s%f";
         assert_eq!(
-            FormatPos::new(s, &Language::C).collect::<Vec<_>>(),
+            FormatPos::new("%d%s%f", &Language::C).collect::<Vec<_>>(),
             vec![
                 MatchStrPos {
                     s: "%d",
@@ -308,9 +213,7 @@ mod tests {
                 },
             ]
         );
-        assert!(WordPos::new(s, &Language::C).next().is_none());
-        assert!(CharPos::new(s, &Language::C).next().is_none());
-        assert!(UrlPos::new(s, &Language::C).next().is_none());
+        assert!(strip_formats("%d%s%f", &Language::C).is_empty());
     }
 
     #[test]
@@ -336,59 +239,15 @@ mod tests {
             ]
         );
         assert_eq!(
-            WordPos::new("Hello, %3$d %2$s %1$f world!", &Language::C).collect::<Vec<_>>(),
-            vec![
-                MatchStrPos {
-                    s: "Hello",
-                    start: 0,
-                    end: 5,
-                },
-                MatchStrPos {
-                    s: "world",
-                    start: 22,
-                    end: 27,
-                },
-            ]
-        );
-        assert_eq!(
-            CharPos::new("Hé, %3$d %2$s %1$f w!", &Language::C).collect::<Vec<_>>(),
-            vec![
-                MatchStrPos {
-                    s: "H",
-                    start: 0,
-                    end: 1,
-                },
-                MatchStrPos {
-                    s: "é",
-                    start: 1,
-                    end: 3,
-                },
-                MatchStrPos {
-                    s: "w",
-                    start: 20,
-                    end: 21,
-                },
-            ]
-        );
-        assert_eq!(
-            UrlPos::new(
-                "Hello, world! %3$d %2$s %1$fhttps://example.com",
-                &Language::C
-            )
-            .collect::<Vec<_>>(),
-            vec![MatchStrPos {
-                s: "https://example.com",
-                start: 28,
-                end: 47,
-            }]
+            strip_formats("Hello, %3$d %2$s %1$f world!", &Language::C),
+            "Hello,    world!"
         );
     }
 
     #[test]
     fn test_escaped_percent() {
-        let s = "Hello, %% %s world!";
         assert_eq!(
-            FormatPos::new(s, &Language::C).collect::<Vec<_>>(),
+            FormatPos::new("Hello, %% %s world!", &Language::C).collect::<Vec<_>>(),
             vec![MatchStrPos {
                 s: "%s",
                 start: 10,
@@ -396,47 +255,8 @@ mod tests {
             }]
         );
         assert_eq!(
-            WordPos::new(s, &Language::C).collect::<Vec<_>>(),
-            vec![
-                MatchStrPos {
-                    s: "Hello",
-                    start: 0,
-                    end: 5,
-                },
-                MatchStrPos {
-                    s: "world",
-                    start: 13,
-                    end: 18,
-                },
-            ]
-        );
-        assert_eq!(
-            CharPos::new("Hé, %% %s w!", &Language::C).collect::<Vec<_>>(),
-            vec![
-                MatchStrPos {
-                    s: "H",
-                    start: 0,
-                    end: 1,
-                },
-                MatchStrPos {
-                    s: "é",
-                    start: 1,
-                    end: 3,
-                },
-                MatchStrPos {
-                    s: "w",
-                    start: 11,
-                    end: 12,
-                },
-            ]
-        );
-        assert_eq!(
-            UrlPos::new("Hé, %%https://example.com", &Language::C).collect::<Vec<_>>(),
-            vec![MatchStrPos {
-                s: "%https://example.com",
-                start: 6,
-                end: 26,
-            }]
+            strip_formats("Hello, %% %s world!", &Language::C),
+            "Hello, %  world!"
         );
     }
 
@@ -451,48 +271,8 @@ mod tests {
             }]
         );
         assert_eq!(
-            WordPos::new("Hello, %05.2f world!", &Language::C).collect::<Vec<_>>(),
-            vec![
-                MatchStrPos {
-                    s: "Hello",
-                    start: 0,
-                    end: 5,
-                },
-                MatchStrPos {
-                    s: "world",
-                    start: 14,
-                    end: 19,
-                },
-            ]
-        );
-        assert_eq!(
-            CharPos::new("Hé, %05.2f w!", &Language::C).collect::<Vec<_>>(),
-            vec![
-                MatchStrPos {
-                    s: "H",
-                    start: 0,
-                    end: 1,
-                },
-                MatchStrPos {
-                    s: "é",
-                    start: 1,
-                    end: 3,
-                },
-                MatchStrPos {
-                    s: "w",
-                    start: 12,
-                    end: 13,
-                },
-            ]
-        );
-        assert_eq!(
-            UrlPos::new("Hello, world! %05.2fhttps://example.com", &Language::C)
-                .collect::<Vec<_>>(),
-            vec![MatchStrPos {
-                s: "https://example.com",
-                start: 20,
-                end: 39,
-            }]
+            strip_formats("Hello, %05.2f world!", &Language::C),
+            "Hello,  world!"
         );
     }
 
@@ -514,56 +294,15 @@ mod tests {
             ]
         );
         assert_eq!(
-            WordPos::new("Hello, %ld %9llu world!", &Language::C).collect::<Vec<_>>(),
-            vec![
-                MatchStrPos {
-                    s: "Hello",
-                    start: 0,
-                    end: 5,
-                },
-                MatchStrPos {
-                    s: "world",
-                    start: 17,
-                    end: 22,
-                },
-            ]
-        );
-        assert_eq!(
-            CharPos::new("Hé, %ld %9llu w!", &Language::C).collect::<Vec<_>>(),
-            vec![
-                MatchStrPos {
-                    s: "H",
-                    start: 0,
-                    end: 1,
-                },
-                MatchStrPos {
-                    s: "é",
-                    start: 1,
-                    end: 3,
-                },
-                MatchStrPos {
-                    s: "w",
-                    start: 15,
-                    end: 16,
-                },
-            ]
-        );
-        assert_eq!(
-            UrlPos::new("Hello, world! %ld %9lluhttps://example.com", &Language::C)
-                .collect::<Vec<_>>(),
-            vec![MatchStrPos {
-                s: "https://example.com",
-                start: 23,
-                end: 42,
-            }]
+            strip_formats("Hello, %ld %9llu world!", &Language::C),
+            "Hello,   world!"
         );
     }
 
     #[test]
     fn test_unicode() {
-        let s = "héllo, мир! %lld 你好";
         assert_eq!(
-            FormatPos::new(s, &Language::C).collect::<Vec<_>>(),
+            FormatPos::new("héllo, мир! %lld 你好", &Language::C).collect::<Vec<_>>(),
             vec![MatchStrPos {
                 s: "%lld",
                 start: 16,
@@ -571,32 +310,8 @@ mod tests {
             }]
         );
         assert_eq!(
-            WordPos::new(s, &Language::C).collect::<Vec<_>>(),
-            vec![
-                MatchStrPos {
-                    s: "héllo",
-                    start: 0,
-                    end: 6,
-                },
-                MatchStrPos {
-                    s: "мир",
-                    start: 8,
-                    end: 14,
-                },
-                MatchStrPos {
-                    s: "你好",
-                    start: 21,
-                    end: 27,
-                },
-            ]
-        );
-        assert_eq!(
-            UrlPos::new("héllo, %lld 你好https://example.com", &Language::C).collect::<Vec<_>>(),
-            vec![MatchStrPos {
-                s: "你好https://example.com",
-                start: 13,
-                end: 38,
-            }]
+            strip_formats("héllo, мир! %lld 你好", &Language::C),
+            "héllo, мир!  你好"
         );
     }
 }

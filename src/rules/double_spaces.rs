@@ -56,7 +56,7 @@ impl RuleChecker for DoubleSpacesRule {
             .collect();
         match id_quotes.len().cmp(&str_quotes.len()) {
             std::cmp::Ordering::Greater => {
-                checker.report_msg(
+                checker.report_id_str(
                     entry,
                     format!(
                         "missing double spaces '  ' ({} / {})",
@@ -70,7 +70,7 @@ impl RuleChecker for DoubleSpacesRule {
                 );
             }
             std::cmp::Ordering::Less => {
-                checker.report_msg(
+                checker.report_id_str(
                     entry,
                     format!(
                         "extra double spaces '  ' ({} / {})",

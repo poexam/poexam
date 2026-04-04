@@ -53,7 +53,7 @@ impl RuleChecker for WhitespaceStartRule {
         let id_ws = get_whitespace_start(msgid);
         let str_ws = get_whitespace_start(msgstr);
         if id_ws != str_ws {
-            checker.report_msg(
+            checker.report_id_str(
                 entry,
                 format!("inconsistent leading whitespace ('{id_ws}' / '{str_ws}')"),
                 msgid,
@@ -107,7 +107,7 @@ impl RuleChecker for WhitespaceEndRule {
         let id_ws = get_whitespace_end(msgid);
         let str_ws = get_whitespace_end(msgstr);
         if id_ws != str_ws {
-            checker.report_msg(
+            checker.report_id_str(
                 entry,
                 format!("inconsistent trailing whitespace ('{id_ws}' / '{str_ws}')"),
                 msgid,

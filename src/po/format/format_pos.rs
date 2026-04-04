@@ -4,6 +4,8 @@
 
 //! Format iterator: return format strings.
 
+use std::borrow::Cow;
+
 use crate::po::format::{FormatParser, MatchStrPos, language::Language};
 
 pub struct FormatPos<'a> {
@@ -28,29 +30,41 @@ impl<'a> Iterator for FormatPos<'a> {
     type Item = MatchStrPos<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let mut idx_start;
-        while self.pos < self.len {
-            idx_start = self.pos;
-            let (new_pos, is_format) = self.fmt.next_char(self.s, self.pos, self.len);
-            self.pos = new_pos;
-            if self.pos >= self.len {
-                return None;
-            }
+        while let Some((_, new_pos, is_format)) = self.fmt.next_char(self.s, self.pos) {
             if is_format {
-                self.pos = self.fmt.find_end_format(self.s, self.pos, self.len);
+                let start = self.pos;
+                self.pos = self.fmt.find_end_format(self.s, new_pos, self.len);
                 return Some(MatchStrPos {
-                    s: &self.s[idx_start..self.pos],
-                    start: idx_start,
+                    s: &self.s[start..self.pos],
+                    start,
                     end: self.pos,
                 });
             }
-            // Move to the next character.
-            match self.s[self.pos..].chars().next() {
-                Some(c) => self.pos += c.len_utf8(),
-                None => return None,
-            }
+            self.pos = new_pos;
         }
         None
+    }
+}
+
+/// Strip format strings from a string, according to the given language.
+pub fn strip_formats<'a>(s: &'a str, language: &Language) -> Cow<'a, str> {
+    if language == &Language::Null {
+        // No format strings: return the original string.
+        Cow::Borrowed(s)
+    } else {
+        let len_s = s.len();
+        let mut result = String::with_capacity(len_s);
+        let mut pos = 0;
+        let fmt = language.format_parser();
+        while let Some((c, new_pos, is_format)) = fmt.next_char(s, pos) {
+            if is_format {
+                pos = fmt.find_end_format(s, new_pos, len_s);
+            } else {
+                result.push(c);
+                pos = new_pos;
+            }
+        }
+        Cow::Owned(result)
     }
 }
 
@@ -64,6 +78,10 @@ mod tests {
             FormatPos::new("Hello, world!", &Language::Null)
                 .next()
                 .is_none()
+        );
+        assert_eq!(
+            strip_formats("Hello, world!", &Language::Null),
+            "Hello, world!"
         );
     }
 }

@@ -133,7 +133,7 @@ impl<'d> Checker<'d> {
     }
 
     /// Report a diagnostic for a given context of a PO entry (msgctxt).
-    pub fn report_ctxt(
+    pub fn report_line(
         &mut self,
         _entry: &Entry,
         message: String,
@@ -151,7 +151,7 @@ impl<'d> Checker<'d> {
     }
 
     /// Report a diagnostic for a given message of a PO entry (couple source/translated).
-    pub fn report_msg(
+    pub fn report_id_str(
         &mut self,
         _entry: &Entry,
         message: String,

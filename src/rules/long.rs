@@ -71,7 +71,7 @@ impl RuleChecker for LongRule {
             return;
         }
         if len_msgid * 10 <= len_msgstr || (len_msgid == 1 && len_msgstr > 1) {
-            checker.report_msg(
+            checker.report_id_str(
                 entry,
                 format!("translation too long ({len_msgid} / {len_msgstr})"),
                 msgid,

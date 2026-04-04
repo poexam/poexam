@@ -15,8 +15,9 @@ use serde::Serialize;
 
 use crate::args;
 use crate::dir::find_po_files;
-use crate::po::format::{char_pos::CharPos, language::Language, word_pos::WordPos};
+use crate::po::format::format_pos::strip_formats;
 use crate::po::parser::Parser;
+use crate::word_pos::WordPos;
 
 #[derive(Clone, Copy, Default, Serialize)]
 struct Entries {
@@ -394,13 +395,15 @@ impl StatsFile {
 }
 
 /// Count words in a given string.
-fn count_words(s: &str, language: &Language) -> u64 {
-    WordPos::new(s, language).count() as u64
+fn count_words(s: &str) -> u64 {
+    WordPos::new(s).count() as u64
 }
 
 /// Count characters (non-whitespace or punctuation) in a given string.
-fn count_chars(s: &str, language: &Language) -> u64 {
-    CharPos::new(s, language).count() as u64
+fn count_chars(s: &str) -> u64 {
+    s.chars()
+        .filter(|c| c.is_alphanumeric() || *c == '-')
+        .count() as u64
 }
 
 /// Compute statistics for a single PO file at the given path.
@@ -419,20 +422,16 @@ fn stats_file(path: &PathBuf, args: &args::StatsArgs) -> Result<StatsFile, std::
         let (words_id, chars_id) = if args.words
             && let Some(msgid) = &entry.msgid
         {
-            (
-                count_words(msgid.value.as_str(), &entry.format_language),
-                count_chars(msgid.value.as_str(), &entry.format_language),
-            )
+            let stripped = strip_formats(&msgid.value, &entry.format_language);
+            (count_words(&stripped), count_chars(&stripped))
         } else {
             (0, 0)
         };
         let (words_str, chars_str) = if args.words
             && let Some(msgstr) = entry.msgstr.get(&0)
         {
-            (
-                count_words(msgstr.value.as_str(), &entry.format_language),
-                count_chars(msgstr.value.as_str(), &entry.format_language),
-            )
+            let stripped = strip_formats(&msgstr.value, &entry.format_language);
+            (count_words(&stripped), count_chars(&stripped))
         } else {
             (0, 0)
         };
@@ -797,19 +796,17 @@ mod tests {
 
     #[test]
     fn test_count_words() {
-        assert_eq!(count_words("", &Language::Null), 0);
-        assert_eq!(count_words("hello", &Language::Null), 1);
-        assert_eq!(count_words("hello, %s world!", &Language::Null), 3);
-        assert_eq!(count_words("hello, %s world!", &Language::C), 2);
+        assert_eq!(count_words(""), 0);
+        assert_eq!(count_words("hello"), 1);
+        assert_eq!(count_words("hello, world!"), 2);
     }
 
     #[test]
     fn test_count_chars() {
-        assert_eq!(count_chars("", &Language::Null), 0);
-        assert_eq!(count_chars("hello", &Language::Null), 5);
-        assert_eq!(count_chars("hello %s", &Language::Null), 6);
-        assert_eq!(count_chars("hello %s", &Language::C), 5);
-        assert_eq!(count_chars("a b c", &Language::Null), 3);
+        assert_eq!(count_chars(""), 0);
+        assert_eq!(count_chars("hello"), 5);
+        assert_eq!(count_chars("hello!"), 5);
+        assert_eq!(count_chars("a b c"), 3);
     }
 
     #[test]

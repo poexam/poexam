@@ -75,7 +75,7 @@ impl RuleChecker for PuncStartRule {
             return;
         }
         if id_punc2 != str_punc2 {
-            checker.report_msg(
+            checker.report_id_str(
                 entry,
                 format!("inconsistent leading punctuation ('{id_punc2}' / '{str_punc2}')"),
                 msgid,
@@ -141,7 +141,7 @@ impl RuleChecker for PuncEndRule {
         let id_punc2 = punc_normalize(id_punc.trim(), language);
         let str_punc2 = punc_normalize(str_punc.trim(), language);
         if id_punc2 != str_punc2 {
-            checker.report_msg(
+            checker.report_id_str(
                 entry,
                 format!("inconsistent trailing punctuation ('{id_punc2}' / '{str_punc2}')"),
                 msgid,

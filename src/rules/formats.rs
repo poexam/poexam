@@ -100,7 +100,7 @@ impl RuleChecker for FormatsRule {
         if error {
             let pos_id: Vec<_> = id_fmt.iter().map(|m| (m.start, m.end)).collect();
             let pos_str: Vec<_> = str_fmt.iter().map(|m| (m.start, m.end)).collect();
-            checker.report_msg(
+            checker.report_id_str(
                 entry,
                 format!("inconsistent format strings ({})", entry.format_language),
                 msgid,

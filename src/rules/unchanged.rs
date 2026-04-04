@@ -55,7 +55,7 @@ impl RuleChecker for UnchangedRule {
                 .filter(|c| c.is_alphabetic())
                 .all(char::is_uppercase);
             if !all_upper && msgid.to_uppercase() != msgid {
-                checker.report_msg(
+                checker.report_id_str(
                     entry,
                     "unchanged translation".to_string(),
                     msgid,

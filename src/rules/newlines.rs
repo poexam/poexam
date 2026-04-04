@@ -19,7 +19,7 @@ impl NewlinesRule {
         let str_count_cr = msgstr.matches('\r').count();
         match id_count_cr.cmp(&str_count_cr) {
             std::cmp::Ordering::Greater => {
-                checker.report_msg(
+                checker.report_id_str(
                     entry,
                     format!("missing carriage returns '\\r' ({id_count_cr} / {str_count_cr})"),
                     msgid,
@@ -29,7 +29,7 @@ impl NewlinesRule {
                 );
             }
             std::cmp::Ordering::Less => {
-                checker.report_msg(
+                checker.report_id_str(
                     entry,
                     format!("extra carriage returns '\\r' ({id_count_cr} / {str_count_cr})"),
                     msgid,
@@ -45,7 +45,7 @@ impl NewlinesRule {
         let str_count_lf = msgstr.matches('\n').count();
         match id_count_lf.cmp(&str_count_lf) {
             std::cmp::Ordering::Greater => {
-                checker.report_msg(
+                checker.report_id_str(
                     entry,
                     format!("missing line feeds '\\n' ({id_count_lf} / {str_count_lf})"),
                     msgid,
@@ -55,7 +55,7 @@ impl NewlinesRule {
                 );
             }
             std::cmp::Ordering::Less => {
-                checker.report_msg(
+                checker.report_id_str(
                     entry,
                     format!("extra line feeds '\\n' ({id_count_lf} / {str_count_lf})"),
                     msgid,
@@ -75,7 +75,7 @@ impl NewlinesRule {
         let str_starts_with_cr = msgstr.starts_with('\r');
         match id_starts_with_cr.cmp(&str_starts_with_cr) {
             std::cmp::Ordering::Greater => {
-                checker.report_msg(
+                checker.report_id_str(
                     entry,
                     "missing carriage return '\\r' at the beginning".to_string(),
                     msgid,
@@ -85,7 +85,7 @@ impl NewlinesRule {
                 );
             }
             std::cmp::Ordering::Less => {
-                checker.report_msg(
+                checker.report_id_str(
                     entry,
                     "extra carriage return '\\r' at the beginning".to_string(),
                     msgid,
@@ -101,7 +101,7 @@ impl NewlinesRule {
         let str_starts_with_lf = msgstr.starts_with('\n');
         match id_starts_with_lf.cmp(&str_starts_with_lf) {
             std::cmp::Ordering::Greater => {
-                checker.report_msg(
+                checker.report_id_str(
                     entry,
                     "missing line feed '\\n' at the beginning".to_string(),
                     msgid,
@@ -111,7 +111,7 @@ impl NewlinesRule {
                 );
             }
             std::cmp::Ordering::Less => {
-                checker.report_msg(
+                checker.report_id_str(
                     entry,
                     "extra line feed '\\n' at the beginning".to_string(),
                     msgid,
@@ -131,7 +131,7 @@ impl NewlinesRule {
         let str_ends_with_cr = msgstr.ends_with('\r');
         match id_ends_with_cr.cmp(&str_ends_with_cr) {
             std::cmp::Ordering::Greater => {
-                checker.report_msg(
+                checker.report_id_str(
                     entry,
                     "missing carriage return '\\r' at the end".to_string(),
                     msgid,
@@ -141,7 +141,7 @@ impl NewlinesRule {
                 );
             }
             std::cmp::Ordering::Less => {
-                checker.report_msg(
+                checker.report_id_str(
                     entry,
                     "extra carriage return '\\r' at the end".to_string(),
                     msgid,
@@ -157,7 +157,7 @@ impl NewlinesRule {
         let str_ends_with_lf = msgstr.ends_with('\n');
         match id_ends_with_lf.cmp(&str_ends_with_lf) {
             std::cmp::Ordering::Greater => {
-                checker.report_msg(
+                checker.report_id_str(
                     entry,
                     "missing line feed '\\n' at the end".to_string(),
                     msgid,
@@ -167,7 +167,7 @@ impl NewlinesRule {
                 );
             }
             std::cmp::Ordering::Less => {
-                checker.report_msg(
+                checker.report_id_str(
                     entry,
                     "extra line feed '\\n' at the end".to_string(),
                     msgid,

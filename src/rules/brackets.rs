@@ -83,7 +83,7 @@ impl RuleChecker for BracketsRule {
                 id_open.sort_unstable();
                 str_open.extend(&str_close);
                 str_open.sort_unstable();
-                checker.report_msg(
+                checker.report_id_str(
                     entry,
                     format!(
                         "{} opening and closing {} brackets '{}' ({id_count_open} / {str_count_open}) \
@@ -103,7 +103,7 @@ impl RuleChecker for BracketsRule {
                 continue;
             }
             if id_count_open > str_count_open {
-                checker.report_msg(
+                checker.report_id_str(
                     entry,
                     format!(
                         "missing opening {} brackets '{}' ({id_count_open} / {str_count_open})",
@@ -116,7 +116,7 @@ impl RuleChecker for BracketsRule {
                 );
             }
             if id_count_open < str_count_open {
-                checker.report_msg(
+                checker.report_id_str(
                     entry,
                     format!(
                         "extra opening {} brackets '{}' ({id_count_open} / {str_count_open})",
@@ -129,7 +129,7 @@ impl RuleChecker for BracketsRule {
                 );
             }
             if id_count_close > str_count_close {
-                checker.report_msg(
+                checker.report_id_str(
                     entry,
                     format!(
                         "missing closing {} brackets '{}' ({id_count_close} / {str_count_close})",
@@ -142,7 +142,7 @@ impl RuleChecker for BracketsRule {
                 );
             }
             if id_count_close < str_count_close {
-                checker.report_msg(
+                checker.report_id_str(
                     entry,
                     format!(
                         "extra closing {} brackets '{}' ({id_count_close} / {str_count_close})",

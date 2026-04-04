@@ -13,6 +13,10 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - Add rule "urls"
 - Add rule "compilation" and option `--path-msgfmt`
 
+### Fixed
+
+- Strip formats before checking words in spelling rules
+
 ## Version 0.0.8 (2026-03-25)
 
 ### Added

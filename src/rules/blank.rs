@@ -49,7 +49,7 @@ impl RuleChecker for BlankRule {
     /// - `blank translation`
     fn check_msg(&self, checker: &mut Checker, entry: &Entry, msgid: &str, msgstr: &str) {
         if !msgid.trim().is_empty() && !msgstr.is_empty() && msgstr.trim().is_empty() {
-            checker.report_msg(
+            checker.report_id_str(
                 entry,
                 "blank translation".to_string(),
                 msgid,

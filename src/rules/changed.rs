@@ -53,7 +53,7 @@ impl RuleChecker for ChangedRule {
     /// - `changed translation`
     fn check_msg(&self, checker: &mut Checker, entry: &Entry, msgid: &str, msgstr: &str) {
         if !msgid.trim().is_empty() && !msgstr.trim().is_empty() && msgstr != msgid {
-            checker.report_msg(
+            checker.report_id_str(
                 entry,
                 "changed translation".to_string(),
                 msgid,
