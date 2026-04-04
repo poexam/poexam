@@ -28,9 +28,9 @@ impl<'a> Iterator for FormatPos<'a> {
     type Item = MatchStrPos<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let mut start;
+        let mut idx_start;
         while self.pos < self.len {
-            start = self.pos;
+            idx_start = self.pos;
             let (new_pos, is_format) = self.fmt.next_char(self.s, self.pos, self.len);
             self.pos = new_pos;
             if self.pos >= self.len {
@@ -39,8 +39,8 @@ impl<'a> Iterator for FormatPos<'a> {
             if is_format {
                 self.pos = self.fmt.find_end_format(self.s, self.pos, self.len);
                 return Some(MatchStrPos {
-                    s: &self.s[start..self.pos],
-                    start,
+                    s: &self.s[idx_start..self.pos],
+                    start: idx_start,
                     end: self.pos,
                 });
             }
