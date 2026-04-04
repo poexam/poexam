@@ -112,7 +112,7 @@ pub fn fmt_strip_index(fmt: &str) -> String {
 mod tests {
     use super::*;
     use crate::po::format::{
-        MatchStrPos, char_pos::CharPos, format_pos::FormatPos, language::Language,
+        MatchStrPos, char_pos::CharPos, format_pos::FormatPos, language::Language, url_pos::UrlPos,
         word_pos::WordPos,
     };
 
@@ -140,64 +140,64 @@ mod tests {
 
     #[test]
     fn test_no_format() {
-        let s = "Hello, world!";
-        assert!(FormatPos::new(s, &Language::C).next().is_none());
-        let mut word_pos = WordPos::new(s, &Language::C);
-        assert_eq!(
-            word_pos.next(),
-            Some(MatchStrPos {
-                s: "Hello",
-                start: 0,
-                end: 5,
-            })
+        assert!(
+            FormatPos::new("Hello, world!", &Language::C)
+                .next()
+                .is_none()
         );
         assert_eq!(
-            word_pos.next(),
-            Some(MatchStrPos {
-                s: "world",
-                start: 7,
-                end: 12,
-            })
-        );
-        assert!(word_pos.next().is_none());
-        let mut char_pos = CharPos::new("Hé, w!", &Language::C);
-        assert_eq!(
-            char_pos.next(),
-            Some(MatchStrPos {
-                s: "H",
-                start: 0,
-                end: 1,
-            })
+            WordPos::new("Hello, world!", &Language::C).collect::<Vec<_>>(),
+            vec![
+                MatchStrPos {
+                    s: "Hello",
+                    start: 0,
+                    end: 5,
+                },
+                MatchStrPos {
+                    s: "world",
+                    start: 7,
+                    end: 12,
+                },
+            ]
         );
         assert_eq!(
-            char_pos.next(),
-            Some(MatchStrPos {
-                s: "é",
-                start: 1,
-                end: 3,
-            })
+            CharPos::new("Hé, w!", &Language::C).collect::<Vec<_>>(),
+            vec![
+                MatchStrPos {
+                    s: "H",
+                    start: 0,
+                    end: 1,
+                },
+                MatchStrPos {
+                    s: "é",
+                    start: 1,
+                    end: 3,
+                },
+                MatchStrPos {
+                    s: "w",
+                    start: 5,
+                    end: 6,
+                },
+            ]
         );
         assert_eq!(
-            char_pos.next(),
-            Some(MatchStrPos {
-                s: "w",
-                start: 5,
-                end: 6,
-            })
+            UrlPos::new("Hello, world! https://example.com", &Language::C).collect::<Vec<_>>(),
+            vec![MatchStrPos {
+                s: "https://example.com",
+                start: 14,
+                end: 33,
+            }]
         );
-        assert!(char_pos.next().is_none());
     }
 
     #[test]
     fn test_invalid_format() {
-        let s = "%";
-        assert!(FormatPos::new(s, &Language::C).next().is_none());
-        assert!(WordPos::new(s, &Language::C).next().is_none());
-        assert!(CharPos::new(s, &Language::C).next().is_none());
-
-        let s = "%é";
+        assert!(FormatPos::new("%", &Language::C).next().is_none());
+        assert!(WordPos::new("%", &Language::C).next().is_none());
+        assert!(CharPos::new("%", &Language::C).next().is_none());
+        assert!(UrlPos::new("%", &Language::C).next().is_none());
         assert_eq!(
-            FormatPos::new(s, &Language::C).collect::<Vec<_>>(),
+            FormatPos::new("%é", &Language::C).collect::<Vec<_>>(),
             vec![MatchStrPos {
                 s: "%",
                 start: 0,
@@ -205,7 +205,7 @@ mod tests {
             }]
         );
         assert_eq!(
-            WordPos::new(s, &Language::C).collect::<Vec<_>>(),
+            WordPos::new("%é", &Language::C).collect::<Vec<_>>(),
             vec![MatchStrPos {
                 s: "é",
                 start: 1,
@@ -213,20 +213,27 @@ mod tests {
             }]
         );
         assert_eq!(
-            CharPos::new(s, &Language::C).collect::<Vec<_>>(),
+            CharPos::new("%é", &Language::C).collect::<Vec<_>>(),
             vec![MatchStrPos {
                 s: "é",
                 start: 1,
                 end: 3,
+            }]
+        );
+        assert_eq!(
+            UrlPos::new("%ïrc://test", &Language::C).collect::<Vec<_>>(),
+            vec![MatchStrPos {
+                s: "ïrc://test",
+                start: 1,
+                end: 12,
             }]
         );
     }
 
     #[test]
     fn test_single_format() {
-        let s = "Hello, %s world!";
         assert_eq!(
-            FormatPos::new(s, &Language::C).collect::<Vec<_>>(),
+            FormatPos::new("Hello, %s world!", &Language::C).collect::<Vec<_>>(),
             vec![MatchStrPos {
                 s: "%s",
                 start: 7,
@@ -234,7 +241,7 @@ mod tests {
             }]
         );
         assert_eq!(
-            WordPos::new(s, &Language::C).collect::<Vec<_>>(),
+            WordPos::new("Hello, %s world!", &Language::C).collect::<Vec<_>>(),
             vec![
                 MatchStrPos {
                     s: "Hello",
@@ -268,6 +275,14 @@ mod tests {
                 },
             ]
         );
+        assert_eq!(
+            UrlPos::new("Hello, world! %shttps://example.com", &Language::C).collect::<Vec<_>>(),
+            vec![MatchStrPos {
+                s: "https://example.com",
+                start: 16,
+                end: 35,
+            }]
+        );
     }
 
     #[test]
@@ -295,13 +310,13 @@ mod tests {
         );
         assert!(WordPos::new(s, &Language::C).next().is_none());
         assert!(CharPos::new(s, &Language::C).next().is_none());
+        assert!(UrlPos::new(s, &Language::C).next().is_none());
     }
 
     #[test]
     fn test_multiple_formats_with_reordering() {
-        let s = "Hello, %3$d %2$s %1$f world!";
         assert_eq!(
-            FormatPos::new(s, &Language::C).collect::<Vec<_>>(),
+            FormatPos::new("Hello, %3$d %2$s %1$f world!", &Language::C).collect::<Vec<_>>(),
             vec![
                 MatchStrPos {
                     s: "%3$d",
@@ -321,7 +336,7 @@ mod tests {
             ]
         );
         assert_eq!(
-            WordPos::new(s, &Language::C).collect::<Vec<_>>(),
+            WordPos::new("Hello, %3$d %2$s %1$f world!", &Language::C).collect::<Vec<_>>(),
             vec![
                 MatchStrPos {
                     s: "Hello",
@@ -354,6 +369,18 @@ mod tests {
                     end: 21,
                 },
             ]
+        );
+        assert_eq!(
+            UrlPos::new(
+                "Hello, world! %3$d %2$s %1$fhttps://example.com",
+                &Language::C
+            )
+            .collect::<Vec<_>>(),
+            vec![MatchStrPos {
+                s: "https://example.com",
+                start: 28,
+                end: 47,
+            }]
         );
     }
 
@@ -403,13 +430,20 @@ mod tests {
                 },
             ]
         );
+        assert_eq!(
+            UrlPos::new("Hé, %%https://example.com", &Language::C).collect::<Vec<_>>(),
+            vec![MatchStrPos {
+                s: "%https://example.com",
+                start: 6,
+                end: 26,
+            }]
+        );
     }
 
     #[test]
     fn test_flags_width_precision() {
-        let s = "Hello, %05.2f world!";
         assert_eq!(
-            FormatPos::new(s, &Language::C).collect::<Vec<_>>(),
+            FormatPos::new("Hello, %05.2f world!", &Language::C).collect::<Vec<_>>(),
             vec![MatchStrPos {
                 s: "%05.2f",
                 start: 7,
@@ -417,7 +451,7 @@ mod tests {
             }]
         );
         assert_eq!(
-            WordPos::new(s, &Language::C).collect::<Vec<_>>(),
+            WordPos::new("Hello, %05.2f world!", &Language::C).collect::<Vec<_>>(),
             vec![
                 MatchStrPos {
                     s: "Hello",
@@ -451,13 +485,21 @@ mod tests {
                 },
             ]
         );
+        assert_eq!(
+            UrlPos::new("Hello, world! %05.2fhttps://example.com", &Language::C)
+                .collect::<Vec<_>>(),
+            vec![MatchStrPos {
+                s: "https://example.com",
+                start: 20,
+                end: 39,
+            }]
+        );
     }
 
     #[test]
     fn test_flags_width_length() {
-        let s = "Hello, %ld %9llu world!";
         assert_eq!(
-            FormatPos::new(s, &Language::C).collect::<Vec<_>>(),
+            FormatPos::new("Hello, %ld %9llu world!", &Language::C).collect::<Vec<_>>(),
             vec![
                 MatchStrPos {
                     s: "%ld",
@@ -472,7 +514,7 @@ mod tests {
             ]
         );
         assert_eq!(
-            WordPos::new(s, &Language::C).collect::<Vec<_>>(),
+            WordPos::new("Hello, %ld %9llu world!", &Language::C).collect::<Vec<_>>(),
             vec![
                 MatchStrPos {
                     s: "Hello",
@@ -506,6 +548,15 @@ mod tests {
                 },
             ]
         );
+        assert_eq!(
+            UrlPos::new("Hello, world! %ld %9lluhttps://example.com", &Language::C)
+                .collect::<Vec<_>>(),
+            vec![MatchStrPos {
+                s: "https://example.com",
+                start: 23,
+                end: 42,
+            }]
+        );
     }
 
     #[test]
@@ -517,7 +568,7 @@ mod tests {
                 s: "%lld",
                 start: 16,
                 end: 20,
-            },]
+            }]
         );
         assert_eq!(
             WordPos::new(s, &Language::C).collect::<Vec<_>>(),
@@ -538,6 +589,14 @@ mod tests {
                     end: 27,
                 },
             ]
+        );
+        assert_eq!(
+            UrlPos::new("héllo, %lld 你好https://example.com", &Language::C).collect::<Vec<_>>(),
+            vec![MatchStrPos {
+                s: "你好https://example.com",
+                start: 13,
+                end: 38,
+            }]
         );
     }
 }

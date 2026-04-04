@@ -23,16 +23,19 @@ impl FormatParser for FormatNull {
 #[cfg(test)]
 mod tests {
     use crate::po::format::{
-        MatchStrPos, char_pos::CharPos, format_pos::FormatPos, language::Language,
+        MatchStrPos, char_pos::CharPos, format_pos::FormatPos, language::Language, url_pos::UrlPos,
         word_pos::WordPos,
     };
 
     #[test]
     fn test_no_format() {
-        let s = "Hello, %s world!";
-        assert!(FormatPos::new(s, &Language::Null).next().is_none());
+        assert!(
+            FormatPos::new("Hello, %s world!", &Language::Null)
+                .next()
+                .is_none()
+        );
         assert_eq!(
-            WordPos::new(s, &Language::Null).collect::<Vec<_>>(),
+            WordPos::new("Hello, %s world!", &Language::Null).collect::<Vec<_>>(),
             vec![
                 MatchStrPos {
                     s: "Hello",
@@ -75,6 +78,15 @@ mod tests {
                     end: 9,
                 },
             ]
+        );
+        assert_eq!(
+            UrlPos::new("Hello, %s world! https://example.com", &Language::Null)
+                .collect::<Vec<_>>(),
+            vec![MatchStrPos {
+                s: "https://example.com",
+                start: 17,
+                end: 36,
+            }]
         );
     }
 }

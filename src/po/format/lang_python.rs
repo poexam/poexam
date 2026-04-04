@@ -102,16 +102,19 @@ impl FormatParser for FormatPythonBrace {
 #[cfg(test)]
 mod tests {
     use crate::po::format::{
-        MatchStrPos, char_pos::CharPos, format_pos::FormatPos, language::Language,
+        MatchStrPos, char_pos::CharPos, format_pos::FormatPos, language::Language, url_pos::UrlPos,
         word_pos::WordPos,
     };
 
     #[test]
     fn test_no_format_percent() {
-        let s = "Hello, world!";
-        assert!(FormatPos::new(s, &Language::Python).next().is_none());
+        assert!(
+            FormatPos::new("Hello, world!", &Language::Python)
+                .next()
+                .is_none()
+        );
         assert_eq!(
-            WordPos::new(s, &Language::Python).collect::<Vec<_>>(),
+            WordPos::new("Hello, world!", &Language::Python).collect::<Vec<_>>(),
             vec![
                 MatchStrPos {
                     s: "Hello",
@@ -145,14 +148,25 @@ mod tests {
                 },
             ]
         );
+        assert_eq!(
+            UrlPos::new("Hello, world! https://example.com", &Language::Python).collect::<Vec<_>>(),
+            vec![MatchStrPos {
+                s: "https://example.com",
+                start: 14,
+                end: 33,
+            }]
+        );
     }
 
     #[test]
     fn test_no_format_brace() {
-        let s = "Hello, world!";
-        assert!(FormatPos::new(s, &Language::PythonBrace).next().is_none());
+        assert!(
+            FormatPos::new("Hello, world!", &Language::PythonBrace)
+                .next()
+                .is_none()
+        );
         assert_eq!(
-            WordPos::new(s, &Language::PythonBrace).collect::<Vec<_>>(),
+            WordPos::new("Hello, world!", &Language::PythonBrace).collect::<Vec<_>>(),
             vec![
                 MatchStrPos {
                     s: "Hello",
@@ -185,6 +199,15 @@ mod tests {
                     end: 6,
                 },
             ]
+        );
+        assert_eq!(
+            UrlPos::new("Hello, world! https://example.com", &Language::PythonBrace)
+                .collect::<Vec<_>>(),
+            vec![MatchStrPos {
+                s: "https://example.com",
+                start: 14,
+                end: 33,
+            }]
         );
     }
 
@@ -231,6 +254,7 @@ mod tests {
         );
         assert!(WordPos::new(s, &Language::Python).next().is_none());
         assert!(CharPos::new(s, &Language::Python).next().is_none());
+        assert!(UrlPos::new(s, &Language::Python).next().is_none());
     }
 
     #[test]
@@ -239,6 +263,7 @@ mod tests {
         assert!(FormatPos::new(s, &Language::PythonBrace).next().is_none());
         assert!(WordPos::new(s, &Language::PythonBrace).next().is_none());
         assert!(CharPos::new(s, &Language::PythonBrace).next().is_none());
+        assert!(UrlPos::new(s, &Language::PythonBrace).next().is_none());
 
         let s = "{é";
         assert_eq!(
@@ -251,13 +276,13 @@ mod tests {
         );
         assert!(WordPos::new(s, &Language::PythonBrace).next().is_none());
         assert!(CharPos::new(s, &Language::PythonBrace).next().is_none());
+        assert!(UrlPos::new(s, &Language::PythonBrace).next().is_none());
     }
 
     #[test]
     fn test_single_format_percent() {
-        let s = "Hello, %s world!";
         assert_eq!(
-            FormatPos::new(s, &Language::Python).collect::<Vec<_>>(),
+            FormatPos::new("Hello, %s world!", &Language::Python).collect::<Vec<_>>(),
             vec![MatchStrPos {
                 s: "%s",
                 start: 7,
@@ -265,7 +290,7 @@ mod tests {
             }]
         );
         assert_eq!(
-            WordPos::new(s, &Language::Python).collect::<Vec<_>>(),
+            WordPos::new("Hello, %s world!", &Language::Python).collect::<Vec<_>>(),
             vec![
                 MatchStrPos {
                     s: "Hello",
@@ -299,13 +324,21 @@ mod tests {
                 },
             ]
         );
+        assert_eq!(
+            UrlPos::new("Hello, world! -> %shttps://example.com", &Language::Python)
+                .collect::<Vec<_>>(),
+            vec![MatchStrPos {
+                s: "https://example.com",
+                start: 19,
+                end: 38,
+            }]
+        );
     }
 
     #[test]
     fn test_single_format_brace() {
-        let s = "Hello, {0:{1}} world!";
         assert_eq!(
-            FormatPos::new(s, &Language::PythonBrace).collect::<Vec<_>>(),
+            FormatPos::new("Hello, {0:{1}} world!", &Language::PythonBrace).collect::<Vec<_>>(),
             vec![MatchStrPos {
                 s: "{0:{1}}",
                 start: 7,
@@ -313,7 +346,7 @@ mod tests {
             }]
         );
         assert_eq!(
-            WordPos::new(s, &Language::PythonBrace).collect::<Vec<_>>(),
+            WordPos::new("Hello, {0:{1}} world!", &Language::PythonBrace).collect::<Vec<_>>(),
             vec![
                 MatchStrPos {
                     s: "Hello",
@@ -347,13 +380,24 @@ mod tests {
                 },
             ]
         );
+        assert_eq!(
+            UrlPos::new(
+                "Hello, world! -> {0:{1}}https://example.com",
+                &Language::PythonBrace
+            )
+            .collect::<Vec<_>>(),
+            vec![MatchStrPos {
+                s: "https://example.com",
+                start: 24,
+                end: 43,
+            }]
+        );
     }
 
     #[test]
     fn test_single_format_percent_keyword() {
-        let s = "Hello, %(name)s world!";
         assert_eq!(
-            FormatPos::new(s, &Language::Python).collect::<Vec<_>>(),
+            FormatPos::new("Hello, %(name)s world!", &Language::Python).collect::<Vec<_>>(),
             vec![MatchStrPos {
                 s: "%(name)s",
                 start: 7,
@@ -361,7 +405,7 @@ mod tests {
             }]
         );
         assert_eq!(
-            WordPos::new(s, &Language::Python).collect::<Vec<_>>(),
+            WordPos::new("Hello, %(name)s world!", &Language::Python).collect::<Vec<_>>(),
             vec![
                 MatchStrPos {
                     s: "Hello",
@@ -395,6 +439,18 @@ mod tests {
                 },
             ]
         );
+        assert_eq!(
+            UrlPos::new(
+                "Hello, world! -> %(name)shttps://example.com",
+                &Language::Python
+            )
+            .collect::<Vec<_>>(),
+            vec![MatchStrPos {
+                s: "https://example.com",
+                start: 25,
+                end: 44,
+            }]
+        );
     }
 
     #[test]
@@ -422,6 +478,7 @@ mod tests {
         );
         assert!(WordPos::new(s, &Language::Python).next().is_none());
         assert!(CharPos::new(s, &Language::Python).next().is_none());
+        assert!(UrlPos::new(s, &Language::Python).next().is_none());
     }
 
     #[test]
@@ -449,13 +506,13 @@ mod tests {
         );
         assert!(WordPos::new(s, &Language::PythonBrace).next().is_none());
         assert!(CharPos::new(s, &Language::PythonBrace).next().is_none());
+        assert!(UrlPos::new(s, &Language::PythonBrace).next().is_none());
     }
 
     #[test]
     fn test_escaped_percent() {
-        let s = "Hello, %% %s world!";
         assert_eq!(
-            FormatPos::new(s, &Language::Python).collect::<Vec<_>>(),
+            FormatPos::new("Hello, %% %s world!", &Language::Python).collect::<Vec<_>>(),
             vec![MatchStrPos {
                 s: "%s",
                 start: 10,
@@ -463,7 +520,7 @@ mod tests {
             }]
         );
         assert_eq!(
-            WordPos::new(s, &Language::Python).collect::<Vec<_>>(),
+            WordPos::new("Hello, %% %s world!", &Language::Python).collect::<Vec<_>>(),
             vec![
                 MatchStrPos {
                     s: "Hello",
@@ -497,21 +554,29 @@ mod tests {
                 },
             ]
         );
+        assert_eq!(
+            UrlPos::new("Hello, world! -> %%https://example.com", &Language::Python)
+                .collect::<Vec<_>>(),
+            vec![MatchStrPos {
+                s: "%https://example.com",
+                start: 18,
+                end: 38,
+            }]
+        );
     }
 
     #[test]
     fn test_escaped_brace() {
-        let s = "Hello, {{ {0} world!";
         assert_eq!(
-            FormatPos::new(s, &Language::PythonBrace).collect::<Vec<_>>(),
+            FormatPos::new("Hello, {{ {0} world!", &Language::PythonBrace).collect::<Vec<_>>(),
             vec![MatchStrPos {
                 s: "{0}",
                 start: 10,
                 end: 13,
-            },]
+            }]
         );
         assert_eq!(
-            WordPos::new(s, &Language::PythonBrace).collect::<Vec<_>>(),
+            WordPos::new("Hello, {{ {0} world!", &Language::PythonBrace).collect::<Vec<_>>(),
             vec![
                 MatchStrPos {
                     s: "Hello",
@@ -545,21 +610,32 @@ mod tests {
                 },
             ]
         );
+        assert_eq!(
+            UrlPos::new(
+                "Hello, world! -> {{https://example.com",
+                &Language::PythonBrace
+            )
+            .collect::<Vec<_>>(),
+            vec![MatchStrPos {
+                s: "{https://example.com",
+                start: 18,
+                end: 38,
+            }]
+        );
     }
 
     #[test]
     fn test_flags_width_precision() {
-        let s = "Hello, %05.2f world!";
         assert_eq!(
-            FormatPos::new(s, &Language::Python).collect::<Vec<_>>(),
+            FormatPos::new("Hello, %05.2f world!", &Language::Python).collect::<Vec<_>>(),
             vec![MatchStrPos {
                 s: "%05.2f",
                 start: 7,
                 end: 13,
-            },]
+            }]
         );
         assert_eq!(
-            WordPos::new(s, &Language::Python).collect::<Vec<_>>(),
+            WordPos::new("Hello, %05.2f world!", &Language::Python).collect::<Vec<_>>(),
             vec![
                 MatchStrPos {
                     s: "Hello",
@@ -593,13 +669,21 @@ mod tests {
                 },
             ]
         );
+        assert_eq!(
+            UrlPos::new("Hello, world! %05.2fhttps://example.com", &Language::Python)
+                .collect::<Vec<_>>(),
+            vec![MatchStrPos {
+                s: "https://example.com",
+                start: 20,
+                end: 39,
+            }]
+        );
     }
 
     #[test]
     fn test_flags_width_length() {
-        let s = "Hello, %ld %9lu world!";
         assert_eq!(
-            FormatPos::new(s, &Language::Python).collect::<Vec<_>>(),
+            FormatPos::new("Hello, %ld %9lu world!", &Language::Python).collect::<Vec<_>>(),
             vec![
                 MatchStrPos {
                     s: "%ld",
@@ -614,7 +698,7 @@ mod tests {
             ]
         );
         assert_eq!(
-            WordPos::new(s, &Language::Python).collect::<Vec<_>>(),
+            WordPos::new("Hello, %ld %9lu world!", &Language::Python).collect::<Vec<_>>(),
             vec![
                 MatchStrPos {
                     s: "Hello",
@@ -648,21 +732,29 @@ mod tests {
                 },
             ]
         );
+        assert_eq!(
+            UrlPos::new("Hello, world! %9luhttps://example.com", &Language::Python)
+                .collect::<Vec<_>>(),
+            vec![MatchStrPos {
+                s: "https://example.com",
+                start: 18,
+                end: 37,
+            }]
+        );
     }
 
     #[test]
     fn test_unicode_percent() {
-        let s = "héllo, мир! %ld 你好";
         assert_eq!(
-            FormatPos::new(s, &Language::Python).collect::<Vec<_>>(),
+            FormatPos::new("héllo, мир! %ld 你好", &Language::Python).collect::<Vec<_>>(),
             vec![MatchStrPos {
                 s: "%ld",
                 start: 16,
                 end: 19,
-            },]
+            }]
         );
         assert_eq!(
-            WordPos::new(s, &Language::Python).collect::<Vec<_>>(),
+            WordPos::new("héllo, мир! %ld 你好", &Language::Python).collect::<Vec<_>>(),
             vec![
                 MatchStrPos {
                     s: "héllo",
@@ -681,13 +773,21 @@ mod tests {
                 },
             ]
         );
+        assert_eq!(
+            UrlPos::new("héllo, мир! %ld 你好https://example.com", &Language::Python)
+                .collect::<Vec<_>>(),
+            vec![MatchStrPos {
+                s: "你好https://example.com",
+                start: 20,
+                end: 45,
+            }]
+        );
     }
 
     #[test]
     fn test_unicode_brace() {
-        let s = "héllo, мир! {0} 你好";
         assert_eq!(
-            FormatPos::new(s, &Language::PythonBrace).collect::<Vec<_>>(),
+            FormatPos::new("héllo, мир! {0} 你好", &Language::PythonBrace).collect::<Vec<_>>(),
             vec![MatchStrPos {
                 s: "{0}",
                 start: 16,
@@ -695,7 +795,7 @@ mod tests {
             }]
         );
         assert_eq!(
-            WordPos::new(s, &Language::PythonBrace).collect::<Vec<_>>(),
+            WordPos::new("héllo, мир! {0} 你好", &Language::PythonBrace).collect::<Vec<_>>(),
             vec![
                 MatchStrPos {
                     s: "héllo",
@@ -713,6 +813,18 @@ mod tests {
                     end: 26,
                 },
             ]
+        );
+        assert_eq!(
+            UrlPos::new(
+                "héllo, мир! {0} 你好https://example.com",
+                &Language::PythonBrace
+            )
+            .collect::<Vec<_>>(),
+            vec![MatchStrPos {
+                s: "你好https://example.com",
+                start: 20,
+                end: 45,
+            }]
         );
     }
 }
