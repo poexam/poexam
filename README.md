@@ -111,19 +111,19 @@ For the rule `formats`, the following languages are supported:
 
  You can enable them on-demand:
 
-| Rule name      | Severity | Diagnostic reported                                 |
-|----------------|----------|-----------------------------------------------------|
-| changed        | info     | Translation is different from the source string.    |
-| compilation    | error    | Compilation with `msgfmt`.                          |
-| fuzzy          | info     | Fuzzy entry.                                        |
-| obsolete       | info     | Obsolete entry.                                     |
-| punc-space-id  | info     | Spaces around punctuation in the source string.     |
-| punc-space-str | info     | Spaces around punctuation in the translated string. |
-| spelling-ctxt  | info     | Spelling error in the context string.               |
-| spelling-id    | info     | Spelling error in the source string.                |
-| spelling-str   | info     | Spelling error in the translated string.            |
-| unchanged      | info     | Translation is the same as the source string.       |
-| untranslated   | info     | Untranslated entry.                                 |
+| Rule name      | Severity | Diagnostic reported                                |
+|----------------|----------|----------------------------------------------------|
+| changed        | info     | Translation is different from the source string.   |
+| compilation    | error    | Compilation with `msgfmt`.                         |
+| fuzzy          | info     | Fuzzy entry.                                       |
+| obsolete       | info     | Obsolete entry.                                    |
+| punc-space-id  | info     | Incorrect spaces around punctuation (source).      |
+| punc-space-str | info     | Incorrect spaces around punctuation (translation). |
+| spelling-ctxt  | info     | Spelling error (context).                          |
+| spelling-id    | info     | Spelling error (source).                           |
+| spelling-str   | info     | Spelling error (translation).                      |
+| unchanged      | info     | Translation is the same as the source string.      |
+| untranslated   | info     | Untranslated entry.                                |
 
 The result is very clear, almost all errors are highlighted in the strings so you can immediately see where the issue is.
 
