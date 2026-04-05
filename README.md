@@ -79,26 +79,28 @@ See configuration file example: [poexam.toml](examples/poexam.toml).
 
 It can perform a lot of checks via the default rules:
 
-| Rule name        | Severity | Diagnostic reported                    |
-|------------------|----------|----------------------------------------|
-| blank            | warning  | Blank translation (only whitespace).   |
-| brackets         | info     | Missing/extra brackets.                |
-| double-quotes    | info     | Missing/extra double quotes.           |
-| double-spaces    | info     | Missing/extra double spaces.           |
-| encoding         | info     | Incorrect encoding (charset).          |
-| escapes          | error    | Missing/extra escape characters.       |
-| formats          | error    | Inconsistent format strings.           |
-| long             | warning  | Translation too long.                  |
-| newlines         | error    | Missing/extra newlines.                |
-| pipes            | info     | Missing/extra pipes.                   |
-| plurals          | error    | Incorrect number of plurals.           |
-| punc-end         | info     | Inconsistent trailing punctuation.     |
-| punc-start       | info     | Inconsistent leading punctuation.      |
-| short            | warning  | Translation too short.                 |
-| tabs             | error    | Missing/extra tabs.                    |
-| urls             | warning  | Missing/extra/different URLs.          |
-| whitespace-end   | info     | Missing/extra whitespace at the end.   |
-| whitespace-start | info     | Missing/extra whitespace at the start. |
+| Rule name        | Severity | Diagnostic reported                                |
+|------------------|----------|----------------------------------------------------|
+| blank            | warning  | Blank translation (only whitespace).               |
+| brackets         | info     | Missing/extra brackets.                            |
+| double-quotes    | info     | Missing/extra double quotes.                       |
+| double-spaces    | info     | Missing/extra double spaces.                       |
+| encoding         | info     | Incorrect encoding (charset).                      |
+| escapes          | error    | Missing/extra escape characters.                   |
+| formats          | error    | Inconsistent format strings.                       |
+| long             | warning  | Translation too long.                              |
+| newlines         | error    | Missing/extra newlines.                            |
+| pipes            | info     | Missing/extra pipes.                               |
+| plurals          | error    | Incorrect number of plurals.                       |
+| punc-start       | info     | Inconsistent leading punctuation.                  |
+| punc-end         | info     | Inconsistent trailing punctuation.                 |
+| punc-space-id    | info     | Incorrect spaces around punctuation (source).      |
+| punc-space-str   | info     | Incorrect spaces around punctuation (translation). |
+| short            | warning  | Translation too short.                             |
+| tabs             | error    | Missing/extra tabs.                                |
+| urls             | warning  | Missing/extra/different URLs.                      |
+| whitespace-end   | info     | Missing/extra whitespace at the end.               |
+| whitespace-start | info     | Missing/extra whitespace at the start.             |
 
 For the rule `formats`, the following languages are supported:
 
@@ -111,19 +113,17 @@ For the rule `formats`, the following languages are supported:
 
  You can enable them on-demand:
 
-| Rule name      | Severity | Diagnostic reported                                |
-|----------------|----------|----------------------------------------------------|
-| changed        | info     | Translation is different from the source string.   |
-| compilation    | error    | Compilation with `msgfmt`.                         |
-| fuzzy          | info     | Fuzzy entry.                                       |
-| obsolete       | info     | Obsolete entry.                                    |
-| punc-space-id  | info     | Incorrect spaces around punctuation (source).      |
-| punc-space-str | info     | Incorrect spaces around punctuation (translation). |
-| spelling-ctxt  | info     | Spelling error (context).                          |
-| spelling-id    | info     | Spelling error (source).                           |
-| spelling-str   | info     | Spelling error (translation).                      |
-| unchanged      | info     | Translation is the same as the source string.      |
-| untranslated   | info     | Untranslated entry.                                |
+| Rule name      | Severity | Diagnostic reported                              |
+|----------------|----------|--------------------------------------------------|
+| changed        | info     | Translation is different from the source string. |
+| compilation    | error    | Compilation with `msgfmt`.                       |
+| fuzzy          | info     | Fuzzy entry.                                     |
+| obsolete       | info     | Obsolete entry.                                  |
+| spelling-ctxt  | info     | Spelling error (context).                        |
+| spelling-id    | info     | Spelling error (source).                         |
+| spelling-str   | info     | Spelling error (translation).                    |
+| unchanged      | info     | Translation is the same as the source string.    |
+| untranslated   | info     | Untranslated entry.                              |
 
 The result is very clear, almost all errors are highlighted in the strings so you can immediately see where the issue is.
 

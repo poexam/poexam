@@ -19,7 +19,7 @@ impl RuleChecker for PuncSpaceIdRule {
     }
 
     fn is_default(&self) -> bool {
-        false
+        true
     }
 
     fn is_check(&self) -> bool {
@@ -85,7 +85,7 @@ impl RuleChecker for PuncSpaceStrRule {
     }
 
     fn is_default(&self) -> bool {
-        false
+        true
     }
 
     fn is_check(&self) -> bool {
