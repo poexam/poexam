@@ -241,6 +241,24 @@ msgstr "[({<testé>})]"
 "#,
         );
         assert!(diags.is_empty());
+
+        // Extra parentheses in the translation are ignored.
+        let diags = check_brackets(
+            r#"
+msgid "position: top or bottom"
+msgstr "position : top (haut) ou bottom (bas)"
+"#,
+        );
+        assert!(diags.is_empty());
+
+        // Pattern "(s)" is ignored (for optional plural forms).
+        let diags = check_brackets(
+            r#"
+msgid "tests"
+msgstr "test(s)"
+"#,
+        );
+        assert!(diags.is_empty());
     }
 
     #[test]
@@ -296,5 +314,27 @@ msgstr "tested] {{ested}}}"
             diag.message,
             "extra opening and closing curly brackets '{' (1 / 2) and '}' (1 / 3)"
         );
+
+        let diags = check_brackets(
+            r#"
+msgid "example (test)"
+msgstr "exemple ((test)"
+"#,
+        );
+        assert_eq!(diags.len(), 1);
+        let diag = &diags[0];
+        assert_eq!(diag.severity, Severity::Info);
+        assert_eq!(diag.message, "extra opening round brackets '(' (1 / 2)");
+
+        let diags = check_brackets(
+            r#"
+msgid "example (test)"
+msgstr "exemple (test"
+"#,
+        );
+        assert_eq!(diags.len(), 1);
+        let diag = &diags[0];
+        assert_eq!(diag.severity, Severity::Info);
+        assert_eq!(diag.message, "missing closing round brackets ')' (1 / 0)");
     }
 }
