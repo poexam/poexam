@@ -283,7 +283,7 @@ mod tests {
     #[test]
     fn test_flags_width_length() {
         assert_eq!(
-            FormatPos::new("Hello, %ld %9llu world!", &Language::C).collect::<Vec<_>>(),
+            FormatPos::new("Hello, %ld %9llu %hhd %zd world!", &Language::C).collect::<Vec<_>>(),
             vec![
                 MatchStrPos {
                     s: "%ld",
@@ -294,6 +294,16 @@ mod tests {
                     s: "%9llu",
                     start: 11,
                     end: 16,
+                },
+                MatchStrPos {
+                    s: "%hhd",
+                    start: 17,
+                    end: 21,
+                },
+                MatchStrPos {
+                    s: "%zd",
+                    start: 22,
+                    end: 25,
                 },
             ]
         );
