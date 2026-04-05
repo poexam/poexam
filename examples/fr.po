@@ -44,12 +44,12 @@ msgstr "Test espaces doubles"
 
 # rule: escapes
 msgid "Escape: \\test"
-msgstr "Échappement : \\\\test"
+msgstr "Échappement : \\\\test"
 
 # rule: formats
 #, c-format
 msgid "Name: %s, age: %d"
-msgstr "Âge : %2$d, nom : %1$f"
+msgstr "Âge : %2$d, nom : %1$f"
 
 # rule: long
 msgid "a"
@@ -80,6 +80,14 @@ msgstr "Test de ponctuation à la fin"
 msgid "; test punctuation start"
 msgstr "test de ponctuation au début"
 
+# rule: punc-space-id
+msgid "Extra space before exclamation mark in source !"
+msgstr "Espace supplémentaire avant le point d'exclamation dans le source !"
+
+# rule: punc-space-id
+msgid "Space must be a non-breaking space before exclamation mark in translation!"
+msgstr "L'espace doit être un espace insécable avant le point d'exclamation dans la traduction !"
+
 # rule: short
 msgid "this is an example of a very long message in English"
 msgstr "ceci"
@@ -90,7 +98,7 @@ msgstr "Test tabulation"
 
 # rule: urls
 msgid "URL example: https://github.com/about"
-msgstr "Exemple d'URL : https://github.com/à_propos"
+msgstr "Exemple d'URL : https://github.com/à_propos"
 
 # rule: whitespace-end
 msgid "Test whitespace end"

@@ -10,6 +10,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 ### Added
 
+- Add rules "punc-space-id" and "punc-space-str"
 - Add rule "urls"
 - Add rule "compilation" and option `--path-msgfmt`
 

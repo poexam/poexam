@@ -111,17 +111,19 @@ For the rule `formats`, the following languages are supported:
 
  You can enable them on-demand:
 
-| Rule name     | Severity | Diagnostic reported                              |
-|---------------|----------|--------------------------------------------------|
-| changed       | info     | Translation is different from the source string. |
-| compilation   | error    | Compilation with `msgfmt`.                       |
-| fuzzy         | info     | Fuzzy entry.                                     |
-| obsolete      | info     | Obsolete entry.                                  |
-| spelling-ctxt | info     | Spelling error in the context string.            |
-| spelling-id   | info     | Spelling error in the source string.             |
-| spelling-str  | info     | Spelling error in the translated string.         |
-| unchanged     | info     | Translation is the same as the source string.    |
-| untranslated  | info     | Untranslated entry.                              |
+| Rule name      | Severity | Diagnostic reported                                 |
+|----------------|----------|-----------------------------------------------------|
+| changed        | info     | Translation is different from the source string.    |
+| compilation    | error    | Compilation with `msgfmt`.                          |
+| fuzzy          | info     | Fuzzy entry.                                        |
+| obsolete       | info     | Obsolete entry.                                     |
+| punc-space-id  | info     | Spaces around punctuation in the source string.     |
+| punc-space-str | info     | Spaces around punctuation in the translated string. |
+| spelling-ctxt  | info     | Spelling error in the context string.               |
+| spelling-id    | info     | Spelling error in the source string.                |
+| spelling-str   | info     | Spelling error in the translated string.            |
+| unchanged      | info     | Translation is the same as the source string.       |
+| untranslated   | info     | Untranslated entry.                                 |
 
 The result is very clear, almost all errors are highlighted in the strings so you can immediately see where the issue is.
 
@@ -179,7 +181,7 @@ examples/fr.po:51: [error:formats] inconsistent format strings (C)
 
 (...)
 
-1 files checked: 25 problems in 1 files (6 errors, 4 warnings, 15 info) [27.938269ms]
+1 files checked: 27 problems in 1 files (6 errors, 4 warnings, 17 info) [27.938269ms]
 ```
 
 ### Spell checking

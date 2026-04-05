@@ -20,6 +20,7 @@ pub mod obsolete;
 pub mod pipes;
 pub mod plurals;
 pub mod punc;
+pub mod punc_space;
 pub mod rule;
 pub mod short;
 pub mod spelling;
