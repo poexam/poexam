@@ -52,8 +52,8 @@ msgid "Name: %s, age: %d"
 msgstr "Âge : %2$d, nom : %1$f"
 
 # rule: long
-msgid " :"
-msgstr " ... :"
+msgid "a"
+msgstr "une longue traduction"
 
 # rule: newlines
 msgid "Test\ntwo lines"
@@ -81,8 +81,8 @@ msgid "; test punctuation start"
 msgstr "test de ponctuation au début"
 
 # rule: short
-msgid "message:"
-msgstr ":"
+msgid "this is an example of a very long message in English"
+msgstr "ceci"
 
 # rule: tabs
 msgid "Test \t tabulation"
@@ -103,7 +103,7 @@ msgstr " Test espace au début"
 # rule: fuzzy
 #, fuzzy
 msgid "Fuzzy entry"
-msgstr "Entrée fuzzy"
+msgstr "Entrée floue"
 
 # rule: unchanged
 msgid "Unchanged entry"
