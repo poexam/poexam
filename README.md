@@ -57,21 +57,22 @@ The configuration file used is the closest file found by order, where `<path>` i
 - `<path>/poexam.toml`
 - `<path>/.poexam.toml`
 
-The following options are available in the `check` section:
+The following options are available in the `check` section (each option can be overridden by the command line parameter having the same name):
 
-| Option      | Overridden by…  | Type             | Description                                                       |
-|-------------|-----------------|------------------|-------------------------------------------------------------------|
-| fuzzy       | `--fuzzy`       | Boolean          | Check fuzzy entries.                                              |
-| noqa        | `--noqa`        | Boolean          | Check entries marked as "noqa".                                   |
-| obsolete    | `--obsolete`    | Boolean          | Check obsolete entries.                                           |
-| select      | `--select`      | Array of strings | Selected rules.                                                   |
-| ignore      | `--ignore`      | Array of strings | Ignored rules.                                                    |
-| path_msgfmt | `--path-msgfmt` | String (path)    | Path to `msgfmt` for PO file compilation.                         |
-| path_dicts  | `--path-dicts`  | String (path)    | Path to the Hunspell dictionaries.                                |
-| path_words  | `--path-words`  | String (path)    | Path with custom words (absolute or relative to the config file). |
-| lang_id     | `--lang-id`     | String           | Language used to check source strings.                            |
-| langs       | `--langs`       | Array of strings | Check spelling only for these languages.                          |
-| severity    | `--severity`    | Array of strings | Run only checks with these severities (`info`/`warning`/`error`). |
+| Option               | Type             | Description                                                       |
+|----------------------|------------------|-------------------------------------------------------------------|
+| fuzzy                | Boolean          | Check fuzzy entries.                                              |
+| noqa                 | Boolean          | Check entries marked as "noqa".                                   |
+| obsolete             | Boolean          | Check obsolete entries.                                           |
+| select               | Array of strings | Selected rules.                                                   |
+| ignore               | Array of strings | Ignored rules.                                                    |
+| path_msgfmt          | String (path)    | Path to `msgfmt` for PO file compilation.                         |
+| path_dicts           | String (path)    | Path to the Hunspell dictionaries.                                |
+| path_words           | String (path)    | Path with custom words (absolute or relative to the config file). |
+| lang_id              | String           | Language used to check source strings.                            |
+| langs                | Array of strings | Check spelling only for these languages.                          |
+| severity             | Array of strings | Run only checks with these severities (`info`/`warning`/`error`). |
+| punc_ignore_ellipsis | Boolean          | Ignore ellipsis differences (`...` vs `…`) in punc rules .        |
 
 See configuration file example: [poexam.toml](examples/poexam.toml).
 

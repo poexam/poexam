@@ -10,9 +10,14 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 ### Added
 
+- Add option `--punc-ignore-ellipsis`
 - Add rules "punc-space-id" and "punc-space-str"
 - Add rule "urls"
 - Add rule "compilation" and option `--path-msgfmt`
+
+### Changed
+
+- Report ellipsis differences by default in rules "punc-start" and "punc-end"
 
 ### Fixed
 

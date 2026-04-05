@@ -100,6 +100,10 @@ pub struct CheckArgs {
     #[arg(short = 'e', long, value_enum)]
     pub severity: Vec<Severity>,
 
+    /// Ignore ellipsis differences (`...` vs `…`) in rules "punc-start" and "punc-end"
+    #[arg(long)]
+    pub punc_ignore_ellipsis: bool,
+
     /// Do not display errors found
     #[arg(short, long)]
     pub no_errors: bool,

@@ -59,6 +59,9 @@ pub struct CheckConfig {
 
     #[serde(default = "default_severity")]
     pub severity: Vec<Severity>,
+
+    #[serde(default = "default_punc_ignore_ellipsis")]
+    pub punc_ignore_ellipsis: bool,
 }
 
 fn default_fuzzy() -> bool {
@@ -105,6 +108,10 @@ fn default_severity() -> Vec<Severity> {
     vec![]
 }
 
+fn default_punc_ignore_ellipsis() -> bool {
+    false
+}
+
 impl Default for CheckConfig {
     fn default() -> Self {
         Self {
@@ -119,6 +126,7 @@ impl Default for CheckConfig {
             lang_id: default_lang_id(),
             langs: default_langs(),
             severity: default_severity(),
+            punc_ignore_ellipsis: default_punc_ignore_ellipsis(),
         }
     }
 }
@@ -184,6 +192,9 @@ impl Config {
         }
         if !args.severity.is_empty() {
             self.check.severity.clone_from(&args.severity);
+        }
+        if args.punc_ignore_ellipsis {
+            self.check.punc_ignore_ellipsis = true;
         }
         self
     }

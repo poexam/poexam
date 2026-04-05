@@ -62,10 +62,11 @@ impl RuleChecker for PuncStartRule {
     /// - `inconsistent leading punctuation ('…' / '…')`
     fn check_msg(&self, checker: &mut Checker, entry: &Entry, msgid: &str, msgstr: &str) {
         let language = checker.language_code();
+        let ignore_ellipsis = checker.config.check.punc_ignore_ellipsis;
         let id_punc = get_punc_start(msgid);
         let str_punc = get_punc_start(msgstr);
-        let id_punc2 = punc_normalize(id_punc.trim(), language);
-        let str_punc2 = punc_normalize(str_punc.trim(), language);
+        let id_punc2 = punc_normalize(id_punc.trim(), language, ignore_ellipsis);
+        let str_punc2 = punc_normalize(str_punc.trim(), language, ignore_ellipsis);
         if id_punc2.starts_with('.') || str_punc2.starts_with('.') {
             // Ignore leading dots, often used for hidden or filename extension,
             // and the translation may change the order of words.
@@ -136,10 +137,11 @@ impl RuleChecker for PuncEndRule {
     /// - `inconsistent trailing punctuation ('…' / '…')`
     fn check_msg(&self, checker: &mut Checker, entry: &Entry, msgid: &str, msgstr: &str) {
         let language = checker.language_code();
+        let ignore_ellipsis = checker.config.check.punc_ignore_ellipsis;
         let id_punc = get_punc_end(msgid);
         let str_punc = get_punc_end(msgstr);
-        let id_punc2 = punc_normalize(id_punc.trim(), language);
-        let str_punc2 = punc_normalize(str_punc.trim(), language);
+        let id_punc2 = punc_normalize(id_punc.trim(), language, ignore_ellipsis);
+        let str_punc2 = punc_normalize(str_punc.trim(), language, ignore_ellipsis);
         if id_punc2 != str_punc2 {
             checker.report_id_str(
                 entry,
@@ -218,8 +220,9 @@ fn get_punc_end(s: &str) -> &str {
 
 /// Normalize punctuation to English symbols: full-width to half-width and take care
 /// about specific cases in some languages.
-fn punc_normalize(s: &str, language: &str) -> String {
-    s.chars()
+fn punc_normalize(s: &str, language: &str, ignore_ellipsis: bool) -> String {
+    let value = s
+        .chars()
         .map(|c| match c {
             // Special case for Greek question mark.
             '?' if language == "el" => ';',
@@ -232,14 +235,18 @@ fn punc_normalize(s: &str, language: &str) -> String {
             '？' | '\u{061F}' => '?',
             _ => c,
         })
-        .collect::<String>()
-        .replace("...", "…")
+        .collect::<String>();
+    if ignore_ellipsis {
+        value.replace("...", "…")
+    } else {
+        value
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{diagnostic::Diagnostic, rules::rule::Rules};
+    use crate::{config::Config, diagnostic::Diagnostic, rules::rule::Rules};
 
     fn check_punc_start(content: &str) -> Vec<Diagnostic> {
         let mut checker = Checker::new(content.as_bytes());
@@ -250,6 +257,15 @@ mod tests {
 
     fn check_punc_end(content: &str) -> Vec<Diagnostic> {
         let mut checker = Checker::new(content.as_bytes());
+        let rules = Rules::new(vec![Box::new(PuncEndRule {})]);
+        checker.do_all_checks(&rules);
+        checker.diagnostics
+    }
+
+    fn check_punc_end_ignore_ellipsis(content: &str) -> Vec<Diagnostic> {
+        let mut config = Config::default();
+        config.check.punc_ignore_ellipsis = true;
+        let mut checker = Checker::new(content.as_bytes()).with_config(config);
         let rules = Rules::new(vec![Box::new(PuncEndRule {})]);
         checker.do_all_checks(&rules);
         checker.diagnostics
@@ -297,15 +313,18 @@ mod tests {
 
     #[test]
     fn test_punc_normalize() {
-        assert_eq!(punc_normalize("", "fr"), "");
-        assert_eq!(punc_normalize("test", "fr"), "test");
+        assert_eq!(punc_normalize("", "fr", false), "");
+        assert_eq!(punc_normalize("test", "fr", false), "test");
         assert_eq!(
-            punc_normalize("。，！？\u{061F}：；\u{061B}。。。", "zh"),
-            ".,!??:;;…"
+            punc_normalize("。，！？\u{061F}：；\u{061B}。。。", "zh", false),
+            ".,!??:;;..."
         );
-        assert_eq!(punc_normalize("?", "fr"), "?");
+        assert_eq!(punc_normalize("?", "fr", false), "?");
         // Special case for Greek question mark.
-        assert_eq!(punc_normalize("?", "el"), ";");
+        assert_eq!(punc_normalize("?", "el", false), ";");
+        // Test ellipsis normalization.
+        assert_eq!(punc_normalize("...test...", "fr", false), "...test...");
+        assert_eq!(punc_normalize("...test...", "fr", true), "…test…");
     }
 
     #[test]
@@ -329,6 +348,13 @@ msgstr "testé"
     #[test]
     fn test_punc_ok() {
         let diags = check_punc_end(
+            r#"
+msgid "tested, ..."
+msgstr "testé..."
+"#,
+        );
+        assert!(diags.is_empty());
+        let diags = check_punc_end_ignore_ellipsis(
             r#"
 msgid "tested, ..."
 msgstr "testé…"
