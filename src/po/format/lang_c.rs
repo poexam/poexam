@@ -132,6 +132,10 @@ mod tests {
         assert_eq!(fmt_sort_index("%d"), usize::MAX);
         assert_eq!(fmt_sort_index("%$d"), usize::MAX);
         assert_eq!(fmt_sort_index("%a$d"), usize::MAX);
+        assert_eq!(
+            fmt_sort_index("%99999999999999999999999999999999999999999999999999999999999999$d"),
+            usize::MAX
+        );
         assert_eq!(fmt_sort_index("%3$d"), 3);
         assert_eq!(fmt_sort_index("%42$05s"), 42);
     }
