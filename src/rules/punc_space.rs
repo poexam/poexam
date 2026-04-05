@@ -47,10 +47,7 @@ impl RuleChecker for PuncSpaceIdRule {
     /// ```
     ///
     /// Diagnostics reported with severity [`info`](Severity::Info):
-    /// - `missing space before 'x'` in source
-    /// - `missing space after 'x'` in source
-    /// - `missing non-breaking space before 'x'` in source
-    /// - `missing non-breaking space after 'x'` in source
+    /// - `extra space before 'x'` in source
     fn check_msg(&self, checker: &mut Checker, entry: &Entry, msgid: &str, msgstr: &str) {
         let mut other_char = false;
         let mut chars_iter = msgid.char_indices().peekable();
@@ -124,7 +121,7 @@ impl RuleChecker for PuncSpaceStrRule {
     /// ```
     ///
     /// Diagnostics reported with severity [`info`](Severity::Info):
-    /// - `missing space before/after 'x' in translation`
+    /// - `missing space before 'x' in translation`
     /// - `missing non-breaking space before/after 'x' in translation`
     /// - `space must be a non-breaking space before/after 'x' in translation`
     fn check_msg(&self, checker: &mut Checker, entry: &Entry, msgid: &str, msgstr: &str) {
