@@ -265,8 +265,8 @@ msgid ""
 msgstr "Language: fr\n"
 
 msgctxt "some context"
-msgid "tested"
-msgstr "testé"
+msgid "tested: HTTP v3"
+msgstr "testé : HTTP v3"
 "#,
         );
         assert!(diags.is_empty());
