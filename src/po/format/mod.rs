@@ -4,14 +4,14 @@
 
 //! Support of format strings in different languages.
 
-pub mod format_pos;
+pub mod iterators;
 pub mod lang_c;
 pub mod lang_null;
 pub mod lang_python;
 pub mod language;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct MatchStrPos<'a> {
+pub struct MatchFmtPos<'a> {
     pub s: &'a str,
     pub start: usize,
     pub end: usize,

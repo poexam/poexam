@@ -14,9 +14,9 @@ use spellbook::Dictionary;
 use crate::checker::Checker;
 use crate::diagnostic::Severity;
 use crate::po::entry::Entry;
-use crate::po::format::format_pos::strip_formats;
+use crate::po::format::iterators::FormatWordPos;
+use crate::po::format::language::Language;
 use crate::rules::rule::RuleChecker;
-use crate::word_pos::WordPos;
 
 pub struct SpellingCtxtRule;
 
@@ -59,8 +59,7 @@ impl RuleChecker for SpellingCtxtRule {
     /// - `misspelled words in context: xxx`
     fn check_ctxt(&self, checker: &mut Checker, entry: &Entry, msgctxt: &str) {
         if let Some(dict) = &checker.dict_id {
-            let msgctxt_stripped = strip_formats(msgctxt, &entry.format_language);
-            let (misspelled_words, pos_words) = check_words(&msgctxt_stripped, dict);
+            let (misspelled_words, pos_words) = check_words(msgctxt, &entry.format_language, dict);
             if !misspelled_words.is_empty() {
                 checker.report_line(
                     entry,
@@ -68,7 +67,7 @@ impl RuleChecker for SpellingCtxtRule {
                         "misspelled words in context: {}",
                         misspelled_words.join(", ")
                     ),
-                    &msgctxt_stripped,
+                    msgctxt,
                     &pos_words,
                 );
                 for word in misspelled_words {
@@ -118,8 +117,7 @@ impl RuleChecker for SpellingIdRule {
     /// - `misspelled words in source: xxx`
     fn check_msg(&self, checker: &mut Checker, entry: &Entry, msgid: &str, msgstr: &str) {
         if let Some(dict) = &checker.dict_id {
-            let msgid_stripped = strip_formats(msgid, &entry.format_language);
-            let (misspelled_words, pos_words) = check_words(&msgid_stripped, dict);
+            let (misspelled_words, pos_words) = check_words(msgid, &entry.format_language, dict);
             if !misspelled_words.is_empty() {
                 checker.report_id_str(
                     entry,
@@ -127,9 +125,9 @@ impl RuleChecker for SpellingIdRule {
                         "misspelled words in source: {}",
                         misspelled_words.join(", ")
                     ),
-                    &msgid_stripped,
+                    msgid,
                     &pos_words,
-                    &strip_formats(msgstr, &entry.format_language),
+                    msgstr,
                     &[],
                 );
                 for word in misspelled_words {
@@ -179,8 +177,7 @@ impl RuleChecker for SpellingStrRule {
     /// - `misspelled words in translation: xxx`
     fn check_msg(&self, checker: &mut Checker, entry: &Entry, msgid: &str, msgstr: &str) {
         if let Some(dict) = &checker.dict_str {
-            let msgstr_stripped = strip_formats(msgstr, &entry.format_language);
-            let (misspelled_words, pos_words) = check_words(&msgstr_stripped, dict);
+            let (misspelled_words, pos_words) = check_words(msgstr, &entry.format_language, dict);
             if !misspelled_words.is_empty() {
                 checker.report_id_str(
                     entry,
@@ -188,9 +185,9 @@ impl RuleChecker for SpellingStrRule {
                         "misspelled words in translation: {}",
                         misspelled_words.join(", ")
                     ),
-                    &strip_formats(msgid, &entry.format_language),
+                    msgid,
                     &[],
-                    &msgstr_stripped,
+                    msgstr,
                     &pos_words,
                 );
                 for word in misspelled_words {
@@ -204,11 +201,15 @@ impl RuleChecker for SpellingStrRule {
 /// Check words in a string: context (msgctxt), source (msgid) or translation (msgstr).
 ///
 /// Return list of misspelled words (can be empty) and their positions in the string (start, end).
-fn check_words<'s>(s: &'s str, dict: &Dictionary) -> (Vec<&'s str>, Vec<(usize, usize)>) {
+fn check_words<'s>(
+    s: &'s str,
+    format_language: &Language,
+    dict: &Dictionary,
+) -> (Vec<&'s str>, Vec<(usize, usize)>) {
     let mut misspelled_words: HashSet<&str> = HashSet::new();
     let mut hash_words: HashSet<&str> = HashSet::new();
     let mut pos_words = Vec::new();
-    for word in WordPos::new(s) {
+    for word in FormatWordPos::new(s, format_language) {
         // Ignore word if it contains at least one digit.
         if word.s.chars().any(|c| c.is_ascii_digit()) {
             continue;

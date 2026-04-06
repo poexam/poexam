@@ -26,20 +26,72 @@ impl FormatParser for FormatNull {
 #[cfg(test)]
 mod tests {
     use crate::po::format::{
-        format_pos::{FormatPos, strip_formats},
+        MatchFmtPos,
+        iterators::{FormatPos, FormatUrlPos, FormatWordPos, strip_formats},
         language::Language,
     };
 
     #[test]
+    fn test_empty_string() {
+        let s = "";
+        assert!(FormatPos::new(s, &Language::Null).next().is_none());
+        assert!(FormatWordPos::new(s, &Language::Null).next().is_none());
+        assert!(FormatUrlPos::new(s, &Language::Null).next().is_none());
+        assert!(strip_formats(s, &Language::Null).is_empty());
+    }
+
+    #[test]
     fn test_no_format() {
-        assert!(
-            FormatPos::new("Hello, %s world!", &Language::Null)
-                .next()
-                .is_none()
+        let s = "Hello, %s world! 'test' https://example.com";
+        assert!(FormatPos::new(s, &Language::Null).next().is_none());
+        assert_eq!(
+            FormatWordPos::new(s, &Language::Null).collect::<Vec<_>>(),
+            vec![
+                MatchFmtPos {
+                    s: "Hello",
+                    start: 0,
+                    end: 5,
+                },
+                MatchFmtPos {
+                    s: "s",
+                    start: 8,
+                    end: 9,
+                },
+                MatchFmtPos {
+                    s: "world",
+                    start: 10,
+                    end: 15,
+                },
+                MatchFmtPos {
+                    s: "test",
+                    start: 18,
+                    end: 22,
+                },
+                MatchFmtPos {
+                    s: "https",
+                    start: 24,
+                    end: 29,
+                },
+                MatchFmtPos {
+                    s: "example",
+                    start: 32,
+                    end: 39,
+                },
+                MatchFmtPos {
+                    s: "com",
+                    start: 40,
+                    end: 43,
+                },
+            ]
         );
         assert_eq!(
-            strip_formats("Hello, %s world!", &Language::Null),
-            "Hello, %s world!"
+            FormatUrlPos::new(s, &Language::Null).collect::<Vec<_>>(),
+            vec![MatchFmtPos {
+                s: "https://example.com",
+                start: 24,
+                end: 43,
+            }]
         );
+        assert_eq!(strip_formats(s, &Language::Null), s);
     }
 }

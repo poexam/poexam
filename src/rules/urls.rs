@@ -9,10 +9,9 @@ use std::collections::HashSet;
 use crate::checker::Checker;
 use crate::diagnostic::Severity;
 use crate::po::entry::Entry;
-use crate::po::format::format_pos::strip_formats;
+use crate::po::format::iterators::FormatUrlPos;
 use crate::rules::double_quotes::DOUBLE_QUOTES;
 use crate::rules::rule::RuleChecker;
-use crate::url_pos::UrlPos;
 
 pub struct UrlsRule;
 
@@ -37,14 +36,14 @@ impl RuleChecker for UrlsRule {
     ///
     /// Wrong entry:
     /// ```text
-    /// msgid "Test URL: http://example.com"
-    /// msgstr "URL de test : http://example.com/extra"
+    /// msgid "Test URL: https://example.com"
+    /// msgstr "URL de test : https://example.com/extra"
     /// ```
     ///
     /// Correct entry:
     /// ```text
-    /// msgid "Test URL: http://example.com"
-    /// msgstr "URL de test : http://example.com"
+    /// msgid "Test URL: https://example.com"
+    /// msgstr "URL de test : https://example.com"
     /// ```
     ///
     /// Diagnostics reported with severity [`warning`](Severity::Warning):
@@ -52,18 +51,16 @@ impl RuleChecker for UrlsRule {
     /// - `extra URLs (# / #)`
     /// - `different URLs`
     fn check_msg(&self, checker: &mut Checker, entry: &Entry, msgid: &str, msgstr: &str) {
-        let msgid_stripped = strip_formats(msgid, &entry.format_language);
-        let msgstr_stripped = strip_formats(msgstr, &entry.format_language);
-        let id_urls: Vec<_> = UrlPos::new(&msgid_stripped).collect();
-        let str_urls: Vec<_> = UrlPos::new(&msgstr_stripped).collect();
+        let id_urls: Vec<_> = FormatUrlPos::new(msgid, &entry.format_language).collect();
+        let str_urls: Vec<_> = FormatUrlPos::new(msgstr, &entry.format_language).collect();
         match id_urls.len().cmp(&str_urls.len()) {
             std::cmp::Ordering::Greater => {
                 checker.report_id_str(
                     entry,
                     format!("missing URLs ({} / {})", id_urls.len(), str_urls.len()),
-                    &msgid_stripped,
+                    msgid,
                     &id_urls.iter().map(|m| (m.start, m.end)).collect::<Vec<_>>(),
-                    &msgstr_stripped,
+                    msgstr,
                     &str_urls
                         .iter()
                         .map(|m| (m.start, m.end))
@@ -74,9 +71,9 @@ impl RuleChecker for UrlsRule {
                 checker.report_id_str(
                     entry,
                     format!("extra URLs ({} / {})", id_urls.len(), str_urls.len()),
-                    &msgid_stripped,
+                    msgid,
                     &id_urls.iter().map(|m| (m.start, m.end)).collect::<Vec<_>>(),
-                    &msgstr_stripped,
+                    msgstr,
                     &str_urls
                         .iter()
                         .map(|m| (m.start, m.end))
@@ -92,9 +89,9 @@ impl RuleChecker for UrlsRule {
                     checker.report_id_str(
                         entry,
                         "different URLs".to_string(),
-                        &msgid_stripped,
+                        msgid,
                         &id_urls.iter().map(|m| (m.start, m.end)).collect::<Vec<_>>(),
-                        &msgstr_stripped,
+                        msgstr,
                         &str_urls
                             .iter()
                             .map(|m| (m.start, m.end))

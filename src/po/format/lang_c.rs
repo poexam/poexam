@@ -120,8 +120,8 @@ pub fn fmt_strip_index(fmt: &str) -> String {
 mod tests {
     use super::*;
     use crate::po::format::{
-        MatchStrPos,
-        format_pos::{FormatPos, strip_formats},
+        MatchFmtPos,
+        iterators::{FormatPos, FormatUrlPos, FormatWordPos, strip_formats},
         language::Language,
     };
 
@@ -153,179 +153,542 @@ mod tests {
 
     #[test]
     fn test_no_format() {
-        assert!(
-            FormatPos::new("Hello, world!", &Language::C)
-                .next()
-                .is_none()
+        let s = "Hello, world! https://example.com";
+        assert!(FormatPos::new(s, &Language::C).next().is_none());
+        assert_eq!(
+            FormatWordPos::new(s, &Language::C).collect::<Vec<_>>(),
+            vec![
+                MatchFmtPos {
+                    s: "Hello",
+                    start: 0,
+                    end: 5,
+                },
+                MatchFmtPos {
+                    s: "world",
+                    start: 7,
+                    end: 12,
+                },
+                MatchFmtPos {
+                    s: "https",
+                    start: 14,
+                    end: 19,
+                },
+                MatchFmtPos {
+                    s: "example",
+                    start: 22,
+                    end: 29,
+                },
+                MatchFmtPos {
+                    s: "com",
+                    start: 30,
+                    end: 33,
+                },
+            ]
         );
         assert_eq!(
-            strip_formats("Hello, world!", &Language::C),
-            "Hello, world!"
+            FormatUrlPos::new(s, &Language::C).collect::<Vec<_>>(),
+            vec![MatchFmtPos {
+                s: "https://example.com",
+                start: 14,
+                end: 33,
+            }]
         );
+        assert_eq!(strip_formats(s, &Language::C), s);
     }
 
     #[test]
     fn test_invalid_format() {
-        assert!(FormatPos::new("%", &Language::C).next().is_none());
-        assert_eq!(strip_formats("%", &Language::C), "%");
+        let s = "%";
+        assert!(FormatPos::new(s, &Language::C).next().is_none());
+        assert!(FormatWordPos::new(s, &Language::C).next().is_none());
+        assert!(FormatUrlPos::new(s, &Language::C).next().is_none());
+        assert_eq!(strip_formats(s, &Language::C), "%");
+
+        let s = "%é";
         assert_eq!(
-            FormatPos::new("%é", &Language::C).collect::<Vec<_>>(),
-            vec![MatchStrPos {
+            FormatPos::new(s, &Language::C).collect::<Vec<_>>(),
+            vec![MatchFmtPos {
                 s: "%",
                 start: 0,
                 end: 1,
             }]
         );
-        assert_eq!(strip_formats("%é", &Language::C), "é");
+        assert_eq!(
+            FormatWordPos::new(s, &Language::C).collect::<Vec<_>>(),
+            vec![MatchFmtPos {
+                s: "é",
+                start: 1,
+                end: 3,
+            }]
+        );
+        assert!(FormatUrlPos::new(s, &Language::C).next().is_none());
+        assert_eq!(strip_formats(s, &Language::C), "é");
     }
 
     #[test]
     fn test_single_format() {
+        let s = "Hello, %s world! https://example.com";
         assert_eq!(
-            FormatPos::new("Hello, %s world!", &Language::C).collect::<Vec<_>>(),
-            vec![MatchStrPos {
+            FormatPos::new(s, &Language::C).collect::<Vec<_>>(),
+            vec![MatchFmtPos {
                 s: "%s",
                 start: 7,
                 end: 9,
             }]
         );
         assert_eq!(
-            strip_formats("Hello, %s world!", &Language::C),
-            "Hello,  world!"
+            FormatWordPos::new(s, &Language::C).collect::<Vec<_>>(),
+            vec![
+                MatchFmtPos {
+                    s: "Hello",
+                    start: 0,
+                    end: 5,
+                },
+                MatchFmtPos {
+                    s: "world",
+                    start: 10,
+                    end: 15,
+                },
+                MatchFmtPos {
+                    s: "https",
+                    start: 17,
+                    end: 22,
+                },
+                MatchFmtPos {
+                    s: "example",
+                    start: 25,
+                    end: 32,
+                },
+                MatchFmtPos {
+                    s: "com",
+                    start: 33,
+                    end: 36,
+                },
+            ]
+        );
+        assert_eq!(
+            FormatUrlPos::new(s, &Language::C).collect::<Vec<_>>(),
+            vec![MatchFmtPos {
+                s: "https://example.com",
+                start: 17,
+                end: 36,
+            }]
+        );
+        assert_eq!(
+            strip_formats(s, &Language::C),
+            "Hello,  world! https://example.com"
         );
     }
 
     #[test]
     fn test_multiple_formats() {
+        let s = "Hello, %d%s%f world! https://%s.example.com";
         assert_eq!(
-            FormatPos::new("%d%s%f", &Language::C).collect::<Vec<_>>(),
+            FormatPos::new(s, &Language::C).collect::<Vec<_>>(),
             vec![
-                MatchStrPos {
+                MatchFmtPos {
                     s: "%d",
-                    start: 0,
-                    end: 2,
+                    start: 7,
+                    end: 9,
                 },
-                MatchStrPos {
+                MatchFmtPos {
                     s: "%s",
-                    start: 2,
-                    end: 4,
+                    start: 9,
+                    end: 11,
                 },
-                MatchStrPos {
+                MatchFmtPos {
                     s: "%f",
-                    start: 4,
-                    end: 6,
+                    start: 11,
+                    end: 13,
+                },
+                MatchFmtPos {
+                    s: "%s",
+                    start: 29,
+                    end: 31,
                 },
             ]
         );
-        assert!(strip_formats("%d%s%f", &Language::C).is_empty());
+        assert_eq!(
+            FormatWordPos::new(s, &Language::C).collect::<Vec<_>>(),
+            vec![
+                MatchFmtPos {
+                    s: "Hello",
+                    start: 0,
+                    end: 5,
+                },
+                MatchFmtPos {
+                    s: "world",
+                    start: 14,
+                    end: 19,
+                },
+                MatchFmtPos {
+                    s: "https",
+                    start: 21,
+                    end: 26,
+                },
+                MatchFmtPos {
+                    s: "example",
+                    start: 32,
+                    end: 39,
+                },
+                MatchFmtPos {
+                    s: "com",
+                    start: 40,
+                    end: 43,
+                },
+            ]
+        );
+        assert_eq!(
+            FormatUrlPos::new(s, &Language::C).collect::<Vec<_>>(),
+            vec![MatchFmtPos {
+                s: "https://%s.example.com",
+                start: 21,
+                end: 43,
+            }]
+        );
+        assert_eq!(
+            strip_formats(s, &Language::C),
+            "Hello,  world! https://.example.com"
+        );
     }
 
     #[test]
     fn test_multiple_formats_with_reordering() {
+        let s = "Hello, %3$d %2$s %1$f world! https://%s.example.com";
         assert_eq!(
-            FormatPos::new("Hello, %3$d %2$s %1$f world!", &Language::C).collect::<Vec<_>>(),
+            FormatPos::new(s, &Language::C).collect::<Vec<_>>(),
             vec![
-                MatchStrPos {
+                MatchFmtPos {
                     s: "%3$d",
                     start: 7,
                     end: 11,
                 },
-                MatchStrPos {
+                MatchFmtPos {
                     s: "%2$s",
                     start: 12,
                     end: 16,
                 },
-                MatchStrPos {
+                MatchFmtPos {
                     s: "%1$f",
                     start: 17,
                     end: 21,
                 },
+                MatchFmtPos {
+                    s: "%s",
+                    start: 37,
+                    end: 39,
+                },
             ]
         );
         assert_eq!(
-            strip_formats("Hello, %3$d %2$s %1$f world!", &Language::C),
-            "Hello,    world!"
+            FormatWordPos::new(s, &Language::C).collect::<Vec<_>>(),
+            vec![
+                MatchFmtPos {
+                    s: "Hello",
+                    start: 0,
+                    end: 5,
+                },
+                MatchFmtPos {
+                    s: "world",
+                    start: 22,
+                    end: 27,
+                },
+                MatchFmtPos {
+                    s: "https",
+                    start: 29,
+                    end: 34,
+                },
+                MatchFmtPos {
+                    s: "example",
+                    start: 40,
+                    end: 47,
+                },
+                MatchFmtPos {
+                    s: "com",
+                    start: 48,
+                    end: 51,
+                },
+            ]
+        );
+        assert_eq!(
+            FormatUrlPos::new(s, &Language::C).collect::<Vec<_>>(),
+            vec![MatchFmtPos {
+                s: "https://%s.example.com",
+                start: 29,
+                end: 51,
+            }]
+        );
+        assert_eq!(
+            strip_formats(s, &Language::C),
+            "Hello,    world! https://.example.com"
         );
     }
 
     #[test]
     fn test_escaped_percent() {
+        let s = "Hello, %% %s world! https://%s.example.com";
         assert_eq!(
-            FormatPos::new("Hello, %% %s world!", &Language::C).collect::<Vec<_>>(),
-            vec![MatchStrPos {
-                s: "%s",
-                start: 10,
-                end: 12,
+            FormatPos::new(s, &Language::C).collect::<Vec<_>>(),
+            vec![
+                MatchFmtPos {
+                    s: "%s",
+                    start: 10,
+                    end: 12,
+                },
+                MatchFmtPos {
+                    s: "%s",
+                    start: 28,
+                    end: 30,
+                },
+            ]
+        );
+        assert_eq!(
+            FormatWordPos::new(s, &Language::C).collect::<Vec<_>>(),
+            vec![
+                MatchFmtPos {
+                    s: "Hello",
+                    start: 0,
+                    end: 5,
+                },
+                MatchFmtPos {
+                    s: "world",
+                    start: 13,
+                    end: 18,
+                },
+                MatchFmtPos {
+                    s: "https",
+                    start: 20,
+                    end: 25,
+                },
+                MatchFmtPos {
+                    s: "example",
+                    start: 31,
+                    end: 38,
+                },
+                MatchFmtPos {
+                    s: "com",
+                    start: 39,
+                    end: 42,
+                },
+            ]
+        );
+        assert_eq!(
+            FormatUrlPos::new(s, &Language::C).collect::<Vec<_>>(),
+            vec![MatchFmtPos {
+                s: "https://%s.example.com",
+                start: 20,
+                end: 42,
             }]
         );
         assert_eq!(
-            strip_formats("Hello, %% %s world!", &Language::C),
-            "Hello, %  world!"
+            strip_formats(s, &Language::C),
+            "Hello, %  world! https://.example.com"
         );
     }
 
     #[test]
     fn test_flags_width_precision() {
+        let s = "Hello, %05.2f world! https://%s.example.com";
         assert_eq!(
-            FormatPos::new("Hello, %05.2f world!", &Language::C).collect::<Vec<_>>(),
-            vec![MatchStrPos {
-                s: "%05.2f",
-                start: 7,
-                end: 13,
+            FormatPos::new(s, &Language::C).collect::<Vec<_>>(),
+            vec![
+                MatchFmtPos {
+                    s: "%05.2f",
+                    start: 7,
+                    end: 13,
+                },
+                MatchFmtPos {
+                    s: "%s",
+                    start: 29,
+                    end: 31,
+                },
+            ]
+        );
+        assert_eq!(
+            FormatWordPos::new(s, &Language::C).collect::<Vec<_>>(),
+            vec![
+                MatchFmtPos {
+                    s: "Hello",
+                    start: 0,
+                    end: 5,
+                },
+                MatchFmtPos {
+                    s: "world",
+                    start: 14,
+                    end: 19,
+                },
+                MatchFmtPos {
+                    s: "https",
+                    start: 21,
+                    end: 26,
+                },
+                MatchFmtPos {
+                    s: "example",
+                    start: 32,
+                    end: 39,
+                },
+                MatchFmtPos {
+                    s: "com",
+                    start: 40,
+                    end: 43,
+                },
+            ]
+        );
+        assert_eq!(
+            FormatUrlPos::new(s, &Language::C).collect::<Vec<_>>(),
+            vec![MatchFmtPos {
+                s: "https://%s.example.com",
+                start: 21,
+                end: 43,
             }]
         );
         assert_eq!(
-            strip_formats("Hello, %05.2f world!", &Language::C),
-            "Hello,  world!"
+            strip_formats(s, &Language::C),
+            "Hello,  world! https://.example.com"
         );
     }
 
     #[test]
     fn test_flags_width_length() {
+        let s = "Hello, %ld %9llu %hhd %zd world! https://%s.example.com";
         assert_eq!(
-            FormatPos::new("Hello, %ld %9llu %hhd %zd world!", &Language::C).collect::<Vec<_>>(),
+            FormatPos::new(s, &Language::C).collect::<Vec<_>>(),
             vec![
-                MatchStrPos {
+                MatchFmtPos {
                     s: "%ld",
                     start: 7,
                     end: 10,
                 },
-                MatchStrPos {
+                MatchFmtPos {
                     s: "%9llu",
                     start: 11,
                     end: 16,
                 },
-                MatchStrPos {
+                MatchFmtPos {
                     s: "%hhd",
                     start: 17,
                     end: 21,
                 },
-                MatchStrPos {
+                MatchFmtPos {
                     s: "%zd",
                     start: 22,
                     end: 25,
                 },
+                MatchFmtPos {
+                    s: "%s",
+                    start: 41,
+                    end: 43,
+                },
             ]
         );
         assert_eq!(
-            strip_formats("Hello, %ld %9llu world!", &Language::C),
-            "Hello,   world!"
+            FormatWordPos::new(s, &Language::C).collect::<Vec<_>>(),
+            vec![
+                MatchFmtPos {
+                    s: "Hello",
+                    start: 0,
+                    end: 5,
+                },
+                MatchFmtPos {
+                    s: "world",
+                    start: 26,
+                    end: 31,
+                },
+                MatchFmtPos {
+                    s: "https",
+                    start: 33,
+                    end: 38,
+                },
+                MatchFmtPos {
+                    s: "example",
+                    start: 44,
+                    end: 51,
+                },
+                MatchFmtPos {
+                    s: "com",
+                    start: 52,
+                    end: 55,
+                },
+            ]
+        );
+        assert_eq!(
+            FormatUrlPos::new(s, &Language::C).collect::<Vec<_>>(),
+            vec![MatchFmtPos {
+                s: "https://%s.example.com",
+                start: 33,
+                end: 55,
+            }]
+        );
+        assert_eq!(
+            strip_formats(s, &Language::C),
+            "Hello,     world! https://.example.com"
         );
     }
 
     #[test]
     fn test_unicode() {
+        let s = "héllo, мир! %lld 你好 https://%s.example.com";
         assert_eq!(
-            FormatPos::new("héllo, мир! %lld 你好", &Language::C).collect::<Vec<_>>(),
-            vec![MatchStrPos {
-                s: "%lld",
-                start: 16,
-                end: 20,
+            FormatPos::new(s, &Language::C).collect::<Vec<_>>(),
+            vec![
+                MatchFmtPos {
+                    s: "%lld",
+                    start: 16,
+                    end: 20,
+                },
+                MatchFmtPos {
+                    s: "%s",
+                    start: 36,
+                    end: 38,
+                },
+            ]
+        );
+        assert_eq!(
+            FormatWordPos::new(s, &Language::C).collect::<Vec<_>>(),
+            vec![
+                MatchFmtPos {
+                    s: "héllo",
+                    start: 0,
+                    end: 6,
+                },
+                MatchFmtPos {
+                    s: "мир",
+                    start: 8,
+                    end: 14,
+                },
+                MatchFmtPos {
+                    s: "你好",
+                    start: 21,
+                    end: 27,
+                },
+                MatchFmtPos {
+                    s: "https",
+                    start: 28,
+                    end: 33,
+                },
+                MatchFmtPos {
+                    s: "example",
+                    start: 39,
+                    end: 46,
+                },
+                MatchFmtPos {
+                    s: "com",
+                    start: 47,
+                    end: 50,
+                },
+            ]
+        );
+        assert_eq!(
+            FormatUrlPos::new(s, &Language::C).collect::<Vec<_>>(),
+            vec![MatchFmtPos {
+                s: "https://%s.example.com",
+                start: 28,
+                end: 50,
             }]
         );
         assert_eq!(
-            strip_formats("héllo, мир! %lld 你好", &Language::C),
-            "héllo, мир!  你好"
+            strip_formats(s, &Language::C),
+            "héllo, мир!  你好 https://.example.com"
         );
     }
 }

@@ -19,10 +19,6 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 - Report ellipsis differences by default in rules "punc-start" and "punc-end"
 
-### Fixed
-
-- Strip formats before checking words in spelling rules
-
 ## Version 0.0.8 (2026-03-25)
 
 ### Added

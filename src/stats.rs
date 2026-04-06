@@ -15,9 +15,9 @@ use serde::Serialize;
 
 use crate::args;
 use crate::dir::find_po_files;
-use crate::po::format::format_pos::strip_formats;
+use crate::po::format::iterators::{FormatWordPos, strip_formats};
+use crate::po::format::language::Language;
 use crate::po::parser::Parser;
-use crate::word_pos::WordPos;
 
 #[derive(Clone, Copy, Default, Serialize)]
 struct Entries {
@@ -396,7 +396,7 @@ impl StatsFile {
 
 /// Count words in a given string.
 fn count_words(s: &str) -> u64 {
-    WordPos::new(s).count() as u64
+    FormatWordPos::new(s, &Language::Null).count() as u64
 }
 
 /// Count characters (non-whitespace or punctuation) in a given string.
