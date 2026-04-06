@@ -42,6 +42,10 @@ msgstr "Test guillemets doubles"
 msgid "Test  double  spaces"
 msgstr "Test espaces doubles"
 
+# rule: double-words
+msgid "This is a test of repeated words"
+msgstr "Ceci est un un test de mots répétés"
+
 # rule: escapes
 msgid "Escape: \\test"
 msgstr "Échappement : \\\\test"

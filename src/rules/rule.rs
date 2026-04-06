@@ -12,9 +12,9 @@ use crate::{
     config::Config,
     po::entry::Entry,
     rules::{
-        blank, brackets, changed, compilation, double_quotes, double_spaces, encoding, escapes,
-        formats, fuzzy, long, newlines, obsolete, pipes, plurals, punc, punc_space, short,
-        spelling, tabs, unchanged, untranslated, urls, whitespace,
+        blank, brackets, changed, compilation, double_quotes, double_spaces, double_words,
+        encoding, escapes, formats, fuzzy, long, newlines, obsolete, pipes, plurals, punc,
+        punc_space, short, spelling, tabs, unchanged, untranslated, urls, whitespace,
     },
 };
 
@@ -94,6 +94,7 @@ pub fn get_all_rules() -> Vec<Rule> {
         Box::new(compilation::CompilationRule {}),
         Box::new(double_quotes::DoubleQuotesRule {}),
         Box::new(double_spaces::DoubleSpacesRule {}),
+        Box::new(double_words::DoubleWordsRule {}),
         Box::new(encoding::EncodingRule {}),
         Box::new(escapes::EscapesRule {}),
         Box::new(formats::FormatsRule {}),

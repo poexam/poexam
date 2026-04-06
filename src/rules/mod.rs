@@ -10,6 +10,7 @@ pub mod changed;
 pub mod compilation;
 pub mod double_quotes;
 pub mod double_spaces;
+pub mod double_words;
 pub mod encoding;
 pub mod escapes;
 pub mod formats;

@@ -118,6 +118,7 @@ For the rule `formats`, the following languages are supported:
 |----------------|----------|--------------------------------------------------|
 | changed        | info     | Translation is different from the source string. |
 | compilation    | error    | Compilation with `msgfmt`.                       |
+| double-words   | info     | Translation has Consecutive repeated words.      |
 | fuzzy          | info     | Fuzzy entry.                                     |
 | obsolete       | info     | Obsolete entry.                                  |
 | spelling-ctxt  | info     | Spelling error (context).                        |
@@ -134,7 +135,7 @@ You can check by yourself with the following command executed in the root direct
 $ poexam check examples/fr.po
 examples/fr.po: [error:compilation] command `/usr/bin/msgfmt` reported errors
         |
-        | examples/fr.po:52: format specifications in 'msgid' and 'msgstr' for argument 1 are not the same
+        | examples/fr.po:56: format specifications in 'msgid' and 'msgstr' for argument 1 are not the same
         | /usr/bin/msgfmt: found 1 fatal error
         |
 
@@ -166,23 +167,23 @@ examples/fr.po:42: [info:double-spaces] missing double spaces '  ' (2 / 0)
      43 | Test espaces doubles
         |
 
-examples/fr.po:46: [error:escapes] extra escaped escape characters '\\' (0 / 1)
+examples/fr.po:46: [info:double-words] word 'un' is repeated
         |
-     46 | Escape: \test
+     46 | This is a test of repeated words
         |
-     47 | Échappement : \\test
+     47 | Ceci est un un test de mots répétés
         |
 
-examples/fr.po:51: [error:formats] inconsistent format strings (C)
+examples/fr.po:50: [error:escapes] extra escaped escape characters '\\' (0 / 1)
         |
-     51 | Name: %s, age: %d
+     50 | Escape: \test
         |
-     52 | Âge : %2$d, nom : %1$f
+     51 | Échappement : \\test
         |
 
 (...)
 
-1 files checked: 27 problems in 1 files (6 errors, 4 warnings, 17 info) [27.938269ms]
+1 files checked: 28 problems in 1 files (6 errors, 4 warnings, 18 info) [27.938269ms]
 ```
 
 ### Spell checking
