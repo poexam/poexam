@@ -157,11 +157,6 @@ impl<'a> Iterator for FormatUrlPos<'a> {
         loop {
             while let Some((c, new_pos, is_format)) = self.fmt.next_char(self.s, self.pos) {
                 if is_format {
-                    if let Some(start) = idx_start
-                        && !self.s[start..self.pos].contains("://")
-                    {
-                        break;
-                    }
                     self.pos = self.fmt.find_end_format(self.s, new_pos, self.len);
                     continue;
                 }
