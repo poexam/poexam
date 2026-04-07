@@ -27,7 +27,7 @@ impl FormatParser for FormatNull {
 mod tests {
     use crate::po::format::{
         MatchFmtPos,
-        iterators::{FormatPos, FormatUrlPos, FormatWordPos, strip_formats},
+        iterators::{FormatEmailPos, FormatPos, FormatUrlPos, FormatWordPos, strip_formats},
         language::Language,
     };
 
@@ -42,7 +42,7 @@ mod tests {
 
     #[test]
     fn test_no_format() {
-        let s = "Hello, %s world! 'test' https://example.com";
+        let s = "Hello, %s world! 'test' https://example.com invalid@domain user@domain.com";
         assert!(FormatPos::new(s, &Language::Null).next().is_none());
         assert_eq!(
             FormatWordPos::new(s, &Language::Null).collect::<Vec<_>>(),
@@ -82,6 +82,31 @@ mod tests {
                     start: 40,
                     end: 43,
                 },
+                MatchFmtPos {
+                    s: "invalid",
+                    start: 44,
+                    end: 51,
+                },
+                MatchFmtPos {
+                    s: "domain",
+                    start: 52,
+                    end: 58,
+                },
+                MatchFmtPos {
+                    s: "user",
+                    start: 59,
+                    end: 63,
+                },
+                MatchFmtPos {
+                    s: "domain",
+                    start: 64,
+                    end: 70,
+                },
+                MatchFmtPos {
+                    s: "com",
+                    start: 71,
+                    end: 74,
+                },
             ]
         );
         assert_eq!(
@@ -90,6 +115,14 @@ mod tests {
                 s: "https://example.com",
                 start: 24,
                 end: 43,
+            }]
+        );
+        assert_eq!(
+            FormatEmailPos::new(s, &Language::Null).collect::<Vec<_>>(),
+            vec![MatchFmtPos {
+                s: "user@domain.com",
+                start: 59,
+                end: 74,
             }]
         );
         assert_eq!(strip_formats(s, &Language::Null), s);

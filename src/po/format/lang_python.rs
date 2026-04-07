@@ -119,13 +119,13 @@ impl FormatParser for FormatPythonBrace {
 mod tests {
     use crate::po::format::{
         MatchFmtPos,
-        iterators::{FormatPos, FormatUrlPos, FormatWordPos, strip_formats},
+        iterators::{FormatEmailPos, FormatPos, FormatUrlPos, FormatWordPos, strip_formats},
         language::Language,
     };
 
     #[test]
     fn test_no_format_percent() {
-        let s = "Hello, world! https://example.com";
+        let s = "Hello, world! https://example.com user@domain.com";
         assert!(FormatPos::new(s, &Language::Python).next().is_none());
         assert_eq!(
             FormatWordPos::new(s, &Language::Python).collect::<Vec<_>>(),
@@ -155,6 +155,21 @@ mod tests {
                     start: 30,
                     end: 33,
                 },
+                MatchFmtPos {
+                    s: "user",
+                    start: 34,
+                    end: 38,
+                },
+                MatchFmtPos {
+                    s: "domain",
+                    start: 39,
+                    end: 45,
+                },
+                MatchFmtPos {
+                    s: "com",
+                    start: 46,
+                    end: 49,
+                },
             ]
         );
         assert_eq!(
@@ -165,12 +180,20 @@ mod tests {
                 end: 33,
             }]
         );
+        assert_eq!(
+            FormatEmailPos::new(s, &Language::Python).collect::<Vec<_>>(),
+            vec![MatchFmtPos {
+                s: "user@domain.com",
+                start: 34,
+                end: 49,
+            }]
+        );
         assert_eq!(strip_formats(s, &Language::Python), s);
     }
 
     #[test]
     fn test_no_format_brace() {
-        let s = "Hello, world! https://example.com";
+        let s = "Hello, world! https://example.com user@domain.com";
         assert!(FormatPos::new(s, &Language::PythonBrace).next().is_none());
         assert_eq!(
             FormatWordPos::new(s, &Language::PythonBrace).collect::<Vec<_>>(),
@@ -200,6 +223,21 @@ mod tests {
                     start: 30,
                     end: 33,
                 },
+                MatchFmtPos {
+                    s: "user",
+                    start: 34,
+                    end: 38,
+                },
+                MatchFmtPos {
+                    s: "domain",
+                    start: 39,
+                    end: 45,
+                },
+                MatchFmtPos {
+                    s: "com",
+                    start: 46,
+                    end: 49,
+                },
             ]
         );
         assert_eq!(
@@ -208,6 +246,14 @@ mod tests {
                 s: "https://example.com",
                 start: 14,
                 end: 33,
+            }]
+        );
+        assert_eq!(
+            FormatEmailPos::new(s, &Language::PythonBrace).collect::<Vec<_>>(),
+            vec![MatchFmtPos {
+                s: "user@domain.com",
+                start: 34,
+                end: 49,
             }]
         );
         assert_eq!(strip_formats(s, &Language::PythonBrace), s);
@@ -219,6 +265,7 @@ mod tests {
         assert!(FormatPos::new(s, &Language::Python).next().is_none());
         assert!(FormatWordPos::new(s, &Language::Python).next().is_none());
         assert!(FormatUrlPos::new(s, &Language::Python).next().is_none());
+        assert!(FormatEmailPos::new(s, &Language::Python).next().is_none());
         assert_eq!(strip_formats(s, &Language::Python), s);
 
         let s = "%é";
@@ -239,6 +286,7 @@ mod tests {
             }]
         );
         assert!(FormatUrlPos::new(s, &Language::Python).next().is_none());
+        assert!(FormatEmailPos::new(s, &Language::Python).next().is_none());
         assert_eq!(strip_formats(s, &Language::Python), "é");
 
         let s = "%(test";
@@ -252,6 +300,7 @@ mod tests {
         );
         assert!(FormatWordPos::new(s, &Language::Python).next().is_none());
         assert!(FormatUrlPos::new(s, &Language::Python).next().is_none());
+        assert!(FormatEmailPos::new(s, &Language::Python).next().is_none());
         assert!(strip_formats(s, &Language::Python).is_empty());
     }
 
@@ -266,6 +315,11 @@ mod tests {
         );
         assert!(
             FormatUrlPos::new(s, &Language::PythonBrace)
+                .next()
+                .is_none()
+        );
+        assert!(
+            FormatEmailPos::new(s, &Language::PythonBrace)
                 .next()
                 .is_none()
         );
@@ -290,12 +344,17 @@ mod tests {
                 .next()
                 .is_none()
         );
+        assert!(
+            FormatEmailPos::new(s, &Language::PythonBrace)
+                .next()
+                .is_none()
+        );
         assert!(strip_formats(s, &Language::PythonBrace).is_empty());
     }
 
     #[test]
     fn test_single_format_percent() {
-        let s = "Hello, %s world! https://example.com";
+        let s = "Hello, %s world! https://example.com user@domain.com";
         assert_eq!(
             FormatPos::new(s, &Language::Python).collect::<Vec<_>>(),
             vec![MatchFmtPos {
@@ -332,6 +391,21 @@ mod tests {
                     start: 33,
                     end: 36,
                 },
+                MatchFmtPos {
+                    s: "user",
+                    start: 37,
+                    end: 41,
+                },
+                MatchFmtPos {
+                    s: "domain",
+                    start: 42,
+                    end: 48,
+                },
+                MatchFmtPos {
+                    s: "com",
+                    start: 49,
+                    end: 52,
+                },
             ]
         );
         assert_eq!(
@@ -343,14 +417,22 @@ mod tests {
             }]
         );
         assert_eq!(
+            FormatEmailPos::new(s, &Language::Python).collect::<Vec<_>>(),
+            vec![MatchFmtPos {
+                s: "user@domain.com",
+                start: 37,
+                end: 52,
+            }]
+        );
+        assert_eq!(
             strip_formats(s, &Language::Python),
-            "Hello,  world! https://example.com"
+            "Hello,  world! https://example.com user@domain.com"
         );
     }
 
     #[test]
     fn test_single_format_brace() {
-        let s = "Hello, {0:{1}} world! https://example.com";
+        let s = "Hello, {0:{1}} world! https://example.com user@domain.com";
         assert_eq!(
             FormatPos::new(s, &Language::PythonBrace).collect::<Vec<_>>(),
             vec![MatchFmtPos {
@@ -387,6 +469,21 @@ mod tests {
                     start: 38,
                     end: 41,
                 },
+                MatchFmtPos {
+                    s: "user",
+                    start: 42,
+                    end: 46,
+                },
+                MatchFmtPos {
+                    s: "domain",
+                    start: 47,
+                    end: 53,
+                },
+                MatchFmtPos {
+                    s: "com",
+                    start: 54,
+                    end: 57,
+                },
             ]
         );
         assert_eq!(
@@ -398,14 +495,22 @@ mod tests {
             }]
         );
         assert_eq!(
+            FormatEmailPos::new(s, &Language::PythonBrace).collect::<Vec<_>>(),
+            vec![MatchFmtPos {
+                s: "user@domain.com",
+                start: 42,
+                end: 57,
+            }]
+        );
+        assert_eq!(
             strip_formats(s, &Language::PythonBrace),
-            "Hello,  world! https://example.com"
+            "Hello,  world! https://example.com user@domain.com"
         );
     }
 
     #[test]
     fn test_single_format_percent_keyword() {
-        let s = "Hello, %(name)s world! https://example.com";
+        let s = "Hello, %(name)s world! https://example.com user@domain.com";
         assert_eq!(
             FormatPos::new(s, &Language::Python).collect::<Vec<_>>(),
             vec![MatchFmtPos {
@@ -442,6 +547,21 @@ mod tests {
                     start: 39,
                     end: 42,
                 },
+                MatchFmtPos {
+                    s: "user",
+                    start: 43,
+                    end: 47,
+                },
+                MatchFmtPos {
+                    s: "domain",
+                    start: 48,
+                    end: 54,
+                },
+                MatchFmtPos {
+                    s: "com",
+                    start: 55,
+                    end: 58,
+                },
             ]
         );
         assert_eq!(
@@ -453,14 +573,22 @@ mod tests {
             }]
         );
         assert_eq!(
+            FormatEmailPos::new(s, &Language::Python).collect::<Vec<_>>(),
+            vec![MatchFmtPos {
+                s: "user@domain.com",
+                start: 43,
+                end: 58,
+            }]
+        );
+        assert_eq!(
             strip_formats(s, &Language::Python),
-            "Hello,  world! https://example.com"
+            "Hello,  world! https://example.com user@domain.com"
         );
     }
 
     #[test]
     fn test_multiple_formats_percent() {
-        let s = "Hello, %d%s%f world! https://%s.example.com";
+        let s = "Hello, %d%s%f world! https://%s.example.com user@%s.domain.com";
         assert_eq!(
             FormatPos::new(s, &Language::Python).collect::<Vec<_>>(),
             vec![
@@ -483,6 +611,11 @@ mod tests {
                     s: "%s",
                     start: 29,
                     end: 31,
+                },
+                MatchFmtPos {
+                    s: "%s",
+                    start: 49,
+                    end: 51,
                 },
             ]
         );
@@ -514,6 +647,21 @@ mod tests {
                     start: 40,
                     end: 43,
                 },
+                MatchFmtPos {
+                    s: "user",
+                    start: 44,
+                    end: 48,
+                },
+                MatchFmtPos {
+                    s: "domain",
+                    start: 52,
+                    end: 58,
+                },
+                MatchFmtPos {
+                    s: "com",
+                    start: 59,
+                    end: 62,
+                },
             ]
         );
         assert_eq!(
@@ -525,14 +673,22 @@ mod tests {
             }]
         );
         assert_eq!(
+            FormatEmailPos::new(s, &Language::Python).collect::<Vec<_>>(),
+            vec![MatchFmtPos {
+                s: "user@%s.domain.com",
+                start: 44,
+                end: 62,
+            }]
+        );
+        assert_eq!(
             strip_formats(s, &Language::Python),
-            "Hello,  world! https://.example.com"
+            "Hello,  world! https://.example.com user@.domain.com"
         );
     }
 
     #[test]
     fn test_multiple_formats_brace() {
-        let s = "Hello, {0!r:20}{1}{2} world! https://{3}.example.com";
+        let s = "Hello, {0!r:20}{1}{2} world! https://{3}.example.com user@{4}.domain.com";
         assert_eq!(
             FormatPos::new(s, &Language::PythonBrace).collect::<Vec<_>>(),
             vec![
@@ -555,6 +711,11 @@ mod tests {
                     s: "{3}",
                     start: 37,
                     end: 40,
+                },
+                MatchFmtPos {
+                    s: "{4}",
+                    start: 58,
+                    end: 61,
                 },
             ]
         );
@@ -586,6 +747,21 @@ mod tests {
                     start: 49,
                     end: 52,
                 },
+                MatchFmtPos {
+                    s: "user",
+                    start: 53,
+                    end: 57,
+                },
+                MatchFmtPos {
+                    s: "domain",
+                    start: 62,
+                    end: 68,
+                },
+                MatchFmtPos {
+                    s: "com",
+                    start: 69,
+                    end: 72,
+                },
             ]
         );
         assert_eq!(
@@ -597,14 +773,22 @@ mod tests {
             }]
         );
         assert_eq!(
+            FormatEmailPos::new(s, &Language::PythonBrace).collect::<Vec<_>>(),
+            vec![MatchFmtPos {
+                s: "user@{4}.domain.com",
+                start: 53,
+                end: 72,
+            }]
+        );
+        assert_eq!(
             strip_formats(s, &Language::PythonBrace),
-            "Hello,  world! https://.example.com"
+            "Hello,  world! https://.example.com user@.domain.com"
         );
     }
 
     #[test]
     fn test_escaped_percent() {
-        let s = "Hello, %% %s world! https://%s.example.com";
+        let s = "Hello, %% %s world! https://%s.example.com user@%s.domain.com";
         assert_eq!(
             FormatPos::new(s, &Language::Python).collect::<Vec<_>>(),
             vec![
@@ -617,6 +801,11 @@ mod tests {
                     s: "%s",
                     start: 28,
                     end: 30,
+                },
+                MatchFmtPos {
+                    s: "%s",
+                    start: 48,
+                    end: 50,
                 },
             ]
         );
@@ -648,6 +837,21 @@ mod tests {
                     start: 39,
                     end: 42,
                 },
+                MatchFmtPos {
+                    s: "user",
+                    start: 43,
+                    end: 47,
+                },
+                MatchFmtPos {
+                    s: "domain",
+                    start: 51,
+                    end: 57,
+                },
+                MatchFmtPos {
+                    s: "com",
+                    start: 58,
+                    end: 61,
+                },
             ]
         );
         assert_eq!(
@@ -659,14 +863,22 @@ mod tests {
             }]
         );
         assert_eq!(
+            FormatEmailPos::new(s, &Language::Python).collect::<Vec<_>>(),
+            vec![MatchFmtPos {
+                s: "user@%s.domain.com",
+                start: 43,
+                end: 61,
+            }]
+        );
+        assert_eq!(
             strip_formats(s, &Language::Python),
-            "Hello, %  world! https://.example.com"
+            "Hello, %  world! https://.example.com user@.domain.com"
         );
     }
 
     #[test]
     fn test_escaped_brace() {
-        let s = "Hello, {{ {0} world! https://{1}.example.com";
+        let s = "Hello, {{ {0} world! https://{1}.example.com user@{2}.domain.com";
         assert_eq!(
             FormatPos::new(s, &Language::PythonBrace).collect::<Vec<_>>(),
             vec![
@@ -679,6 +891,11 @@ mod tests {
                     s: "{1}",
                     start: 29,
                     end: 32,
+                },
+                MatchFmtPos {
+                    s: "{2}",
+                    start: 50,
+                    end: 53,
                 },
             ]
         );
@@ -710,6 +927,21 @@ mod tests {
                     start: 41,
                     end: 44,
                 },
+                MatchFmtPos {
+                    s: "user",
+                    start: 45,
+                    end: 49,
+                },
+                MatchFmtPos {
+                    s: "domain",
+                    start: 54,
+                    end: 60,
+                },
+                MatchFmtPos {
+                    s: "com",
+                    start: 61,
+                    end: 64,
+                },
             ]
         );
         assert_eq!(
@@ -721,14 +953,22 @@ mod tests {
             }]
         );
         assert_eq!(
+            FormatEmailPos::new(s, &Language::PythonBrace).collect::<Vec<_>>(),
+            vec![MatchFmtPos {
+                s: "user@{2}.domain.com",
+                start: 45,
+                end: 64,
+            }]
+        );
+        assert_eq!(
             strip_formats(s, &Language::PythonBrace),
-            "Hello, {  world! https://.example.com"
+            "Hello, {  world! https://.example.com user@.domain.com"
         );
     }
 
     #[test]
     fn test_flags_width_precision() {
-        let s = "Hello, %05.2f world! https://%s.example.com";
+        let s = "Hello, %05.2f world! https://%s.example.com user@%s.domain.com";
         assert_eq!(
             FormatPos::new(s, &Language::Python).collect::<Vec<_>>(),
             vec![
@@ -741,6 +981,11 @@ mod tests {
                     s: "%s",
                     start: 29,
                     end: 31,
+                },
+                MatchFmtPos {
+                    s: "%s",
+                    start: 49,
+                    end: 51,
                 },
             ]
         );
@@ -772,6 +1017,21 @@ mod tests {
                     start: 40,
                     end: 43,
                 },
+                MatchFmtPos {
+                    s: "user",
+                    start: 44,
+                    end: 48,
+                },
+                MatchFmtPos {
+                    s: "domain",
+                    start: 52,
+                    end: 58,
+                },
+                MatchFmtPos {
+                    s: "com",
+                    start: 59,
+                    end: 62,
+                },
             ]
         );
         assert_eq!(
@@ -783,14 +1043,22 @@ mod tests {
             }]
         );
         assert_eq!(
+            FormatEmailPos::new(s, &Language::Python).collect::<Vec<_>>(),
+            vec![MatchFmtPos {
+                s: "user@%s.domain.com",
+                start: 44,
+                end: 62,
+            }]
+        );
+        assert_eq!(
             strip_formats(s, &Language::Python),
-            "Hello,  world! https://.example.com"
+            "Hello,  world! https://.example.com user@.domain.com"
         );
     }
 
     #[test]
     fn test_flags_width_length() {
-        let s = "Hello, %ld %9lu world! https://%s.example.com";
+        let s = "Hello, %ld %9lu world! https://%s.example.com user@%s.domain.com";
         assert_eq!(
             FormatPos::new(s, &Language::Python).collect::<Vec<_>>(),
             vec![
@@ -808,6 +1076,11 @@ mod tests {
                     s: "%s",
                     start: 31,
                     end: 33,
+                },
+                MatchFmtPos {
+                    s: "%s",
+                    start: 51,
+                    end: 53,
                 },
             ]
         );
@@ -839,6 +1112,21 @@ mod tests {
                     start: 42,
                     end: 45,
                 },
+                MatchFmtPos {
+                    s: "user",
+                    start: 46,
+                    end: 50,
+                },
+                MatchFmtPos {
+                    s: "domain",
+                    start: 54,
+                    end: 60,
+                },
+                MatchFmtPos {
+                    s: "com",
+                    start: 61,
+                    end: 64,
+                },
             ]
         );
         assert_eq!(
@@ -850,14 +1138,22 @@ mod tests {
             }]
         );
         assert_eq!(
+            FormatEmailPos::new(s, &Language::Python).collect::<Vec<_>>(),
+            vec![MatchFmtPos {
+                s: "user@%s.domain.com",
+                start: 46,
+                end: 64,
+            }]
+        );
+        assert_eq!(
             strip_formats(s, &Language::Python),
-            "Hello,   world! https://.example.com"
+            "Hello,   world! https://.example.com user@.domain.com"
         );
     }
 
     #[test]
     fn test_unicode_percent() {
-        let s = "héllo, мир! %ld 你好 https://%s.example.com";
+        let s = "héllo, мир! %ld 你好 https://%s.example.com user@%s.domain.com";
         assert_eq!(
             FormatPos::new(s, &Language::Python).collect::<Vec<_>>(),
             vec![
@@ -870,6 +1166,11 @@ mod tests {
                     s: "%s",
                     start: 35,
                     end: 37,
+                },
+                MatchFmtPos {
+                    s: "%s",
+                    start: 55,
+                    end: 57,
                 },
             ]
         );
@@ -906,6 +1207,21 @@ mod tests {
                     start: 46,
                     end: 49,
                 },
+                MatchFmtPos {
+                    s: "user",
+                    start: 50,
+                    end: 54,
+                },
+                MatchFmtPos {
+                    s: "domain",
+                    start: 58,
+                    end: 64,
+                },
+                MatchFmtPos {
+                    s: "com",
+                    start: 65,
+                    end: 68,
+                },
             ]
         );
         assert_eq!(
@@ -917,14 +1233,22 @@ mod tests {
             }]
         );
         assert_eq!(
+            FormatEmailPos::new(s, &Language::Python).collect::<Vec<_>>(),
+            vec![MatchFmtPos {
+                s: "user@%s.domain.com",
+                start: 50,
+                end: 68,
+            }]
+        );
+        assert_eq!(
             strip_formats(s, &Language::Python),
-            "héllo, мир!  你好 https://.example.com"
+            "héllo, мир!  你好 https://.example.com user@.domain.com"
         );
     }
 
     #[test]
     fn test_unicode_brace() {
-        let s = "héllo, мир! {0} 你好 https://{1}.example.com";
+        let s = "héllo, мир! {0} 你好 https://{1}.example.com user@{2}.domain.com";
         assert_eq!(
             FormatPos::new(s, &Language::PythonBrace).collect::<Vec<_>>(),
             vec![
@@ -937,6 +1261,11 @@ mod tests {
                     s: "{1}",
                     start: 35,
                     end: 38,
+                },
+                MatchFmtPos {
+                    s: "{2}",
+                    start: 56,
+                    end: 59,
                 },
             ]
         );
@@ -973,6 +1302,21 @@ mod tests {
                     start: 47,
                     end: 50,
                 },
+                MatchFmtPos {
+                    s: "user",
+                    start: 51,
+                    end: 55,
+                },
+                MatchFmtPos {
+                    s: "domain",
+                    start: 60,
+                    end: 66,
+                },
+                MatchFmtPos {
+                    s: "com",
+                    start: 67,
+                    end: 70,
+                },
             ]
         );
         assert_eq!(
@@ -984,8 +1328,16 @@ mod tests {
             }]
         );
         assert_eq!(
+            FormatEmailPos::new(s, &Language::PythonBrace).collect::<Vec<_>>(),
+            vec![MatchFmtPos {
+                s: "user@{2}.domain.com",
+                start: 51,
+                end: 70,
+            }]
+        );
+        assert_eq!(
             strip_formats(s, &Language::PythonBrace),
-            "héllo, мир!  你好 https://.example.com"
+            "héllo, мир!  你好 https://.example.com user@.domain.com"
         );
     }
 }

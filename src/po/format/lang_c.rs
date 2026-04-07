@@ -121,7 +121,7 @@ mod tests {
     use super::*;
     use crate::po::format::{
         MatchFmtPos,
-        iterators::{FormatPos, FormatUrlPos, FormatWordPos, strip_formats},
+        iterators::{FormatEmailPos, FormatPos, FormatUrlPos, FormatWordPos, strip_formats},
         language::Language,
     };
 
@@ -153,7 +153,7 @@ mod tests {
 
     #[test]
     fn test_no_format() {
-        let s = "Hello, world! https://example.com";
+        let s = "Hello, world! https://example.com user@domain.com";
         assert!(FormatPos::new(s, &Language::C).next().is_none());
         assert_eq!(
             FormatWordPos::new(s, &Language::C).collect::<Vec<_>>(),
@@ -183,6 +183,21 @@ mod tests {
                     start: 30,
                     end: 33,
                 },
+                MatchFmtPos {
+                    s: "user",
+                    start: 34,
+                    end: 38,
+                },
+                MatchFmtPos {
+                    s: "domain",
+                    start: 39,
+                    end: 45,
+                },
+                MatchFmtPos {
+                    s: "com",
+                    start: 46,
+                    end: 49,
+                },
             ]
         );
         assert_eq!(
@@ -191,6 +206,14 @@ mod tests {
                 s: "https://example.com",
                 start: 14,
                 end: 33,
+            }]
+        );
+        assert_eq!(
+            FormatEmailPos::new(s, &Language::C).collect::<Vec<_>>(),
+            vec![MatchFmtPos {
+                s: "user@domain.com",
+                start: 34,
+                end: 49,
             }]
         );
         assert_eq!(strip_formats(s, &Language::C), s);
@@ -202,6 +225,7 @@ mod tests {
         assert!(FormatPos::new(s, &Language::C).next().is_none());
         assert!(FormatWordPos::new(s, &Language::C).next().is_none());
         assert!(FormatUrlPos::new(s, &Language::C).next().is_none());
+        assert!(FormatEmailPos::new(s, &Language::C).next().is_none());
         assert_eq!(strip_formats(s, &Language::C), "%");
 
         let s = "%é";
@@ -222,12 +246,13 @@ mod tests {
             }]
         );
         assert!(FormatUrlPos::new(s, &Language::C).next().is_none());
+        assert!(FormatEmailPos::new(s, &Language::C).next().is_none());
         assert_eq!(strip_formats(s, &Language::C), "é");
     }
 
     #[test]
     fn test_single_format() {
-        let s = "Hello, %s world! https://example.com";
+        let s = "Hello, %s world! https://example.com user@domain.com";
         assert_eq!(
             FormatPos::new(s, &Language::C).collect::<Vec<_>>(),
             vec![MatchFmtPos {
@@ -264,6 +289,21 @@ mod tests {
                     start: 33,
                     end: 36,
                 },
+                MatchFmtPos {
+                    s: "user",
+                    start: 37,
+                    end: 41,
+                },
+                MatchFmtPos {
+                    s: "domain",
+                    start: 42,
+                    end: 48,
+                },
+                MatchFmtPos {
+                    s: "com",
+                    start: 49,
+                    end: 52,
+                },
             ]
         );
         assert_eq!(
@@ -275,14 +315,22 @@ mod tests {
             }]
         );
         assert_eq!(
+            FormatEmailPos::new(s, &Language::C).collect::<Vec<_>>(),
+            vec![MatchFmtPos {
+                s: "user@domain.com",
+                start: 37,
+                end: 52,
+            }]
+        );
+        assert_eq!(
             strip_formats(s, &Language::C),
-            "Hello,  world! https://example.com"
+            "Hello,  world! https://example.com user@domain.com"
         );
     }
 
     #[test]
     fn test_multiple_formats() {
-        let s = "Hello, %d%s%f world! https://%s.example.com";
+        let s = "Hello, %d%s%f world! https://%s.example.com user@%s.domain.com";
         assert_eq!(
             FormatPos::new(s, &Language::C).collect::<Vec<_>>(),
             vec![
@@ -305,6 +353,11 @@ mod tests {
                     s: "%s",
                     start: 29,
                     end: 31,
+                },
+                MatchFmtPos {
+                    s: "%s",
+                    start: 49,
+                    end: 51,
                 },
             ]
         );
@@ -336,6 +389,21 @@ mod tests {
                     start: 40,
                     end: 43,
                 },
+                MatchFmtPos {
+                    s: "user",
+                    start: 44,
+                    end: 48,
+                },
+                MatchFmtPos {
+                    s: "domain",
+                    start: 52,
+                    end: 58,
+                },
+                MatchFmtPos {
+                    s: "com",
+                    start: 59,
+                    end: 62,
+                },
             ]
         );
         assert_eq!(
@@ -347,14 +415,22 @@ mod tests {
             }]
         );
         assert_eq!(
+            FormatEmailPos::new(s, &Language::C).collect::<Vec<_>>(),
+            vec![MatchFmtPos {
+                s: "user@%s.domain.com",
+                start: 44,
+                end: 62,
+            }]
+        );
+        assert_eq!(
             strip_formats(s, &Language::C),
-            "Hello,  world! https://.example.com"
+            "Hello,  world! https://.example.com user@.domain.com"
         );
     }
 
     #[test]
     fn test_multiple_formats_with_reordering() {
-        let s = "Hello, %3$d %2$s %1$f world! https://%s.example.com";
+        let s = "Hello, %3$d %2$s %1$f world! https://%s.example.com user@%s.domain.com";
         assert_eq!(
             FormatPos::new(s, &Language::C).collect::<Vec<_>>(),
             vec![
@@ -377,6 +453,11 @@ mod tests {
                     s: "%s",
                     start: 37,
                     end: 39,
+                },
+                MatchFmtPos {
+                    s: "%s",
+                    start: 57,
+                    end: 59,
                 },
             ]
         );
@@ -408,6 +489,21 @@ mod tests {
                     start: 48,
                     end: 51,
                 },
+                MatchFmtPos {
+                    s: "user",
+                    start: 52,
+                    end: 56,
+                },
+                MatchFmtPos {
+                    s: "domain",
+                    start: 60,
+                    end: 66,
+                },
+                MatchFmtPos {
+                    s: "com",
+                    start: 67,
+                    end: 70,
+                },
             ]
         );
         assert_eq!(
@@ -420,13 +516,13 @@ mod tests {
         );
         assert_eq!(
             strip_formats(s, &Language::C),
-            "Hello,    world! https://.example.com"
+            "Hello,    world! https://.example.com user@.domain.com"
         );
     }
 
     #[test]
     fn test_escaped_percent() {
-        let s = "Hello, %% %s world! https://%s.example.com";
+        let s = "Hello, %% %s world! https://%s.example.com user@%s.domain.com";
         assert_eq!(
             FormatPos::new(s, &Language::C).collect::<Vec<_>>(),
             vec![
@@ -439,6 +535,11 @@ mod tests {
                     s: "%s",
                     start: 28,
                     end: 30,
+                },
+                MatchFmtPos {
+                    s: "%s",
+                    start: 48,
+                    end: 50,
                 },
             ]
         );
@@ -470,6 +571,21 @@ mod tests {
                     start: 39,
                     end: 42,
                 },
+                MatchFmtPos {
+                    s: "user",
+                    start: 43,
+                    end: 47,
+                },
+                MatchFmtPos {
+                    s: "domain",
+                    start: 51,
+                    end: 57,
+                },
+                MatchFmtPos {
+                    s: "com",
+                    start: 58,
+                    end: 61,
+                },
             ]
         );
         assert_eq!(
@@ -481,14 +597,22 @@ mod tests {
             }]
         );
         assert_eq!(
+            FormatEmailPos::new(s, &Language::C).collect::<Vec<_>>(),
+            vec![MatchFmtPos {
+                s: "user@%s.domain.com",
+                start: 43,
+                end: 61,
+            }]
+        );
+        assert_eq!(
             strip_formats(s, &Language::C),
-            "Hello, %  world! https://.example.com"
+            "Hello, %  world! https://.example.com user@.domain.com"
         );
     }
 
     #[test]
     fn test_flags_width_precision() {
-        let s = "Hello, %05.2f world! https://%s.example.com";
+        let s = "Hello, %05.2f world! https://%s.example.com user@%s.domain.com";
         assert_eq!(
             FormatPos::new(s, &Language::C).collect::<Vec<_>>(),
             vec![
@@ -501,6 +625,11 @@ mod tests {
                     s: "%s",
                     start: 29,
                     end: 31,
+                },
+                MatchFmtPos {
+                    s: "%s",
+                    start: 49,
+                    end: 51,
                 },
             ]
         );
@@ -532,6 +661,21 @@ mod tests {
                     start: 40,
                     end: 43,
                 },
+                MatchFmtPos {
+                    s: "user",
+                    start: 44,
+                    end: 48,
+                },
+                MatchFmtPos {
+                    s: "domain",
+                    start: 52,
+                    end: 58,
+                },
+                MatchFmtPos {
+                    s: "com",
+                    start: 59,
+                    end: 62,
+                },
             ]
         );
         assert_eq!(
@@ -543,14 +687,22 @@ mod tests {
             }]
         );
         assert_eq!(
+            FormatEmailPos::new(s, &Language::C).collect::<Vec<_>>(),
+            vec![MatchFmtPos {
+                s: "user@%s.domain.com",
+                start: 44,
+                end: 62,
+            }]
+        );
+        assert_eq!(
             strip_formats(s, &Language::C),
-            "Hello,  world! https://.example.com"
+            "Hello,  world! https://.example.com user@.domain.com"
         );
     }
 
     #[test]
     fn test_flags_width_length() {
-        let s = "Hello, %ld %9llu %hhd %zd world! https://%s.example.com";
+        let s = "Hello, %ld %9llu %hhd %zd world! https://%s.example.com user@%s.domain.com";
         assert_eq!(
             FormatPos::new(s, &Language::C).collect::<Vec<_>>(),
             vec![
@@ -578,6 +730,11 @@ mod tests {
                     s: "%s",
                     start: 41,
                     end: 43,
+                },
+                MatchFmtPos {
+                    s: "%s",
+                    start: 61,
+                    end: 63,
                 },
             ]
         );
@@ -609,6 +766,21 @@ mod tests {
                     start: 52,
                     end: 55,
                 },
+                MatchFmtPos {
+                    s: "user",
+                    start: 56,
+                    end: 60,
+                },
+                MatchFmtPos {
+                    s: "domain",
+                    start: 64,
+                    end: 70,
+                },
+                MatchFmtPos {
+                    s: "com",
+                    start: 71,
+                    end: 74,
+                },
             ]
         );
         assert_eq!(
@@ -620,14 +792,22 @@ mod tests {
             }]
         );
         assert_eq!(
+            FormatEmailPos::new(s, &Language::C).collect::<Vec<_>>(),
+            vec![MatchFmtPos {
+                s: "user@%s.domain.com",
+                start: 56,
+                end: 74,
+            }]
+        );
+        assert_eq!(
             strip_formats(s, &Language::C),
-            "Hello,     world! https://.example.com"
+            "Hello,     world! https://.example.com user@.domain.com"
         );
     }
 
     #[test]
     fn test_unicode() {
-        let s = "héllo, мир! %lld 你好 https://%s.example.com";
+        let s = "héllo, мир! %lld 你好 https://%s.example.com user@%s.domain.com";
         assert_eq!(
             FormatPos::new(s, &Language::C).collect::<Vec<_>>(),
             vec![
@@ -640,6 +820,11 @@ mod tests {
                     s: "%s",
                     start: 36,
                     end: 38,
+                },
+                MatchFmtPos {
+                    s: "%s",
+                    start: 56,
+                    end: 58,
                 },
             ]
         );
@@ -676,6 +861,21 @@ mod tests {
                     start: 47,
                     end: 50,
                 },
+                MatchFmtPos {
+                    s: "user",
+                    start: 51,
+                    end: 55,
+                },
+                MatchFmtPos {
+                    s: "domain",
+                    start: 59,
+                    end: 65,
+                },
+                MatchFmtPos {
+                    s: "com",
+                    start: 66,
+                    end: 69,
+                },
             ]
         );
         assert_eq!(
@@ -687,8 +887,16 @@ mod tests {
             }]
         );
         assert_eq!(
+            FormatEmailPos::new(s, &Language::C).collect::<Vec<_>>(),
+            vec![MatchFmtPos {
+                s: "user@%s.domain.com",
+                start: 51,
+                end: 69,
+            }]
+        );
+        assert_eq!(
             strip_formats(s, &Language::C),
-            "héllo, мир!  你好 https://.example.com"
+            "héllo, мир!  你好 https://.example.com user@.domain.com"
         );
     }
 }

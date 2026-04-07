@@ -86,6 +86,7 @@ It can perform a lot of checks via the default rules:
 | brackets         | info     | Missing/extra brackets.                            |
 | double-quotes    | info     | Missing/extra double quotes.                       |
 | double-spaces    | info     | Missing/extra double spaces.                       |
+| emails           | warning  | Missing/extra/different emails.                    |
 | encoding         | info     | Incorrect encoding (charset).                      |
 | escapes          | error    | Missing/extra escape characters.                   |
 | formats          | error    | Inconsistent format strings.                       |
@@ -135,7 +136,7 @@ You can check by yourself with the following command executed in the root direct
 $ poexam check examples/fr.po
 examples/fr.po: [error:compilation] command `/usr/bin/msgfmt` reported errors
         |
-        | examples/fr.po:56: format specifications in 'msgid' and 'msgstr' for argument 1 are not the same
+        | examples/fr.po:60: format specifications in 'msgid' and 'msgstr' for argument 1 are not the same
         | /usr/bin/msgfmt: found 1 fatal error
         |
 
@@ -174,16 +175,16 @@ examples/fr.po:46: [info:double-words] word 'un' is repeated
      47 | Ceci est un un test de mots répétés
         |
 
-examples/fr.po:50: [error:escapes] extra escaped escape characters '\\' (0 / 1)
+examples/fr.po:50: [warning:emails] different emails
         |
-     50 | Escape: \test
+     50 | Email address: user@example.com
         |
-     51 | Échappement : \\test
+     51 | Exemple d'e-mail : utilisateur@exemple.com
         |
 
 (...)
 
-1 files checked: 28 problems in 1 files (6 errors, 4 warnings, 18 info) [27.938269ms]
+1 files checked: 29 problems in 1 files (6 errors, 5 warnings, 18 info) [27.938269ms]
 ```
 
 ### Spell checking

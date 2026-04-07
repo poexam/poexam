@@ -13,6 +13,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - Add rule "double-words"
 - Add option `--punc-ignore-ellipsis`
 - Add rules "punc-space-id" and "punc-space-str"
+- Add rule "emails"
 - Add rule "urls"
 - Add rule "compilation" and option `--path-msgfmt`
 

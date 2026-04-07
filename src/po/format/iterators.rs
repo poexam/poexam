@@ -186,6 +186,112 @@ impl<'a> Iterator for FormatUrlPos<'a> {
     }
 }
 
+pub struct FormatEmailPos<'a> {
+    s: &'a str,
+    len: usize,
+    pos: usize,
+    fmt: Box<dyn FormatParser>,
+}
+
+impl<'a> FormatEmailPos<'a> {
+    pub fn new(s: &'a str, language: &Language) -> Self {
+        Self {
+            s,
+            len: s.len(),
+            pos: 0,
+            fmt: language.format_parser(),
+        }
+    }
+}
+
+/// Simple check for email validity: check that it contains exactly one '@' and that
+/// local and domain parts are not empty and contain only allowed characters, with
+/// relaxed rules (e.g. allow language formats like `%s` or `{0}`).
+fn is_valid_email(email: &str) -> bool {
+    if let Some(pos_arobase) = email.find('@') {
+        let local = &email[..pos_arobase];
+        let domain = &email[pos_arobase + 1..];
+        !local.is_empty()
+            && !domain.is_empty()
+            && local.chars().all(|c| {
+                c.is_alphanumeric()
+                    || c == '.'
+                    || c == '-'
+                    || c == '_'
+                    || c == '%'
+                    || c == '{'
+                    || c == '}'
+                    || c == '$'
+                    || c == '"'
+                    || c == '„'
+                    || c == '”'
+                    || c == '«'
+                    || c == '»'
+            })
+            && domain.chars().all(|c| {
+                c.is_alphanumeric()
+                    || c == '.'
+                    || c == '-'
+                    || c == '%'
+                    || c == '{'
+                    || c == '}'
+                    || c == '$'
+                    || c == '"'
+                    || c == '„'
+                    || c == '”'
+                    || c == '«'
+                    || c == '»'
+            })
+            && domain.contains('.')
+    } else {
+        false
+    }
+}
+
+/// Iterator returning emails of a string, according to the given language, skipping
+/// format strings.
+///
+/// For example in C language, with the string `Please send email to: user@example.com`,
+/// it will return `user@example.com` with its position in the string.
+impl<'a> Iterator for FormatEmailPos<'a> {
+    type Item = MatchFmtPos<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let mut idx_start = None;
+        let mut idx_end = None;
+        loop {
+            while let Some((c, new_pos, is_format)) = self.fmt.next_char(self.s, self.pos) {
+                if is_format {
+                    self.pos = self.fmt.find_end_format(self.s, new_pos, self.len);
+                    continue;
+                }
+                if !c.is_whitespace() {
+                    if idx_start.is_none() {
+                        idx_start = Some(self.pos);
+                    }
+                    idx_end = Some(new_pos);
+                    self.pos = new_pos;
+                } else if idx_start.is_some() {
+                    break;
+                } else {
+                    self.pos = new_pos;
+                }
+            }
+            match (idx_start, idx_end) {
+                (Some(start), Some(end)) => {
+                    let s = &self.s[start..end];
+                    if is_valid_email(s) {
+                        return Some(MatchFmtPos { s, start, end });
+                    }
+                    idx_start = None;
+                    idx_end = None;
+                }
+                _ => return None,
+            }
+        }
+    }
+}
+
 /// Strip format strings from a string, according to the given language.
 pub fn strip_formats<'a>(s: &'a str, language: &Language) -> Cow<'a, str> {
     if language == &Language::Null {

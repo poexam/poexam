@@ -46,6 +46,10 @@ msgstr "Test espaces doubles"
 msgid "This is a test of repeated words"
 msgstr "Ceci est un un test de mots répétés"
 
+# rule: emails
+msgid "Email address: user@example.com"
+msgstr "Exemple d'e-mail : utilisateur@exemple.com"
+
 # rule: escapes
 msgid "Escape: \\test"
 msgstr "Échappement : \\\\test"

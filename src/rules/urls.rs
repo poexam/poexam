@@ -156,13 +156,13 @@ msgstr "https://google.com -- „https://example.com/”"
         let diags = check_urls(
             r#"
 msgid "missing URL: https://example.com -- http://google.com"
-msgstr "URL manquante: https://example.com"
+msgstr "URL manquante : https://example.com"
 
 msgid "extra URL: https://example.com"
-msgstr "URL extra : https://example.com -- http://google.com""
+msgstr "URL extra : https://example.com -- http://google.com""
 
 msgid "different URLs: https://example.com -- http://google.com"
-msgstr "URLs différentes : https://exampe.com/test -- http://google.com"
+msgstr "URLs différentes : https://exampe.com/test -- http://google.com"
 "#,
         );
         assert_eq!(diags.len(), 3);
