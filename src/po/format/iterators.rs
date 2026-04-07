@@ -89,7 +89,6 @@ impl<'a> Iterator for FormatWordPos<'a> {
                 self.pos = self.fmt.find_end_format(self.s, new_pos, self.len);
                 continue;
             }
-            let len_c = c.len_utf8();
             if idx_start.is_none() && c == '\'' {
                 start_apostrophe = true;
             }
@@ -99,7 +98,7 @@ impl<'a> Iterator for FormatWordPos<'a> {
                 if idx_start.is_none() {
                     idx_start = Some(self.pos);
                 }
-                idx_end = Some(self.pos + len_c);
+                idx_end = Some(new_pos);
                 self.pos = new_pos;
             } else if idx_start.is_some() {
                 break;
@@ -160,12 +159,11 @@ impl<'a> Iterator for FormatUrlPos<'a> {
                     self.pos = self.fmt.find_end_format(self.s, new_pos, self.len);
                     continue;
                 }
-                let len_c = c.len_utf8();
                 if !c.is_whitespace() {
                     if idx_start.is_none() {
                         idx_start = Some(self.pos);
                     }
-                    idx_end = Some(self.pos + len_c);
+                    idx_end = Some(new_pos);
                     self.pos = new_pos;
                 } else if idx_start.is_some() {
                     break;
