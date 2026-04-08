@@ -13,7 +13,7 @@ use crate::{
     po::entry::Entry,
     rules::{
         blank, brackets, changed, compilation, double_quotes, double_spaces, double_words, emails,
-        encoding, escapes, formats, fuzzy, long, newlines, obsolete, pipes, plurals, punc,
+        encoding, escapes, formats, fuzzy, long, newlines, obsolete, paths, pipes, plurals, punc,
         punc_space, short, spelling, tabs, unchanged, untranslated, urls, whitespace,
     },
 };
@@ -103,6 +103,7 @@ pub fn get_all_rules() -> Vec<Rule> {
         Box::new(long::LongRule {}),
         Box::new(newlines::NewlinesRule {}),
         Box::new(obsolete::ObsoleteRule {}),
+        Box::new(paths::PathsRule {}),
         Box::new(pipes::PipesRule {}),
         Box::new(plurals::PluralsRule {}),
         Box::new(punc::PuncStartRule {}),

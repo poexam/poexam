@@ -122,6 +122,7 @@ For the rule `formats`, the following languages are supported:
 | double-words   | info     | Translation has Consecutive repeated words.      |
 | fuzzy          | info     | Fuzzy entry.                                     |
 | obsolete       | info     | Obsolete entry.                                  |
+| paths          | warning  | Missing/extra/different paths.                   |
 | spelling-ctxt  | info     | Spelling error (context).                        |
 | spelling-id    | info     | Spelling error (source).                         |
 | spelling-str   | info     | Spelling error (translation).                    |

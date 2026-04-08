@@ -289,3 +289,110 @@ impl<'a> Iterator for FormatEmailPos<'a> {
         }
     }
 }
+
+pub struct FormatPathPos<'a> {
+    s: &'a str,
+    len: usize,
+    pos: usize,
+    fmt: Box<dyn FormatParser>,
+}
+
+impl<'a> FormatPathPos<'a> {
+    pub fn new(s: &'a str, language: &Language) -> Self {
+        Self {
+            s,
+            len: s.len(),
+            pos: 0,
+            fmt: language.format_parser(),
+        }
+    }
+}
+
+/// Check if a string is a path: it starts with '/' or './' or '../' or '~/'.
+fn is_path(path: &str) -> bool {
+    if path.starts_with("./") || path.starts_with("../") || path.starts_with("~/") {
+        return true;
+    }
+    if path.starts_with('/')
+        && let Some(pos) = path[1..].find('/')
+        && pos > 0
+        && !path[pos + 2..].is_empty()
+    {
+        return true;
+    }
+    false
+}
+
+/// Iterator returning paths of a string, according to the given language, skipping
+/// format strings.
+///
+/// For example in C language, with the string `Hello, %d %s world! /tmp/output.txt`,
+/// it will return `/tmp/output.txt` with its position in the string.
+impl<'a> Iterator for FormatPathPos<'a> {
+    type Item = MatchFmtPos<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let mut idx_start = None;
+        let mut idx_end = None;
+        loop {
+            while let Some((c, new_pos, is_format)) = self.fmt.next_char(self.s, self.pos) {
+                if is_format {
+                    self.pos = self.fmt.find_end_format(self.s, new_pos, self.len);
+                    continue;
+                }
+                if !c.is_whitespace() {
+                    if idx_start.is_none() {
+                        idx_start = Some(self.pos);
+                    }
+                    idx_end = Some(new_pos);
+                    self.pos = new_pos;
+                } else if idx_start.is_some() {
+                    break;
+                } else {
+                    self.pos = new_pos;
+                }
+            }
+            match (idx_start, idx_end) {
+                (Some(start), Some(end)) => {
+                    let s = &self.s[start..end];
+                    if is_path(s) {
+                        return Some(MatchFmtPos { s, start, end });
+                    }
+                    idx_start = None;
+                    idx_end = None;
+                }
+                _ => return None,
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_is_valid_email() {
+        // Invalid emails.
+        assert!(!is_valid_email(""));
+        assert!(!is_valid_email("user"));
+        assert!(!is_valid_email("user@domain"));
+        // Valid emails.
+        assert!(is_valid_email("user@domain.com"));
+    }
+
+    #[test]
+    fn test_is_path() {
+        // Invalid paths; many are in fact valid but considered invalid to avoid false positives.
+        assert!(!is_path(""));
+        assert!(!is_path("tmp"));
+        assert!(!is_path("/tmp"));
+        assert!(!is_path("/tmp/"));
+        // Valid paths.
+        assert!(is_path("/tmp/output"));
+        assert!(is_path("/tmp/output.txt"));
+        assert!(is_path("./test.txt"));
+        assert!(is_path("../test.txt"));
+        assert!(is_path("~/test.txt"));
+    }
+}

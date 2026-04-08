@@ -67,6 +67,10 @@ msgstr "une longue traduction"
 msgid "Test\ntwo lines"
 msgstr "Test deux lignes"
 
+# rule: paths
+msgid "Path: /tmp/output.txt"
+msgstr "Chemin : /tmp/sortie.txt"
+
 # rule: pipes
 msgid ""
 "list || add <name> || rename <name> <new_name> || del <name>"

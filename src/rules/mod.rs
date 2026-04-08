@@ -19,6 +19,7 @@ pub mod fuzzy;
 pub mod long;
 pub mod newlines;
 pub mod obsolete;
+pub mod paths;
 pub mod pipes;
 pub mod plurals;
 pub mod punc;
