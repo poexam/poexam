@@ -14,6 +14,10 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 It reports very few false positives and can be used in CI jobs and pre-commit hooks.
 
+> [!NOTE]
+> Poexam is in active development and may not be fully stable yet.\
+> The command-line interface and features may change at any time.
+
 ## Overview
 
 - ⚡️ **Blazingly fast**: large directories and files are checked in parallel, in a few milliseconds.
