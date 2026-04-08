@@ -26,7 +26,6 @@ impl FormatParser for FormatNull {
 #[cfg(test)]
 mod tests {
     use crate::po::format::{
-        MatchFmtPos,
         iter::{FormatEmailPos, FormatPos, FormatUrlPos, FormatWordPos},
         language::Language,
         strip_formats,
@@ -46,85 +45,35 @@ mod tests {
         let s = "Hello, %s world! 'test' https://example.com invalid@domain user@domain.com";
         assert!(FormatPos::new(s, &Language::Null).next().is_none());
         assert_eq!(
-            FormatWordPos::new(s, &Language::Null).collect::<Vec<_>>(),
+            FormatWordPos::new(s, &Language::Null)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
             vec![
-                MatchFmtPos {
-                    s: "Hello",
-                    start: 0,
-                    end: 5,
-                },
-                MatchFmtPos {
-                    s: "s",
-                    start: 8,
-                    end: 9,
-                },
-                MatchFmtPos {
-                    s: "world",
-                    start: 10,
-                    end: 15,
-                },
-                MatchFmtPos {
-                    s: "test",
-                    start: 18,
-                    end: 22,
-                },
-                MatchFmtPos {
-                    s: "https",
-                    start: 24,
-                    end: 29,
-                },
-                MatchFmtPos {
-                    s: "example",
-                    start: 32,
-                    end: 39,
-                },
-                MatchFmtPos {
-                    s: "com",
-                    start: 40,
-                    end: 43,
-                },
-                MatchFmtPos {
-                    s: "invalid",
-                    start: 44,
-                    end: 51,
-                },
-                MatchFmtPos {
-                    s: "domain",
-                    start: 52,
-                    end: 58,
-                },
-                MatchFmtPos {
-                    s: "user",
-                    start: 59,
-                    end: 63,
-                },
-                MatchFmtPos {
-                    s: "domain",
-                    start: 64,
-                    end: 70,
-                },
-                MatchFmtPos {
-                    s: "com",
-                    start: 71,
-                    end: 74,
-                },
+                ("Hello", 0, 5),
+                ("s", 8, 9),
+                ("world", 10, 15),
+                ("test", 18, 22),
+                ("https", 24, 29),
+                ("example", 32, 39),
+                ("com", 40, 43),
+                ("invalid", 44, 51),
+                ("domain", 52, 58),
+                ("user", 59, 63),
+                ("domain", 64, 70),
+                ("com", 71, 74),
             ]
         );
         assert_eq!(
-            FormatUrlPos::new(s, &Language::Null).collect::<Vec<_>>(),
-            vec![MatchFmtPos {
-                s: "https://example.com",
-                start: 24,
-                end: 43,
-            }]
+            FormatUrlPos::new(s, &Language::Null)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("https://example.com", 24, 43)]
         );
         assert_eq!(
-            FormatEmailPos::new(s, &Language::Null).collect::<Vec<_>>(),
-            vec![MatchFmtPos {
-                s: "user@domain.com",
-                start: 59,
-                end: 74,
-            }]
+            FormatEmailPos::new(s, &Language::Null)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("user@domain.com", 59, 74)]
         );
         assert_eq!(strip_formats(s, &Language::Null), s);
     }

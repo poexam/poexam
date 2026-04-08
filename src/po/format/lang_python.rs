@@ -118,7 +118,6 @@ impl FormatParser for FormatPythonBrace {
 #[cfg(test)]
 mod tests {
     use crate::po::format::{
-        MatchFmtPos,
         iter::{FormatEmailPos, FormatPos, FormatUrlPos, FormatWordPos},
         language::Language,
         strip_formats,
@@ -129,65 +128,31 @@ mod tests {
         let s = "Hello, world! https://example.com user@domain.com";
         assert!(FormatPos::new(s, &Language::Python).next().is_none());
         assert_eq!(
-            FormatWordPos::new(s, &Language::Python).collect::<Vec<_>>(),
+            FormatWordPos::new(s, &Language::Python)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
             vec![
-                MatchFmtPos {
-                    s: "Hello",
-                    start: 0,
-                    end: 5,
-                },
-                MatchFmtPos {
-                    s: "world",
-                    start: 7,
-                    end: 12,
-                },
-                MatchFmtPos {
-                    s: "https",
-                    start: 14,
-                    end: 19,
-                },
-                MatchFmtPos {
-                    s: "example",
-                    start: 22,
-                    end: 29,
-                },
-                MatchFmtPos {
-                    s: "com",
-                    start: 30,
-                    end: 33,
-                },
-                MatchFmtPos {
-                    s: "user",
-                    start: 34,
-                    end: 38,
-                },
-                MatchFmtPos {
-                    s: "domain",
-                    start: 39,
-                    end: 45,
-                },
-                MatchFmtPos {
-                    s: "com",
-                    start: 46,
-                    end: 49,
-                },
+                ("Hello", 0, 5),
+                ("world", 7, 12),
+                ("https", 14, 19),
+                ("example", 22, 29),
+                ("com", 30, 33),
+                ("user", 34, 38),
+                ("domain", 39, 45),
+                ("com", 46, 49),
             ]
         );
         assert_eq!(
-            FormatUrlPos::new(s, &Language::Python).collect::<Vec<_>>(),
-            vec![MatchFmtPos {
-                s: "https://example.com",
-                start: 14,
-                end: 33,
-            }]
+            FormatUrlPos::new(s, &Language::Python)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("https://example.com", 14, 33),]
         );
         assert_eq!(
-            FormatEmailPos::new(s, &Language::Python).collect::<Vec<_>>(),
-            vec![MatchFmtPos {
-                s: "user@domain.com",
-                start: 34,
-                end: 49,
-            }]
+            FormatEmailPos::new(s, &Language::Python)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("user@domain.com", 34, 49),]
         );
         assert_eq!(strip_formats(s, &Language::Python), s);
     }
@@ -197,65 +162,31 @@ mod tests {
         let s = "Hello, world! https://example.com user@domain.com";
         assert!(FormatPos::new(s, &Language::PythonBrace).next().is_none());
         assert_eq!(
-            FormatWordPos::new(s, &Language::PythonBrace).collect::<Vec<_>>(),
+            FormatWordPos::new(s, &Language::PythonBrace)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
             vec![
-                MatchFmtPos {
-                    s: "Hello",
-                    start: 0,
-                    end: 5,
-                },
-                MatchFmtPos {
-                    s: "world",
-                    start: 7,
-                    end: 12,
-                },
-                MatchFmtPos {
-                    s: "https",
-                    start: 14,
-                    end: 19,
-                },
-                MatchFmtPos {
-                    s: "example",
-                    start: 22,
-                    end: 29,
-                },
-                MatchFmtPos {
-                    s: "com",
-                    start: 30,
-                    end: 33,
-                },
-                MatchFmtPos {
-                    s: "user",
-                    start: 34,
-                    end: 38,
-                },
-                MatchFmtPos {
-                    s: "domain",
-                    start: 39,
-                    end: 45,
-                },
-                MatchFmtPos {
-                    s: "com",
-                    start: 46,
-                    end: 49,
-                },
+                ("Hello", 0, 5),
+                ("world", 7, 12),
+                ("https", 14, 19),
+                ("example", 22, 29),
+                ("com", 30, 33),
+                ("user", 34, 38),
+                ("domain", 39, 45),
+                ("com", 46, 49),
             ]
         );
         assert_eq!(
-            FormatUrlPos::new(s, &Language::PythonBrace).collect::<Vec<_>>(),
-            vec![MatchFmtPos {
-                s: "https://example.com",
-                start: 14,
-                end: 33,
-            }]
+            FormatUrlPos::new(s, &Language::PythonBrace)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("https://example.com", 14, 33),]
         );
         assert_eq!(
-            FormatEmailPos::new(s, &Language::PythonBrace).collect::<Vec<_>>(),
-            vec![MatchFmtPos {
-                s: "user@domain.com",
-                start: 34,
-                end: 49,
-            }]
+            FormatEmailPos::new(s, &Language::PythonBrace)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("user@domain.com", 34, 49),]
         );
         assert_eq!(strip_formats(s, &Language::PythonBrace), s);
     }
@@ -271,20 +202,16 @@ mod tests {
 
         let s = "%é";
         assert_eq!(
-            FormatPos::new(s, &Language::Python).collect::<Vec<_>>(),
-            vec![MatchFmtPos {
-                s: "%",
-                start: 0,
-                end: 1,
-            }]
+            FormatPos::new(s, &Language::Python)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("%", 0, 1),]
         );
         assert_eq!(
-            FormatWordPos::new(s, &Language::Python).collect::<Vec<_>>(),
-            vec![MatchFmtPos {
-                s: "é",
-                start: 1,
-                end: 3,
-            }]
+            FormatWordPos::new(s, &Language::Python)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("é", 1, 3),]
         );
         assert!(FormatUrlPos::new(s, &Language::Python).next().is_none());
         assert!(FormatEmailPos::new(s, &Language::Python).next().is_none());
@@ -292,12 +219,10 @@ mod tests {
 
         let s = "%(test";
         assert_eq!(
-            FormatPos::new(s, &Language::Python).collect::<Vec<_>>(),
-            vec![MatchFmtPos {
-                s: "%(test",
-                start: 0,
-                end: 6,
-            }]
+            FormatPos::new(s, &Language::Python)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("%(test", 0, 6),]
         );
         assert!(FormatWordPos::new(s, &Language::Python).next().is_none());
         assert!(FormatUrlPos::new(s, &Language::Python).next().is_none());
@@ -328,12 +253,10 @@ mod tests {
 
         let s = "{é";
         assert_eq!(
-            FormatPos::new(s, &Language::PythonBrace).collect::<Vec<_>>(),
-            vec![MatchFmtPos {
-                s: "{é",
-                start: 0,
-                end: 3,
-            }]
+            FormatPos::new(s, &Language::PythonBrace)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("{é", 0, 3),]
         );
         assert!(
             FormatWordPos::new(s, &Language::PythonBrace)
@@ -357,73 +280,37 @@ mod tests {
     fn test_single_format_percent() {
         let s = "Hello, %s world! https://example.com user@domain.com";
         assert_eq!(
-            FormatPos::new(s, &Language::Python).collect::<Vec<_>>(),
-            vec![MatchFmtPos {
-                s: "%s",
-                start: 7,
-                end: 9,
-            }]
+            FormatPos::new(s, &Language::Python)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("%s", 7, 9),]
         );
         assert_eq!(
-            FormatWordPos::new(s, &Language::Python).collect::<Vec<_>>(),
+            FormatWordPos::new(s, &Language::Python)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
             vec![
-                MatchFmtPos {
-                    s: "Hello",
-                    start: 0,
-                    end: 5,
-                },
-                MatchFmtPos {
-                    s: "world",
-                    start: 10,
-                    end: 15,
-                },
-                MatchFmtPos {
-                    s: "https",
-                    start: 17,
-                    end: 22,
-                },
-                MatchFmtPos {
-                    s: "example",
-                    start: 25,
-                    end: 32,
-                },
-                MatchFmtPos {
-                    s: "com",
-                    start: 33,
-                    end: 36,
-                },
-                MatchFmtPos {
-                    s: "user",
-                    start: 37,
-                    end: 41,
-                },
-                MatchFmtPos {
-                    s: "domain",
-                    start: 42,
-                    end: 48,
-                },
-                MatchFmtPos {
-                    s: "com",
-                    start: 49,
-                    end: 52,
-                },
+                ("Hello", 0, 5),
+                ("world", 10, 15),
+                ("https", 17, 22),
+                ("example", 25, 32),
+                ("com", 33, 36),
+                ("user", 37, 41),
+                ("domain", 42, 48),
+                ("com", 49, 52),
             ]
         );
         assert_eq!(
-            FormatUrlPos::new(s, &Language::Python).collect::<Vec<_>>(),
-            vec![MatchFmtPos {
-                s: "https://example.com",
-                start: 17,
-                end: 36,
-            }]
+            FormatUrlPos::new(s, &Language::Python)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("https://example.com", 17, 36),]
         );
         assert_eq!(
-            FormatEmailPos::new(s, &Language::Python).collect::<Vec<_>>(),
-            vec![MatchFmtPos {
-                s: "user@domain.com",
-                start: 37,
-                end: 52,
-            }]
+            FormatEmailPos::new(s, &Language::Python)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("user@domain.com", 37, 52),]
         );
         assert_eq!(
             strip_formats(s, &Language::Python),
@@ -435,73 +322,37 @@ mod tests {
     fn test_single_format_brace() {
         let s = "Hello, {0:{1}} world! https://example.com user@domain.com";
         assert_eq!(
-            FormatPos::new(s, &Language::PythonBrace).collect::<Vec<_>>(),
-            vec![MatchFmtPos {
-                s: "{0:{1}}",
-                start: 7,
-                end: 14,
-            }]
+            FormatPos::new(s, &Language::PythonBrace)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("{0:{1}}", 7, 14),]
         );
         assert_eq!(
-            FormatWordPos::new(s, &Language::PythonBrace).collect::<Vec<_>>(),
+            FormatWordPos::new(s, &Language::PythonBrace)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
             vec![
-                MatchFmtPos {
-                    s: "Hello",
-                    start: 0,
-                    end: 5,
-                },
-                MatchFmtPos {
-                    s: "world",
-                    start: 15,
-                    end: 20,
-                },
-                MatchFmtPos {
-                    s: "https",
-                    start: 22,
-                    end: 27,
-                },
-                MatchFmtPos {
-                    s: "example",
-                    start: 30,
-                    end: 37,
-                },
-                MatchFmtPos {
-                    s: "com",
-                    start: 38,
-                    end: 41,
-                },
-                MatchFmtPos {
-                    s: "user",
-                    start: 42,
-                    end: 46,
-                },
-                MatchFmtPos {
-                    s: "domain",
-                    start: 47,
-                    end: 53,
-                },
-                MatchFmtPos {
-                    s: "com",
-                    start: 54,
-                    end: 57,
-                },
+                ("Hello", 0, 5),
+                ("world", 15, 20),
+                ("https", 22, 27),
+                ("example", 30, 37),
+                ("com", 38, 41),
+                ("user", 42, 46),
+                ("domain", 47, 53),
+                ("com", 54, 57),
             ]
         );
         assert_eq!(
-            FormatUrlPos::new(s, &Language::PythonBrace).collect::<Vec<_>>(),
-            vec![MatchFmtPos {
-                s: "https://example.com",
-                start: 22,
-                end: 41,
-            }]
+            FormatUrlPos::new(s, &Language::PythonBrace)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("https://example.com", 22, 41),]
         );
         assert_eq!(
-            FormatEmailPos::new(s, &Language::PythonBrace).collect::<Vec<_>>(),
-            vec![MatchFmtPos {
-                s: "user@domain.com",
-                start: 42,
-                end: 57,
-            }]
+            FormatEmailPos::new(s, &Language::PythonBrace)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("user@domain.com", 42, 57),]
         );
         assert_eq!(
             strip_formats(s, &Language::PythonBrace),
@@ -513,73 +364,37 @@ mod tests {
     fn test_single_format_percent_keyword() {
         let s = "Hello, %(name)s world! https://example.com user@domain.com";
         assert_eq!(
-            FormatPos::new(s, &Language::Python).collect::<Vec<_>>(),
-            vec![MatchFmtPos {
-                s: "%(name)s",
-                start: 7,
-                end: 15,
-            }]
+            FormatPos::new(s, &Language::Python)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("%(name)s", 7, 15),]
         );
         assert_eq!(
-            FormatWordPos::new(s, &Language::Python).collect::<Vec<_>>(),
+            FormatWordPos::new(s, &Language::Python)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
             vec![
-                MatchFmtPos {
-                    s: "Hello",
-                    start: 0,
-                    end: 5,
-                },
-                MatchFmtPos {
-                    s: "world",
-                    start: 16,
-                    end: 21,
-                },
-                MatchFmtPos {
-                    s: "https",
-                    start: 23,
-                    end: 28,
-                },
-                MatchFmtPos {
-                    s: "example",
-                    start: 31,
-                    end: 38,
-                },
-                MatchFmtPos {
-                    s: "com",
-                    start: 39,
-                    end: 42,
-                },
-                MatchFmtPos {
-                    s: "user",
-                    start: 43,
-                    end: 47,
-                },
-                MatchFmtPos {
-                    s: "domain",
-                    start: 48,
-                    end: 54,
-                },
-                MatchFmtPos {
-                    s: "com",
-                    start: 55,
-                    end: 58,
-                },
+                ("Hello", 0, 5),
+                ("world", 16, 21),
+                ("https", 23, 28),
+                ("example", 31, 38),
+                ("com", 39, 42),
+                ("user", 43, 47),
+                ("domain", 48, 54),
+                ("com", 55, 58),
             ]
         );
         assert_eq!(
-            FormatUrlPos::new(s, &Language::Python).collect::<Vec<_>>(),
-            vec![MatchFmtPos {
-                s: "https://example.com",
-                start: 23,
-                end: 42,
-            }]
+            FormatUrlPos::new(s, &Language::Python)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("https://example.com", 23, 42),]
         );
         assert_eq!(
-            FormatEmailPos::new(s, &Language::Python).collect::<Vec<_>>(),
-            vec![MatchFmtPos {
-                s: "user@domain.com",
-                start: 43,
-                end: 58,
-            }]
+            FormatEmailPos::new(s, &Language::Python)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("user@domain.com", 43, 58),]
         );
         assert_eq!(
             strip_formats(s, &Language::Python),
@@ -591,95 +406,43 @@ mod tests {
     fn test_multiple_formats_percent() {
         let s = "Hello, %d%s%f world! https://%s.example.com user@%s.domain.com";
         assert_eq!(
-            FormatPos::new(s, &Language::Python).collect::<Vec<_>>(),
+            FormatPos::new(s, &Language::Python)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
             vec![
-                MatchFmtPos {
-                    s: "%d",
-                    start: 7,
-                    end: 9,
-                },
-                MatchFmtPos {
-                    s: "%s",
-                    start: 9,
-                    end: 11,
-                },
-                MatchFmtPos {
-                    s: "%f",
-                    start: 11,
-                    end: 13,
-                },
-                MatchFmtPos {
-                    s: "%s",
-                    start: 29,
-                    end: 31,
-                },
-                MatchFmtPos {
-                    s: "%s",
-                    start: 49,
-                    end: 51,
-                },
+                ("%d", 7, 9),
+                ("%s", 9, 11),
+                ("%f", 11, 13),
+                ("%s", 29, 31),
+                ("%s", 49, 51),
             ]
         );
         assert_eq!(
-            FormatWordPos::new(s, &Language::Python).collect::<Vec<_>>(),
+            FormatWordPos::new(s, &Language::Python)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
             vec![
-                MatchFmtPos {
-                    s: "Hello",
-                    start: 0,
-                    end: 5,
-                },
-                MatchFmtPos {
-                    s: "world",
-                    start: 14,
-                    end: 19,
-                },
-                MatchFmtPos {
-                    s: "https",
-                    start: 21,
-                    end: 26,
-                },
-                MatchFmtPos {
-                    s: "example",
-                    start: 32,
-                    end: 39,
-                },
-                MatchFmtPos {
-                    s: "com",
-                    start: 40,
-                    end: 43,
-                },
-                MatchFmtPos {
-                    s: "user",
-                    start: 44,
-                    end: 48,
-                },
-                MatchFmtPos {
-                    s: "domain",
-                    start: 52,
-                    end: 58,
-                },
-                MatchFmtPos {
-                    s: "com",
-                    start: 59,
-                    end: 62,
-                },
+                ("Hello", 0, 5),
+                ("world", 14, 19),
+                ("https", 21, 26),
+                ("example", 32, 39),
+                ("com", 40, 43),
+                ("user", 44, 48),
+                ("domain", 52, 58),
+                ("com", 59, 62),
             ]
         );
         assert_eq!(
-            FormatUrlPos::new(s, &Language::Python).collect::<Vec<_>>(),
-            vec![MatchFmtPos {
-                s: "https://%s.example.com",
-                start: 21,
-                end: 43,
-            }]
+            FormatUrlPos::new(s, &Language::Python)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("https://%s.example.com", 21, 43),]
         );
         assert_eq!(
-            FormatEmailPos::new(s, &Language::Python).collect::<Vec<_>>(),
-            vec![MatchFmtPos {
-                s: "user@%s.domain.com",
-                start: 44,
-                end: 62,
-            }]
+            FormatEmailPos::new(s, &Language::Python)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("user@%s.domain.com", 44, 62),]
         );
         assert_eq!(
             strip_formats(s, &Language::Python),
@@ -691,95 +454,43 @@ mod tests {
     fn test_multiple_formats_brace() {
         let s = "Hello, {0!r:20}{1}{2} world! https://{3}.example.com user@{4}.domain.com";
         assert_eq!(
-            FormatPos::new(s, &Language::PythonBrace).collect::<Vec<_>>(),
+            FormatPos::new(s, &Language::PythonBrace)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
             vec![
-                MatchFmtPos {
-                    s: "{0!r:20}",
-                    start: 7,
-                    end: 15,
-                },
-                MatchFmtPos {
-                    s: "{1}",
-                    start: 15,
-                    end: 18,
-                },
-                MatchFmtPos {
-                    s: "{2}",
-                    start: 18,
-                    end: 21,
-                },
-                MatchFmtPos {
-                    s: "{3}",
-                    start: 37,
-                    end: 40,
-                },
-                MatchFmtPos {
-                    s: "{4}",
-                    start: 58,
-                    end: 61,
-                },
+                ("{0!r:20}", 7, 15),
+                ("{1}", 15, 18),
+                ("{2}", 18, 21),
+                ("{3}", 37, 40),
+                ("{4}", 58, 61),
             ]
         );
         assert_eq!(
-            FormatWordPos::new(s, &Language::PythonBrace).collect::<Vec<_>>(),
+            FormatWordPos::new(s, &Language::PythonBrace)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
             vec![
-                MatchFmtPos {
-                    s: "Hello",
-                    start: 0,
-                    end: 5,
-                },
-                MatchFmtPos {
-                    s: "world",
-                    start: 22,
-                    end: 27,
-                },
-                MatchFmtPos {
-                    s: "https",
-                    start: 29,
-                    end: 34,
-                },
-                MatchFmtPos {
-                    s: "example",
-                    start: 41,
-                    end: 48,
-                },
-                MatchFmtPos {
-                    s: "com",
-                    start: 49,
-                    end: 52,
-                },
-                MatchFmtPos {
-                    s: "user",
-                    start: 53,
-                    end: 57,
-                },
-                MatchFmtPos {
-                    s: "domain",
-                    start: 62,
-                    end: 68,
-                },
-                MatchFmtPos {
-                    s: "com",
-                    start: 69,
-                    end: 72,
-                },
+                ("Hello", 0, 5),
+                ("world", 22, 27),
+                ("https", 29, 34),
+                ("example", 41, 48),
+                ("com", 49, 52),
+                ("user", 53, 57),
+                ("domain", 62, 68),
+                ("com", 69, 72),
             ]
         );
         assert_eq!(
-            FormatUrlPos::new(s, &Language::PythonBrace).collect::<Vec<_>>(),
-            vec![MatchFmtPos {
-                s: "https://{3}.example.com",
-                start: 29,
-                end: 52,
-            }]
+            FormatUrlPos::new(s, &Language::PythonBrace)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("https://{3}.example.com", 29, 52),]
         );
         assert_eq!(
-            FormatEmailPos::new(s, &Language::PythonBrace).collect::<Vec<_>>(),
-            vec![MatchFmtPos {
-                s: "user@{4}.domain.com",
-                start: 53,
-                end: 72,
-            }]
+            FormatEmailPos::new(s, &Language::PythonBrace)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("user@{4}.domain.com", 53, 72),]
         );
         assert_eq!(
             strip_formats(s, &Language::PythonBrace),
@@ -791,85 +502,37 @@ mod tests {
     fn test_escaped_percent() {
         let s = "Hello, %% %s world! https://%s.example.com user@%s.domain.com";
         assert_eq!(
-            FormatPos::new(s, &Language::Python).collect::<Vec<_>>(),
+            FormatPos::new(s, &Language::Python)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("%s", 10, 12), ("%s", 28, 30), ("%s", 48, 50),]
+        );
+        assert_eq!(
+            FormatWordPos::new(s, &Language::Python)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
             vec![
-                MatchFmtPos {
-                    s: "%s",
-                    start: 10,
-                    end: 12,
-                },
-                MatchFmtPos {
-                    s: "%s",
-                    start: 28,
-                    end: 30,
-                },
-                MatchFmtPos {
-                    s: "%s",
-                    start: 48,
-                    end: 50,
-                },
+                ("Hello", 0, 5),
+                ("world", 13, 18),
+                ("https", 20, 25),
+                ("example", 31, 38),
+                ("com", 39, 42),
+                ("user", 43, 47),
+                ("domain", 51, 57),
+                ("com", 58, 61),
             ]
         );
         assert_eq!(
-            FormatWordPos::new(s, &Language::Python).collect::<Vec<_>>(),
-            vec![
-                MatchFmtPos {
-                    s: "Hello",
-                    start: 0,
-                    end: 5,
-                },
-                MatchFmtPos {
-                    s: "world",
-                    start: 13,
-                    end: 18,
-                },
-                MatchFmtPos {
-                    s: "https",
-                    start: 20,
-                    end: 25,
-                },
-                MatchFmtPos {
-                    s: "example",
-                    start: 31,
-                    end: 38,
-                },
-                MatchFmtPos {
-                    s: "com",
-                    start: 39,
-                    end: 42,
-                },
-                MatchFmtPos {
-                    s: "user",
-                    start: 43,
-                    end: 47,
-                },
-                MatchFmtPos {
-                    s: "domain",
-                    start: 51,
-                    end: 57,
-                },
-                MatchFmtPos {
-                    s: "com",
-                    start: 58,
-                    end: 61,
-                },
-            ]
+            FormatUrlPos::new(s, &Language::Python)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("https://%s.example.com", 20, 42),]
         );
         assert_eq!(
-            FormatUrlPos::new(s, &Language::Python).collect::<Vec<_>>(),
-            vec![MatchFmtPos {
-                s: "https://%s.example.com",
-                start: 20,
-                end: 42,
-            }]
-        );
-        assert_eq!(
-            FormatEmailPos::new(s, &Language::Python).collect::<Vec<_>>(),
-            vec![MatchFmtPos {
-                s: "user@%s.domain.com",
-                start: 43,
-                end: 61,
-            }]
+            FormatEmailPos::new(s, &Language::Python)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("user@%s.domain.com", 43, 61),]
         );
         assert_eq!(
             strip_formats(s, &Language::Python),
@@ -881,85 +544,37 @@ mod tests {
     fn test_escaped_brace() {
         let s = "Hello, {{ {0} world! https://{1}.example.com user@{2}.domain.com";
         assert_eq!(
-            FormatPos::new(s, &Language::PythonBrace).collect::<Vec<_>>(),
+            FormatPos::new(s, &Language::PythonBrace)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("{0}", 10, 13), ("{1}", 29, 32), ("{2}", 50, 53),]
+        );
+        assert_eq!(
+            FormatWordPos::new(s, &Language::PythonBrace)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
             vec![
-                MatchFmtPos {
-                    s: "{0}",
-                    start: 10,
-                    end: 13,
-                },
-                MatchFmtPos {
-                    s: "{1}",
-                    start: 29,
-                    end: 32,
-                },
-                MatchFmtPos {
-                    s: "{2}",
-                    start: 50,
-                    end: 53,
-                },
+                ("Hello", 0, 5),
+                ("world", 14, 19),
+                ("https", 21, 26),
+                ("example", 33, 40),
+                ("com", 41, 44),
+                ("user", 45, 49),
+                ("domain", 54, 60),
+                ("com", 61, 64),
             ]
         );
         assert_eq!(
-            FormatWordPos::new(s, &Language::PythonBrace).collect::<Vec<_>>(),
-            vec![
-                MatchFmtPos {
-                    s: "Hello",
-                    start: 0,
-                    end: 5,
-                },
-                MatchFmtPos {
-                    s: "world",
-                    start: 14,
-                    end: 19,
-                },
-                MatchFmtPos {
-                    s: "https",
-                    start: 21,
-                    end: 26,
-                },
-                MatchFmtPos {
-                    s: "example",
-                    start: 33,
-                    end: 40,
-                },
-                MatchFmtPos {
-                    s: "com",
-                    start: 41,
-                    end: 44,
-                },
-                MatchFmtPos {
-                    s: "user",
-                    start: 45,
-                    end: 49,
-                },
-                MatchFmtPos {
-                    s: "domain",
-                    start: 54,
-                    end: 60,
-                },
-                MatchFmtPos {
-                    s: "com",
-                    start: 61,
-                    end: 64,
-                },
-            ]
+            FormatUrlPos::new(s, &Language::PythonBrace)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("https://{1}.example.com", 21, 44),]
         );
         assert_eq!(
-            FormatUrlPos::new(s, &Language::PythonBrace).collect::<Vec<_>>(),
-            vec![MatchFmtPos {
-                s: "https://{1}.example.com",
-                start: 21,
-                end: 44,
-            }]
-        );
-        assert_eq!(
-            FormatEmailPos::new(s, &Language::PythonBrace).collect::<Vec<_>>(),
-            vec![MatchFmtPos {
-                s: "user@{2}.domain.com",
-                start: 45,
-                end: 64,
-            }]
+            FormatEmailPos::new(s, &Language::PythonBrace)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("user@{2}.domain.com", 45, 64),]
         );
         assert_eq!(
             strip_formats(s, &Language::PythonBrace),
@@ -971,85 +586,37 @@ mod tests {
     fn test_flags_width_precision() {
         let s = "Hello, %05.2f world! https://%s.example.com user@%s.domain.com";
         assert_eq!(
-            FormatPos::new(s, &Language::Python).collect::<Vec<_>>(),
+            FormatPos::new(s, &Language::Python)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("%05.2f", 7, 13), ("%s", 29, 31), ("%s", 49, 51),]
+        );
+        assert_eq!(
+            FormatWordPos::new(s, &Language::Python)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
             vec![
-                MatchFmtPos {
-                    s: "%05.2f",
-                    start: 7,
-                    end: 13,
-                },
-                MatchFmtPos {
-                    s: "%s",
-                    start: 29,
-                    end: 31,
-                },
-                MatchFmtPos {
-                    s: "%s",
-                    start: 49,
-                    end: 51,
-                },
+                ("Hello", 0, 5),
+                ("world", 14, 19),
+                ("https", 21, 26),
+                ("example", 32, 39),
+                ("com", 40, 43),
+                ("user", 44, 48),
+                ("domain", 52, 58),
+                ("com", 59, 62),
             ]
         );
         assert_eq!(
-            FormatWordPos::new(s, &Language::Python).collect::<Vec<_>>(),
-            vec![
-                MatchFmtPos {
-                    s: "Hello",
-                    start: 0,
-                    end: 5,
-                },
-                MatchFmtPos {
-                    s: "world",
-                    start: 14,
-                    end: 19,
-                },
-                MatchFmtPos {
-                    s: "https",
-                    start: 21,
-                    end: 26,
-                },
-                MatchFmtPos {
-                    s: "example",
-                    start: 32,
-                    end: 39,
-                },
-                MatchFmtPos {
-                    s: "com",
-                    start: 40,
-                    end: 43,
-                },
-                MatchFmtPos {
-                    s: "user",
-                    start: 44,
-                    end: 48,
-                },
-                MatchFmtPos {
-                    s: "domain",
-                    start: 52,
-                    end: 58,
-                },
-                MatchFmtPos {
-                    s: "com",
-                    start: 59,
-                    end: 62,
-                },
-            ]
+            FormatUrlPos::new(s, &Language::Python)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("https://%s.example.com", 21, 43),]
         );
         assert_eq!(
-            FormatUrlPos::new(s, &Language::Python).collect::<Vec<_>>(),
-            vec![MatchFmtPos {
-                s: "https://%s.example.com",
-                start: 21,
-                end: 43,
-            }]
-        );
-        assert_eq!(
-            FormatEmailPos::new(s, &Language::Python).collect::<Vec<_>>(),
-            vec![MatchFmtPos {
-                s: "user@%s.domain.com",
-                start: 44,
-                end: 62,
-            }]
+            FormatEmailPos::new(s, &Language::Python)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("user@%s.domain.com", 44, 62),]
         );
         assert_eq!(
             strip_formats(s, &Language::Python),
@@ -1061,90 +628,42 @@ mod tests {
     fn test_flags_width_length() {
         let s = "Hello, %ld %9lu world! https://%s.example.com user@%s.domain.com";
         assert_eq!(
-            FormatPos::new(s, &Language::Python).collect::<Vec<_>>(),
+            FormatPos::new(s, &Language::Python)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
             vec![
-                MatchFmtPos {
-                    s: "%ld",
-                    start: 7,
-                    end: 10,
-                },
-                MatchFmtPos {
-                    s: "%9lu",
-                    start: 11,
-                    end: 15,
-                },
-                MatchFmtPos {
-                    s: "%s",
-                    start: 31,
-                    end: 33,
-                },
-                MatchFmtPos {
-                    s: "%s",
-                    start: 51,
-                    end: 53,
-                },
+                ("%ld", 7, 10),
+                ("%9lu", 11, 15),
+                ("%s", 31, 33),
+                ("%s", 51, 53),
             ]
         );
         assert_eq!(
-            FormatWordPos::new(s, &Language::Python).collect::<Vec<_>>(),
+            FormatWordPos::new(s, &Language::Python)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
             vec![
-                MatchFmtPos {
-                    s: "Hello",
-                    start: 0,
-                    end: 5,
-                },
-                MatchFmtPos {
-                    s: "world",
-                    start: 16,
-                    end: 21,
-                },
-                MatchFmtPos {
-                    s: "https",
-                    start: 23,
-                    end: 28,
-                },
-                MatchFmtPos {
-                    s: "example",
-                    start: 34,
-                    end: 41,
-                },
-                MatchFmtPos {
-                    s: "com",
-                    start: 42,
-                    end: 45,
-                },
-                MatchFmtPos {
-                    s: "user",
-                    start: 46,
-                    end: 50,
-                },
-                MatchFmtPos {
-                    s: "domain",
-                    start: 54,
-                    end: 60,
-                },
-                MatchFmtPos {
-                    s: "com",
-                    start: 61,
-                    end: 64,
-                },
+                ("Hello", 0, 5),
+                ("world", 16, 21),
+                ("https", 23, 28),
+                ("example", 34, 41),
+                ("com", 42, 45),
+                ("user", 46, 50),
+                ("domain", 54, 60),
+                ("com", 61, 64),
             ]
         );
         assert_eq!(
-            FormatUrlPos::new(s, &Language::Python).collect::<Vec<_>>(),
-            vec![MatchFmtPos {
-                s: "https://%s.example.com",
-                start: 23,
-                end: 45,
-            }]
+            FormatUrlPos::new(s, &Language::Python)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("https://%s.example.com", 23, 45),]
         );
         assert_eq!(
-            FormatEmailPos::new(s, &Language::Python).collect::<Vec<_>>(),
-            vec![MatchFmtPos {
-                s: "user@%s.domain.com",
-                start: 46,
-                end: 64,
-            }]
+            FormatEmailPos::new(s, &Language::Python)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("user@%s.domain.com", 46, 64),]
         );
         assert_eq!(
             strip_formats(s, &Language::Python),
@@ -1156,90 +675,38 @@ mod tests {
     fn test_unicode_percent() {
         let s = "héllo, мир! %ld 你好 https://%s.example.com user@%s.domain.com";
         assert_eq!(
-            FormatPos::new(s, &Language::Python).collect::<Vec<_>>(),
+            FormatPos::new(s, &Language::Python)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("%ld", 16, 19), ("%s", 35, 37), ("%s", 55, 57),]
+        );
+        assert_eq!(
+            FormatWordPos::new(s, &Language::Python)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
             vec![
-                MatchFmtPos {
-                    s: "%ld",
-                    start: 16,
-                    end: 19,
-                },
-                MatchFmtPos {
-                    s: "%s",
-                    start: 35,
-                    end: 37,
-                },
-                MatchFmtPos {
-                    s: "%s",
-                    start: 55,
-                    end: 57,
-                },
+                ("héllo", 0, 6),
+                ("мир", 8, 14),
+                ("你好", 20, 26),
+                ("https", 27, 32),
+                ("example", 38, 45),
+                ("com", 46, 49),
+                ("user", 50, 54),
+                ("domain", 58, 64),
+                ("com", 65, 68),
             ]
         );
         assert_eq!(
-            FormatWordPos::new(s, &Language::Python).collect::<Vec<_>>(),
-            vec![
-                MatchFmtPos {
-                    s: "héllo",
-                    start: 0,
-                    end: 6,
-                },
-                MatchFmtPos {
-                    s: "мир",
-                    start: 8,
-                    end: 14,
-                },
-                MatchFmtPos {
-                    s: "你好",
-                    start: 20,
-                    end: 26,
-                },
-                MatchFmtPos {
-                    s: "https",
-                    start: 27,
-                    end: 32,
-                },
-                MatchFmtPos {
-                    s: "example",
-                    start: 38,
-                    end: 45,
-                },
-                MatchFmtPos {
-                    s: "com",
-                    start: 46,
-                    end: 49,
-                },
-                MatchFmtPos {
-                    s: "user",
-                    start: 50,
-                    end: 54,
-                },
-                MatchFmtPos {
-                    s: "domain",
-                    start: 58,
-                    end: 64,
-                },
-                MatchFmtPos {
-                    s: "com",
-                    start: 65,
-                    end: 68,
-                },
-            ]
+            FormatUrlPos::new(s, &Language::Python)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("https://%s.example.com", 27, 49),]
         );
         assert_eq!(
-            FormatUrlPos::new(s, &Language::Python).collect::<Vec<_>>(),
-            vec![MatchFmtPos {
-                s: "https://%s.example.com",
-                start: 27,
-                end: 49,
-            }]
-        );
-        assert_eq!(
-            FormatEmailPos::new(s, &Language::Python).collect::<Vec<_>>(),
-            vec![MatchFmtPos {
-                s: "user@%s.domain.com",
-                start: 50,
-                end: 68,
-            }]
+            FormatEmailPos::new(s, &Language::Python)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("user@%s.domain.com", 50, 68),]
         );
         assert_eq!(
             strip_formats(s, &Language::Python),
@@ -1251,90 +718,38 @@ mod tests {
     fn test_unicode_brace() {
         let s = "héllo, мир! {0} 你好 https://{1}.example.com user@{2}.domain.com";
         assert_eq!(
-            FormatPos::new(s, &Language::PythonBrace).collect::<Vec<_>>(),
+            FormatPos::new(s, &Language::PythonBrace)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("{0}", 16, 19), ("{1}", 35, 38), ("{2}", 56, 59),]
+        );
+        assert_eq!(
+            FormatWordPos::new(s, &Language::PythonBrace)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
             vec![
-                MatchFmtPos {
-                    s: "{0}",
-                    start: 16,
-                    end: 19,
-                },
-                MatchFmtPos {
-                    s: "{1}",
-                    start: 35,
-                    end: 38,
-                },
-                MatchFmtPos {
-                    s: "{2}",
-                    start: 56,
-                    end: 59,
-                },
+                ("héllo", 0, 6),
+                ("мир", 8, 14),
+                ("你好", 20, 26),
+                ("https", 27, 32),
+                ("example", 39, 46),
+                ("com", 47, 50),
+                ("user", 51, 55),
+                ("domain", 60, 66),
+                ("com", 67, 70),
             ]
         );
         assert_eq!(
-            FormatWordPos::new(s, &Language::PythonBrace).collect::<Vec<_>>(),
-            vec![
-                MatchFmtPos {
-                    s: "héllo",
-                    start: 0,
-                    end: 6,
-                },
-                MatchFmtPos {
-                    s: "мир",
-                    start: 8,
-                    end: 14,
-                },
-                MatchFmtPos {
-                    s: "你好",
-                    start: 20,
-                    end: 26,
-                },
-                MatchFmtPos {
-                    s: "https",
-                    start: 27,
-                    end: 32,
-                },
-                MatchFmtPos {
-                    s: "example",
-                    start: 39,
-                    end: 46,
-                },
-                MatchFmtPos {
-                    s: "com",
-                    start: 47,
-                    end: 50,
-                },
-                MatchFmtPos {
-                    s: "user",
-                    start: 51,
-                    end: 55,
-                },
-                MatchFmtPos {
-                    s: "domain",
-                    start: 60,
-                    end: 66,
-                },
-                MatchFmtPos {
-                    s: "com",
-                    start: 67,
-                    end: 70,
-                },
-            ]
+            FormatUrlPos::new(s, &Language::PythonBrace)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("https://{1}.example.com", 27, 50),]
         );
         assert_eq!(
-            FormatUrlPos::new(s, &Language::PythonBrace).collect::<Vec<_>>(),
-            vec![MatchFmtPos {
-                s: "https://{1}.example.com",
-                start: 27,
-                end: 50,
-            }]
-        );
-        assert_eq!(
-            FormatEmailPos::new(s, &Language::PythonBrace).collect::<Vec<_>>(),
-            vec![MatchFmtPos {
-                s: "user@{2}.domain.com",
-                start: 51,
-                end: 70,
-            }]
+            FormatEmailPos::new(s, &Language::PythonBrace)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("user@{2}.domain.com", 51, 70),]
         );
         assert_eq!(
             strip_formats(s, &Language::PythonBrace),
