@@ -27,8 +27,9 @@ impl FormatParser for FormatNull {
 mod tests {
     use crate::po::format::{
         MatchFmtPos,
-        iterators::{FormatEmailPos, FormatPos, FormatUrlPos, FormatWordPos, strip_formats},
+        iterators::{FormatEmailPos, FormatPos, FormatUrlPos, FormatWordPos},
         language::Language,
+        strip_formats,
     };
 
     #[test]

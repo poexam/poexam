@@ -4,8 +4,6 @@
 
 //! Format iterator: return format strings.
 
-use std::borrow::Cow;
-
 use crate::po::format::{FormatParser, MatchFmtPos, language::Language};
 
 pub struct FormatPos<'a> {
@@ -289,27 +287,5 @@ impl<'a> Iterator for FormatEmailPos<'a> {
                 _ => return None,
             }
         }
-    }
-}
-
-/// Strip format strings from a string, according to the given language.
-pub fn strip_formats<'a>(s: &'a str, language: &Language) -> Cow<'a, str> {
-    if language == &Language::Null {
-        // No format strings: return the original string.
-        Cow::Borrowed(s)
-    } else {
-        let len_s = s.len();
-        let mut result = String::with_capacity(len_s);
-        let mut pos = 0;
-        let fmt = language.format_parser();
-        while let Some((c, new_pos, is_format)) = fmt.next_char(s, pos) {
-            if is_format {
-                pos = fmt.find_end_format(s, new_pos, len_s);
-            } else {
-                result.push(c);
-                pos = new_pos;
-            }
-        }
-        Cow::Owned(result)
     }
 }
