@@ -14,7 +14,7 @@ use spellbook::Dictionary;
 use crate::checker::Checker;
 use crate::diagnostic::Severity;
 use crate::po::entry::Entry;
-use crate::po::format::iterators::FormatWordPos;
+use crate::po::format::iter::FormatWordPos;
 use crate::po::format::language::Language;
 use crate::rules::rule::RuleChecker;
 

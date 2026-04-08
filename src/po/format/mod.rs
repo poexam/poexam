@@ -8,7 +8,7 @@ use std::borrow::Cow;
 
 use crate::po::format::language::Language;
 
-pub mod iterators;
+pub mod iter;
 pub mod lang_c;
 pub mod lang_null;
 pub mod lang_python;

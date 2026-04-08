@@ -119,7 +119,7 @@ impl FormatParser for FormatPythonBrace {
 mod tests {
     use crate::po::format::{
         MatchFmtPos,
-        iterators::{FormatEmailPos, FormatPos, FormatUrlPos, FormatWordPos},
+        iter::{FormatEmailPos, FormatPos, FormatUrlPos, FormatWordPos},
         language::Language,
         strip_formats,
     };

@@ -11,7 +11,7 @@ use crate::diagnostic::Severity;
 use crate::po::entry::Entry;
 use crate::po::format::language::Language;
 use crate::po::format::{
-    iterators::FormatPos,
+    iter::FormatPos,
     lang_c::{fmt_sort_index, fmt_strip_index},
 };
 use crate::rules::rule::RuleChecker;

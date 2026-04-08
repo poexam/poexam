@@ -9,7 +9,7 @@ use std::collections::HashSet;
 use crate::checker::Checker;
 use crate::diagnostic::Severity;
 use crate::po::entry::Entry;
-use crate::po::format::iterators::FormatUrlPos;
+use crate::po::format::iter::FormatUrlPos;
 use crate::rules::double_quotes::DOUBLE_QUOTES;
 use crate::rules::rule::RuleChecker;
 

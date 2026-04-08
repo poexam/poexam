@@ -16,7 +16,7 @@ use serde::Serialize;
 use crate::args;
 use crate::dir::find_po_files;
 use crate::po::format::language::Language;
-use crate::po::format::{iterators::FormatWordPos, strip_formats};
+use crate::po::format::{iter::FormatWordPos, strip_formats};
 use crate::po::parser::Parser;
 
 #[derive(Clone, Copy, Default, Serialize)]
