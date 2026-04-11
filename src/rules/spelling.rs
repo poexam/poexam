@@ -61,7 +61,7 @@ impl RuleChecker for SpellingCtxtRule {
         if let Some(dict) = &checker.dict_id {
             let (misspelled_words, pos_words) = check_words(msgctxt, &entry.format_language, dict);
             if !misspelled_words.is_empty() {
-                checker.report_line(
+                checker.report_ctxt(
                     entry,
                     format!(
                         "misspelled words in context: {}",

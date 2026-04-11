@@ -133,7 +133,7 @@ impl<'d> Checker<'d> {
     }
 
     /// Report a diagnostic for a given context of a PO entry (msgctxt).
-    pub fn report_line(
+    pub fn report_ctxt(
         &mut self,
         _entry: &Entry,
         message: String,
