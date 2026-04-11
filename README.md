@@ -138,59 +138,19 @@ The result is very clear, almost all errors are highlighted in the strings so yo
 
 You can check by yourself with the following command executed in the root directory of the project (output is truncated here):
 
+```shell
+poexam check examples/fr.po
+```
+
+Example of diagnostic reported:
+
 ```text
-$ poexam check examples/fr.po
-examples/fr.po: [error:compilation] command `/usr/bin/msgfmt` reported errors
+examples/fr.po:42: [info:brackets] missing opening and closing square brackets '[' (1 / 0) and ']' (1 / 0)
         |
-        | examples/fr.po:60: format specifications in 'msgid' and 'msgstr' for argument 1 are not the same
-        | /usr/bin/msgfmt: found 1 fatal error
+     43 | Test [brackets]
         |
-
-examples/fr.po:25: [warning:blank] blank translation
+     44 | Test crochets
         |
-     25 | Test: blank translation
-        |
-     26 |
-        |
-
-examples/fr.po:34: [info:brackets] missing opening and closing square brackets '[' (1 / 0) and ']' (1 / 0)
-        |
-     34 | Test [brackets]
-        |
-     35 | Test crochets
-        |
-
-examples/fr.po:38: [info:double-quotes] missing double quotes (2 / 0)
-        |
-     38 | Test "double quotes"
-        |
-     39 | Test guillemets doubles
-        |
-
-examples/fr.po:42: [info:double-spaces] missing double spaces '  ' (2 / 0)
-        |
-     42 | Test  double  spaces
-        |
-     43 | Test espaces doubles
-        |
-
-examples/fr.po:46: [info:double-words] word 'un' is repeated
-        |
-     46 | This is a test of repeated words
-        |
-     47 | Ceci est un un test de mots répétés
-        |
-
-examples/fr.po:50: [warning:emails] different emails
-        |
-     50 | Email address: user@example.com
-        |
-     51 | Exemple d'e-mail : utilisateur@exemple.com
-        |
-
-(...)
-
-1 files checked: 32 problems in 1 files (6 errors, 3 warnings, 23 info) [27.938269ms]
 ```
 
 ### Output
