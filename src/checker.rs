@@ -101,14 +101,13 @@ impl<'d> Checker<'d> {
     }
 
     /// Report a diagnostic for the given PO file.
-    pub fn report_file(
-        &mut self,
-        rule: &'static str,
-        severity: Severity,
-        message: String,
-        detail: Option<String>,
-    ) {
-        let mut diagnostic = Diagnostic::new(self.path.as_path(), rule, severity, message);
+    pub fn report_file(&mut self, message: String, detail: Option<String>) {
+        let mut diagnostic = Diagnostic::new(
+            self.path.as_path(),
+            self.current_rule,
+            self.current_severity,
+            message,
+        );
         if let Some(content) = detail {
             // Split lines in detail and add them to the diagnostic with no line number (0).
             for line in content.lines() {
@@ -211,6 +210,8 @@ impl<'d> Checker<'d> {
     pub fn do_all_checks(&mut self, rules: &Rules) {
         // Run rules for the entire file (e.g. check compilation of the file with msgfmt command).
         for rule in &rules.enabled {
+            self.current_rule = rule.name();
+            self.current_severity = rule.severity();
             rule.check_file(self);
         }
         let mut error_dict_id = false;
@@ -229,12 +230,9 @@ impl<'d> Checker<'d> {
                         Ok(dict) => Some(dict),
                         Err(err) => {
                             if !error_dict_id {
-                                self.report_file(
-                                    "spelling-id-ctxt",
-                                    Severity::Warning,
-                                    err.to_string(),
-                                    None,
-                                );
+                                self.current_rule = "spelling-ctxt-id";
+                                self.current_severity = Severity::Warning;
+                                self.report_file(err.to_string(), None);
                             }
                             error_dict_id = true;
                             None
@@ -253,12 +251,9 @@ impl<'d> Checker<'d> {
                         Ok(dict) => Some(dict),
                         Err(err) => {
                             if !error_dict_str {
-                                self.report_file(
-                                    "spelling-str",
-                                    Severity::Warning,
-                                    err.to_string(),
-                                    None,
-                                );
+                                self.current_rule = "spelling-str";
+                                self.current_severity = Severity::Warning;
+                                self.report_file(err.to_string(), None);
                             }
                             error_dict_str = true;
                             None

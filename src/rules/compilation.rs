@@ -45,8 +45,6 @@ impl RuleChecker for CompilationRule {
             Ok(output) => {
                 if !output.status.success() {
                     checker.report_file(
-                        self.name(),
-                        self.severity(),
                         format!(
                             "command `{}` reported errors",
                             checker.config.check.path_msgfmt.display()
@@ -57,8 +55,6 @@ impl RuleChecker for CompilationRule {
             }
             Err(err) => {
                 checker.report_file(
-                    self.name(),
-                    self.severity(),
                     format!(
                         "failed to run command `{}`",
                         checker.config.check.path_msgfmt.display()
