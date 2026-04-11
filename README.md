@@ -125,6 +125,7 @@ For the rule `formats`, the following languages are supported:
 | compilation    | error    | Compilation with `msgfmt`.                       |
 | double-words   | info     | Translation has Consecutive repeated words.      |
 | fuzzy          | info     | Fuzzy entry.                                     |
+| noqa           | info     | Entry has `noqa` comment.                        |
 | obsolete       | info     | Obsolete entry.                                  |
 | paths          | warning  | Missing/extra/different paths.                   |
 | spelling-ctxt  | info     | Spelling error (context).                        |
@@ -189,7 +190,7 @@ examples/fr.po:50: [warning:emails] different emails
 
 (...)
 
-1 files checked: 30 problems in 1 files (6 errors, 6 warnings, 18 info) [27.938269ms]
+1 files checked: 32 problems in 1 files (6 errors, 6 warnings, 20 info) [27.938269ms]
 ```
 
 ### Spell checking

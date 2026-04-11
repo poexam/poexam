@@ -13,8 +13,8 @@ use crate::{
     po::entry::Entry,
     rules::{
         blank, brackets, changed, compilation, double_quotes, double_spaces, double_words, emails,
-        encoding, escapes, formats, fuzzy, long, newlines, obsolete, paths, pipes, plurals, punc,
-        punc_space, short, spelling, tabs, unchanged, untranslated, urls, whitespace,
+        encoding, escapes, formats, fuzzy, long, newlines, noqa, obsolete, paths, pipes, plurals,
+        punc, punc_space, short, spelling, tabs, unchanged, untranslated, urls, whitespace,
     },
 };
 
@@ -27,6 +27,7 @@ const SPECIAL_RULES: [&str; 4] = ["all", "checks", "default", "spelling"];
 pub struct Rules {
     pub enabled: Vec<Rule>,
     pub fuzzy_rule: bool,
+    pub noqa_rule: bool,
     pub obsolete_rule: bool,
     pub untranslated_rule: bool,
     pub spelling_ctxt_rule: bool,
@@ -39,6 +40,7 @@ impl<'a> Default for &'a Rules {
         static RULES: Rules = Rules {
             enabled: vec![],
             fuzzy_rule: false,
+            noqa_rule: false,
             obsolete_rule: false,
             untranslated_rule: false,
             spelling_ctxt_rule: false,
@@ -58,6 +60,7 @@ impl std::fmt::Display for Rule {
 impl Rules {
     pub fn new(rules: Vec<Rule>) -> Self {
         let fuzzy_rule = rules.iter().any(|r| r.name() == "fuzzy");
+        let noqa_rule = rules.iter().any(|r| r.name() == "noqa");
         let obsolete_rule = rules.iter().any(|r| r.name() == "obsolete");
         let untranslated_rule = rules.iter().any(|r| r.name() == "untranslated");
         let spelling_ctxt_rule = rules.iter().any(|r| r.name() == "spelling-ctxt");
@@ -66,6 +69,7 @@ impl Rules {
         Self {
             enabled: rules,
             fuzzy_rule,
+            noqa_rule,
             obsolete_rule,
             untranslated_rule,
             spelling_ctxt_rule,
@@ -102,6 +106,7 @@ pub fn get_all_rules() -> Vec<Rule> {
         Box::new(fuzzy::FuzzyRule {}),
         Box::new(long::LongRule {}),
         Box::new(newlines::NewlinesRule {}),
+        Box::new(noqa::NoqaRule {}),
         Box::new(obsolete::ObsoleteRule {}),
         Box::new(paths::PathsRule {}),
         Box::new(pipes::PipesRule {}),

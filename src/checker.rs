@@ -269,13 +269,14 @@ impl<'d> Checker<'d> {
             }
             if (!entry.is_translated() && !rules.untranslated_rule)
                 || (entry.fuzzy && !self.config.check.fuzzy && !rules.fuzzy_rule)
-                || (entry.noqa && !self.config.check.noqa)
+                || (entry.noqa && !self.config.check.noqa && !rules.noqa_rule)
                 || (entry.obsolete && !self.config.check.obsolete && !rules.obsolete_rule)
             {
                 continue;
             }
             for rule in &rules.enabled {
-                if !entry.noqa_rules.is_empty() && entry.noqa_rules.iter().any(|r| r == rule.name())
+                if rule.name() != "noqa"
+                    && (entry.noqa || entry.noqa_rules.iter().any(|r| r == rule.name()))
                 {
                     continue;
                 }

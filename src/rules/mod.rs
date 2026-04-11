@@ -18,6 +18,7 @@ pub mod formats;
 pub mod fuzzy;
 pub mod long;
 pub mod newlines;
+pub mod noqa;
 pub mod obsolete;
 pub mod paths;
 pub mod pipes;

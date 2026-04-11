@@ -25,11 +25,6 @@ msgstr ""
 msgid "Test: blank translation"
 msgstr " "
 
-# rule: blank
-#, noqa
-msgid "Test: blank translation with noqa"
-msgstr " "
-
 # rule: brackets
 msgid "Test [brackets]"
 msgstr "Test crochets"
@@ -124,6 +119,16 @@ msgstr " Test espace au début"
 #, fuzzy
 msgid "Fuzzy entry"
 msgstr "Entrée floue"
+
+# rule: blank
+#, noqa
+msgid "Test: blank translation with noqa"
+msgstr " "
+
+# rule: blank
+#, noqa:blank;spelling-id
+msgid "Another test: blank translation with multiple rules in noqa"
+msgstr " "
 
 # rule: unchanged
 msgid "Unchanged entry"
