@@ -193,6 +193,16 @@ examples/fr.po:50: [warning:emails] different emails
 1 files checked: 32 problems in 1 files (6 errors, 3 warnings, 23 info) [27.938269ms]
 ```
 
+### Output
+
+The environment variable `CLICOLOR_FORCE` can be set to `1` to force output with colors even when you pipe the command to another program.
+
+For example pipe with less and keep colors:
+
+```shell
+CLICOLOR_FORCE=1 poexam check | less -R
+```
+
 ### Spell checking
 
 You can check all words in a file by using one of these rules:
