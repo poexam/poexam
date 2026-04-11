@@ -35,22 +35,6 @@ pub struct Rules {
     pub spelling_str_rule: bool,
 }
 
-impl<'a> Default for &'a Rules {
-    fn default() -> &'a Rules {
-        static RULES: Rules = Rules {
-            enabled: vec![],
-            fuzzy_rule: false,
-            noqa_rule: false,
-            obsolete_rule: false,
-            untranslated_rule: false,
-            spelling_ctxt_rule: false,
-            spelling_id_rule: false,
-            spelling_str_rule: false,
-        };
-        &RULES
-    }
-}
-
 impl std::fmt::Display for Rule {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{} [{}]", self.name(), self.severity())
@@ -362,18 +346,6 @@ mod tests {
     fn test_rules_new_non_special_rule() {
         let rules = Rules::new(vec![Box::new(blank::BlankRule {})]);
         assert_eq!(rules.enabled.len(), 1);
-        assert!(!rules.fuzzy_rule);
-        assert!(!rules.obsolete_rule);
-        assert!(!rules.untranslated_rule);
-        assert!(!rules.spelling_ctxt_rule);
-        assert!(!rules.spelling_id_rule);
-        assert!(!rules.spelling_str_rule);
-    }
-
-    #[test]
-    fn test_rules_default_ref() {
-        let rules: &Rules = Default::default();
-        assert!(rules.enabled.is_empty());
         assert!(!rules.fuzzy_rule);
         assert!(!rules.obsolete_rule);
         assert!(!rules.untranslated_rule);
