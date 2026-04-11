@@ -190,7 +190,7 @@ examples/fr.po:50: [warning:emails] different emails
 
 (...)
 
-1 files checked: 32 problems in 1 files (6 errors, 6 warnings, 20 info) [27.938269ms]
+1 files checked: 32 problems in 1 files (6 errors, 3 warnings, 23 info) [27.938269ms]
 ```
 
 ### Spell checking
