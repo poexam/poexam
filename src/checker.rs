@@ -176,6 +176,7 @@ impl<'d> Checker<'d> {
     /// This function calls the following functions defined in the rule that implements
     /// the trait [`RuleChecker`](crate::rules::rule::RuleChecker):
     /// - [`check_entry`](crate::rules::rule::RuleChecker::check_entry): check the global entry
+    /// - [`check_ctxt`](crate::rules::rule::RuleChecker::check_ctxt): check the context string (msgctxt)
     /// - [`check_msg`](crate::rules::rule::RuleChecker::check_msg): check the strings:
     ///   - `msgid` / `msgstr[0]`
     ///   - `msgid_plural` / `msgstr[n]` (for each n > 0)
@@ -207,6 +208,13 @@ impl<'d> Checker<'d> {
     }
 
     /// Perform all checks on every entry of the PO file.
+    ///
+    /// This function calls the following function defined in the rule that implements
+    /// the trait [`RuleChecker`](crate::rules::rule::RuleChecker):
+    /// - [`check_file`](crate::rules::rule::RuleChecker::check_file): check the entire file
+    ///
+    /// Then, for each entry, it calls the function [`check_entry`](crate::checker::Checker::check_entry)
+    /// to check the entry with the given rule.
     pub fn do_all_checks(&mut self, rules: &Rules) {
         // Run rules for the entire file (e.g. check compilation of the file with msgfmt command).
         for rule in &rules.enabled {
