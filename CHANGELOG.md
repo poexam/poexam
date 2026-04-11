@@ -18,6 +18,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ### Changed
 
 - Report ellipsis differences by default in rules "punc-start" and "punc-end"
+- Do not display empty translation in diagnostics produced by the "untranslated" rule
 
 ## Version 0.0.8 (2026-03-25)
 

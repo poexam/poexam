@@ -159,6 +159,12 @@ impl Diagnostic {
         self
     }
 
+    /// Add one message to the diagnostic.
+    pub fn with_msg(mut self, msg: &Message) -> Self {
+        self.add_line(msg.line_number, &msg.value, &[]);
+        self
+    }
+
     /// Add one message to the diagnostic with the given highlights.
     pub fn with_msg_hl(mut self, msg: &Message, hl: &[(usize, usize)]) -> Self {
         self.add_line(msg.line_number, &msg.value, hl);
