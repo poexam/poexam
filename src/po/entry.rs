@@ -140,9 +140,16 @@ impl Entry {
         }
     }
 
-    /// Convert this entry back to PO file lines.
-    #[must_use]
-    pub fn to_po_lines(&self) -> Vec<(usize, String)> {
+    /// Convert the keywords of this entry back to PO file lines.
+    pub fn keywords_to_po_lines(&self) -> Vec<String> {
+        self.keywords
+            .iter()
+            .map(|keyword| format!("#, {keyword}"))
+            .collect()
+    }
+
+    /// Convert the messages of this entry back to PO file lines.
+    pub fn msg_to_po_lines(&self) -> Vec<(usize, String)> {
         let mut lines = Vec::with_capacity(5);
         let prefix = if self.obsolete { "#~ " } else { "" };
         if let Some(msg) = &self.msgctxt {
@@ -248,7 +255,7 @@ mod tests {
     }
 
     #[test]
-    fn test_entry_escape() {
+    fn test_escape() {
         let mut entry = get_test_entry();
         entry.escape_strings();
         assert_eq!(entry.msgctxt, Some(Message::new(1, "a file\\n")));
@@ -265,9 +272,9 @@ mod tests {
     }
 
     #[test]
-    fn test_entry_to_po_lines() {
+    fn test_msg_to_po_lines() {
         let entry = get_test_entry();
-        let po_lines = entry.to_po_lines();
+        let po_lines = entry.msg_to_po_lines();
         assert_eq!(
             po_lines,
             vec![
@@ -277,6 +284,17 @@ mod tests {
                 (4, "msgstr[0] \"fichier\\n\"".to_string()),
                 (5, "msgstr[1] \"fichiers\\n\"".to_string()),
             ]
+        );
+    }
+
+    #[test]
+    fn test_keywords_to_po_lines() {
+        let mut entry = get_test_entry();
+        entry.keywords = vec!["noqa".to_string(), "fuzzy".to_string()];
+        let po_lines = entry.keywords_to_po_lines();
+        assert_eq!(
+            po_lines,
+            vec!["#, noqa".to_string(), "#, fuzzy".to_string(),]
         );
     }
 }

@@ -151,9 +151,17 @@ impl Diagnostic {
         }
     }
 
-    /// Add a PO entry to the diagnostic.
+    /// Add keywords of a PO entry to the diagnostic.
+    pub fn with_keywords(mut self, entry: &Entry) -> Self {
+        for line in entry.keywords_to_po_lines() {
+            self.add_line(0, &line, &[]);
+        }
+        self
+    }
+
+    /// Add messages of a PO entry to the diagnostic.
     pub fn with_entry(mut self, entry: &Entry) -> Self {
-        for (line_no, line) in entry.to_po_lines() {
+        for (line_no, line) in entry.msg_to_po_lines() {
             self.add_line(line_no, &line, &[]);
         }
         self
@@ -293,8 +301,8 @@ impl Diagnostic {
 impl std::fmt::Display for Diagnostic {
     /// Format the `Diagnostic` for display, including file, severity, message, and context.
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let str_first_line = match self.lines.first() {
-            Some(line) if line.line_number > 0 => format!(":{}", line.line_number),
+        let str_first_line = match self.lines.iter().find(|line| line.line_number > 0) {
+            Some(line) => format!(":{}", line.line_number),
             _ => String::new(),
         };
         write!(
