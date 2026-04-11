@@ -7,9 +7,10 @@
 use std::collections::HashSet;
 
 use crate::checker::Checker;
-use crate::diagnostic::Severity;
+use crate::diagnostic::{Diagnostic, Severity};
 use crate::po::entry::Entry;
 use crate::po::format::iter::FormatUrlPos;
+use crate::po::message::Message;
 use crate::rules::double_quotes::DOUBLE_QUOTES;
 use crate::rules::rule::RuleChecker;
 
@@ -50,53 +51,73 @@ impl RuleChecker for UrlsRule {
     /// - `missing URLs (# / #)`
     /// - `extra URLs (# / #)`
     /// - `different URLs`
-    fn check_msg(&self, checker: &mut Checker, entry: &Entry, msgid: &str, msgstr: &str) {
-        let id_urls: Vec<_> = FormatUrlPos::new(msgid, &entry.format_language).collect();
-        let str_urls: Vec<_> = FormatUrlPos::new(msgstr, &entry.format_language).collect();
+    fn check_msg(
+        &self,
+        checker: &Checker,
+        entry: &Entry,
+        msgid: &Message,
+        msgstr: &Message,
+    ) -> Vec<Diagnostic> {
+        let id_urls: Vec<_> = FormatUrlPos::new(&msgid.value, &entry.format_language).collect();
+        let str_urls: Vec<_> = FormatUrlPos::new(&msgstr.value, &entry.format_language).collect();
         match id_urls.len().cmp(&str_urls.len()) {
             std::cmp::Ordering::Greater => {
-                checker.report_id_str(
-                    entry,
-                    format!("missing URLs ({} / {})", id_urls.len(), str_urls.len()),
-                    msgid,
-                    &id_urls.iter().map(|m| (m.start, m.end)).collect::<Vec<_>>(),
-                    msgstr,
-                    &str_urls
-                        .iter()
-                        .map(|m| (m.start, m.end))
-                        .collect::<Vec<_>>(),
-                );
+                vec![
+                    checker
+                        .new_diag(format!(
+                            "missing URLs ({} / {})",
+                            id_urls.len(),
+                            str_urls.len()
+                        ))
+                        .with_msgs_hl(
+                            msgid,
+                            &id_urls.iter().map(|m| (m.start, m.end)).collect::<Vec<_>>(),
+                            msgstr,
+                            &str_urls
+                                .iter()
+                                .map(|m| (m.start, m.end))
+                                .collect::<Vec<_>>(),
+                        ),
+                ]
             }
             std::cmp::Ordering::Less => {
-                checker.report_id_str(
-                    entry,
-                    format!("extra URLs ({} / {})", id_urls.len(), str_urls.len()),
-                    msgid,
-                    &id_urls.iter().map(|m| (m.start, m.end)).collect::<Vec<_>>(),
-                    msgstr,
-                    &str_urls
-                        .iter()
-                        .map(|m| (m.start, m.end))
-                        .collect::<Vec<_>>(),
-                );
+                vec![
+                    checker
+                        .new_diag(format!(
+                            "extra URLs ({} / {})",
+                            id_urls.len(),
+                            str_urls.len()
+                        ))
+                        .with_msgs_hl(
+                            msgid,
+                            &id_urls.iter().map(|m| (m.start, m.end)).collect::<Vec<_>>(),
+                            msgstr,
+                            &str_urls
+                                .iter()
+                                .map(|m| (m.start, m.end))
+                                .collect::<Vec<_>>(),
+                        ),
+                ]
             }
             std::cmp::Ordering::Equal => {
                 // Check that URLs are the same, in any order.
                 // A single pair of quotes is skipped from both sides of the URL.
                 let id_urls_hash: HashSet<_> = id_urls.iter().map(|m| trim_quotes(m.s)).collect();
                 let str_urls_hash: HashSet<_> = str_urls.iter().map(|m| trim_quotes(m.s)).collect();
-                if id_urls_hash != str_urls_hash {
-                    checker.report_id_str(
-                        entry,
-                        "different URLs".to_string(),
-                        msgid,
-                        &id_urls.iter().map(|m| (m.start, m.end)).collect::<Vec<_>>(),
-                        msgstr,
-                        &str_urls
-                            .iter()
-                            .map(|m| (m.start, m.end))
-                            .collect::<Vec<_>>(),
-                    );
+                if id_urls_hash == str_urls_hash {
+                    vec![]
+                } else {
+                    vec![
+                        checker.new_diag("different URLs").with_msgs_hl(
+                            msgid,
+                            &id_urls.iter().map(|m| (m.start, m.end)).collect::<Vec<_>>(),
+                            msgstr,
+                            &str_urls
+                                .iter()
+                                .map(|m| (m.start, m.end))
+                                .collect::<Vec<_>>(),
+                        ),
+                    ]
                 }
             }
         }

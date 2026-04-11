@@ -7,8 +7,9 @@
 //! - `whitespace-end`: whitespace at the end of the string
 
 use crate::checker::Checker;
-use crate::diagnostic::Severity;
+use crate::diagnostic::{Diagnostic, Severity};
 use crate::po::entry::Entry;
+use crate::po::message::Message;
 use crate::rules::rule::RuleChecker;
 
 pub struct WhitespaceStartRule;
@@ -46,21 +47,28 @@ impl RuleChecker for WhitespaceStartRule {
     ///
     /// Diagnostics reported with severity [`info`](Severity::Info):
     /// - `inconsistent leading whitespace ('…' / '…')`
-    fn check_msg(&self, checker: &mut Checker, entry: &Entry, msgid: &str, msgstr: &str) {
-        if msgid.trim().is_empty() || msgstr.trim().is_empty() {
-            return;
+    fn check_msg(
+        &self,
+        checker: &Checker,
+        _entry: &Entry,
+        msgid: &Message,
+        msgstr: &Message,
+    ) -> Vec<Diagnostic> {
+        if msgid.value.trim().is_empty() || msgstr.value.trim().is_empty() {
+            return vec![];
         }
-        let id_ws = get_whitespace_start(msgid);
-        let str_ws = get_whitespace_start(msgstr);
-        if id_ws != str_ws {
-            checker.report_id_str(
-                entry,
-                format!("inconsistent leading whitespace ('{id_ws}' / '{str_ws}')"),
-                msgid,
-                &[(0, id_ws.len())],
-                msgstr,
-                &[(0, str_ws.len())],
-            );
+        let id_ws = get_whitespace_start(&msgid.value);
+        let str_ws = get_whitespace_start(&msgstr.value);
+        if id_ws == str_ws {
+            vec![]
+        } else {
+            vec![
+                checker
+                    .new_diag(format!(
+                        "inconsistent leading whitespace ('{id_ws}' / '{str_ws}')"
+                    ))
+                    .with_msgs_hl(msgid, &[(0, id_ws.len())], msgstr, &[(0, str_ws.len())]),
+            ]
         }
     }
 }
@@ -100,21 +108,33 @@ impl RuleChecker for WhitespaceEndRule {
     ///
     /// Diagnostics reported with severity [`info`](Severity::Info):
     /// - `inconsistent trailing whitespace ('…' / '…')`
-    fn check_msg(&self, checker: &mut Checker, entry: &Entry, msgid: &str, msgstr: &str) {
-        if msgid.trim().is_empty() || msgstr.trim().is_empty() {
-            return;
+    fn check_msg(
+        &self,
+        checker: &Checker,
+        _entry: &Entry,
+        msgid: &Message,
+        msgstr: &Message,
+    ) -> Vec<Diagnostic> {
+        if msgid.value.trim().is_empty() || msgstr.value.trim().is_empty() {
+            return vec![];
         }
-        let id_ws = get_whitespace_end(msgid);
-        let str_ws = get_whitespace_end(msgstr);
-        if id_ws != str_ws {
-            checker.report_id_str(
-                entry,
-                format!("inconsistent trailing whitespace ('{id_ws}' / '{str_ws}')"),
-                msgid,
-                &[(msgid.len() - id_ws.len(), msgid.len())],
-                msgstr,
-                &[(msgstr.len() - str_ws.len(), msgstr.len())],
-            );
+        let id_ws = get_whitespace_end(&msgid.value);
+        let str_ws = get_whitespace_end(&msgstr.value);
+        if id_ws == str_ws {
+            vec![]
+        } else {
+            vec![
+                checker
+                    .new_diag(format!(
+                        "inconsistent trailing whitespace ('{id_ws}' / '{str_ws}')"
+                    ))
+                    .with_msgs_hl(
+                        msgid,
+                        &[(msgid.value.len() - id_ws.len(), msgid.value.len())],
+                        msgstr,
+                        &[(msgstr.value.len() - str_ws.len(), msgstr.value.len())],
+                    ),
+            ]
         }
     }
 }

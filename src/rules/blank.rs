@@ -5,8 +5,9 @@
 //! Implementation of the `blank` rule: check blank translation.
 
 use crate::checker::Checker;
-use crate::diagnostic::Severity;
+use crate::diagnostic::{Diagnostic, Severity};
 use crate::po::entry::Entry;
+use crate::po::message::Message;
 use crate::rules::rule::RuleChecker;
 
 pub struct BlankRule;
@@ -47,16 +48,25 @@ impl RuleChecker for BlankRule {
     ///
     /// Diagnostics reported with severity [`warning`](Severity::Warning):
     /// - `blank translation`
-    fn check_msg(&self, checker: &mut Checker, entry: &Entry, msgid: &str, msgstr: &str) {
-        if !msgid.trim().is_empty() && !msgstr.is_empty() && msgstr.trim().is_empty() {
-            checker.report_id_str(
-                entry,
-                "blank translation".to_string(),
+    fn check_msg(
+        &self,
+        checker: &Checker,
+        _entry: &Entry,
+        msgid: &Message,
+        msgstr: &Message,
+    ) -> Vec<Diagnostic> {
+        if !msgid.value.trim().is_empty()
+            && !msgstr.value.is_empty()
+            && msgstr.value.trim().is_empty()
+        {
+            vec![checker.new_diag("blank translation").with_msgs_hl(
                 msgid,
                 &[],
                 msgstr,
-                &[(0, msgstr.len())],
-            );
+                &[(0, msgstr.value.len())],
+            )]
+        } else {
+            vec![]
         }
     }
 }

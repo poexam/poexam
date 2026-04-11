@@ -5,7 +5,6 @@
 //! Checker for PO files.
 
 use std::{
-    collections::HashSet,
     fs::File,
     io::Read,
     path::{Path, PathBuf},
@@ -31,7 +30,6 @@ pub struct CheckFileResult {
     pub config: Config,
     pub rules: Rules,
     pub diagnostics: Vec<Diagnostic>,
-    pub misspelled_words: HashSet<String>,
 }
 
 #[derive(Default)]
@@ -42,12 +40,8 @@ pub struct Checker<'d> {
     pub dict_str: Option<Dictionary>,
     pub diagnostics: Vec<Diagnostic>,
     parser: Parser<'d>,
-    misspelled_words: HashSet<String>,
     current_rule: &'static str,
     current_severity: Severity,
-    current_line_ctxt: usize,
-    current_line_id: usize,
-    current_line_str: usize,
 }
 
 impl<'d> Checker<'d> {
@@ -69,10 +63,6 @@ impl<'d> Checker<'d> {
     pub fn with_config(mut self, config: Config) -> Self {
         self.config = config;
         self
-    }
-
-    pub fn add_misspelled_word(&mut self, word: &str) {
-        self.misspelled_words.insert(word.to_string());
     }
 
     /// Get the language of the file being checked (e.g. `pt_BR`).
@@ -100,75 +90,15 @@ impl<'d> Checker<'d> {
         self.parser.nplurals()
     }
 
-    /// Report a diagnostic for the given PO file.
-    pub fn report_file(&mut self, message: String, detail: Option<String>) {
-        let mut diagnostic = Diagnostic::new(
-            self.path.as_path(),
+    /// Create a new `Diagnostic` with the given message and the current path, rule,
+    /// severity and line numbers.
+    pub fn new_diag(&self, message: impl Into<String>) -> Diagnostic {
+        Diagnostic::new(
+            &self.path,
             self.current_rule,
             self.current_severity,
             message,
-        );
-        if let Some(content) = detail {
-            // Split lines in detail and add them to the diagnostic with no line number (0).
-            for line in content.lines() {
-                diagnostic.add_message(0, line, &[]);
-            }
-        }
-        self.diagnostics.push(diagnostic);
-    }
-
-    /// Report a diagnostic for the given PO entry.
-    pub fn report_entry(&mut self, message: String, entry: &Entry) {
-        let mut diagnostic = Diagnostic::new(
-            self.path.as_path(),
-            self.current_rule,
-            self.current_severity,
-            message,
-        );
-        for (line_no, line) in entry.to_po_lines() {
-            diagnostic.add_message(line_no, &line, &[]);
-        }
-        self.diagnostics.push(diagnostic);
-    }
-
-    /// Report a diagnostic for a given context of a PO entry (msgctxt).
-    pub fn report_ctxt(
-        &mut self,
-        _entry: &Entry,
-        message: String,
-        msgctxt: &str,
-        hl_ctxt: &[(usize, usize)],
-    ) {
-        let mut diagnostic = Diagnostic::new(
-            self.path.as_path(),
-            self.current_rule,
-            self.current_severity,
-            message,
-        );
-        diagnostic.add_message(self.current_line_id, msgctxt, hl_ctxt);
-        self.diagnostics.push(diagnostic);
-    }
-
-    /// Report a diagnostic for a given message of a PO entry (couple source/translated).
-    pub fn report_id_str(
-        &mut self,
-        _entry: &Entry,
-        message: String,
-        msgid: &str,
-        hl_id: &[(usize, usize)],
-        msgstr: &str,
-        hl_str: &[(usize, usize)],
-    ) {
-        let mut diagnostic = Diagnostic::new(
-            self.path.as_path(),
-            self.current_rule,
-            self.current_severity,
-            message,
-        );
-        diagnostic.add_message(self.current_line_id, msgid, hl_id);
-        diagnostic.add_message(0, "", &[]);
-        diagnostic.add_message(self.current_line_str, msgstr, hl_str);
-        self.diagnostics.push(diagnostic);
+        )
     }
 
     /// Check the PO entry using the given rule.
@@ -184,24 +114,23 @@ impl<'d> Checker<'d> {
         self.current_rule = rule.name();
         self.current_severity = rule.severity();
         let rule_is_untranslated = self.current_rule == "untranslated";
-        rule.check_entry(self, entry);
+        let diags = rule.check_entry(self, entry);
+        self.diagnostics.extend(diags);
         if let Some(msgctxt) = &entry.msgctxt {
-            self.current_line_ctxt = msgctxt.line_number;
-            rule.check_ctxt(self, entry, &msgctxt.value);
+            let diags = rule.check_ctxt(self, entry, msgctxt);
+            self.diagnostics.extend(diags);
         }
         if let (Some(msgid), Some(msgstr_0)) = (&entry.msgid, entry.msgstr.get(&0))
             && (!msgstr_0.value.is_empty() || (untranslated_rule && rule_is_untranslated))
         {
-            self.current_line_id = msgid.line_number;
-            self.current_line_str = msgstr_0.line_number;
-            rule.check_msg(self, entry, &msgid.value, &msgstr_0.value);
+            let diags = rule.check_msg(self, entry, msgid, msgstr_0);
+            self.diagnostics.extend(diags);
         }
         if let Some(msgid_plural) = &entry.msgid_plural {
             for (_, msgstr_n) in entry.iter_strs().filter(|(k, _)| **k > 0) {
                 if !msgstr_n.value.is_empty() || (untranslated_rule && rule_is_untranslated) {
-                    self.current_line_id = msgid_plural.line_number;
-                    self.current_line_str = msgstr_n.line_number;
-                    rule.check_msg(self, entry, &msgid_plural.value, &msgstr_n.value);
+                    let diags = rule.check_msg(self, entry, msgid_plural, msgstr_n);
+                    self.diagnostics.extend(diags);
                 }
             }
         }
@@ -220,7 +149,8 @@ impl<'d> Checker<'d> {
         for rule in &rules.enabled {
             self.current_rule = rule.name();
             self.current_severity = rule.severity();
-            rule.check_file(self);
+            let diags = rule.check_file(self);
+            self.diagnostics.extend(diags);
         }
         let mut error_dict_id = false;
         let mut error_dict_str = false;
@@ -240,7 +170,7 @@ impl<'d> Checker<'d> {
                             if !error_dict_id {
                                 self.current_rule = "spelling-ctxt-id";
                                 self.current_severity = Severity::Warning;
-                                self.report_file(err.to_string(), None);
+                                self.diagnostics.push(self.new_diag(err.to_string()));
                             }
                             error_dict_id = true;
                             None
@@ -261,7 +191,7 @@ impl<'d> Checker<'d> {
                             if !error_dict_str {
                                 self.current_rule = "spelling-str";
                                 self.current_severity = Severity::Warning;
-                                self.report_file(err.to_string(), None);
+                                self.diagnostics.push(self.new_diag(err.to_string()));
                             }
                             error_dict_str = true;
                             None
@@ -371,7 +301,6 @@ pub fn check_file(path: &PathBuf, args: &args::CheckArgs) -> CheckFileResult {
         config: checker.config,
         rules,
         diagnostics: checker.diagnostics,
-        misspelled_words: checker.misspelled_words,
     }
 }
 

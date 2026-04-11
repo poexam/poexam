@@ -10,7 +10,8 @@ use crate::{
     args,
     checker::Checker,
     config::Config,
-    po::entry::Entry,
+    diagnostic::{Diagnostic, Severity},
+    po::{entry::Entry, message::Message},
     rules::{
         blank, brackets, changed, compilation, double_quotes, double_spaces, double_words, emails,
         encoding, escapes, formats, fuzzy, long, newlines, noqa, obsolete, paths, pipes, plurals,
@@ -67,11 +68,25 @@ pub trait RuleChecker {
     fn name(&self) -> &'static str;
     fn is_default(&self) -> bool;
     fn is_check(&self) -> bool;
-    fn severity(&self) -> crate::diagnostic::Severity;
-    fn check_file(&self, _checker: &mut Checker) {}
-    fn check_entry(&self, _checker: &mut Checker, _entry: &Entry) {}
-    fn check_ctxt(&self, _checker: &mut Checker, _entry: &Entry, _ctxt: &str) {}
-    fn check_msg(&self, _checker: &mut Checker, _entry: &Entry, _msgid: &str, _msgstr: &str) {}
+    fn severity(&self) -> Severity;
+    fn check_file(&self, _checker: &Checker) -> Vec<Diagnostic> {
+        vec![]
+    }
+    fn check_entry(&self, _checker: &Checker, _entry: &Entry) -> Vec<Diagnostic> {
+        vec![]
+    }
+    fn check_ctxt(&self, _checker: &Checker, _entry: &Entry, _ctxt: &Message) -> Vec<Diagnostic> {
+        vec![]
+    }
+    fn check_msg(
+        &self,
+        _checker: &Checker,
+        _entry: &Entry,
+        _msgid: &Message,
+        _msgstr: &Message,
+    ) -> Vec<Diagnostic> {
+        vec![]
+    }
 }
 
 pub fn get_all_rules() -> Vec<Rule> {

@@ -12,10 +12,11 @@ use std::collections::HashSet;
 use spellbook::Dictionary;
 
 use crate::checker::Checker;
-use crate::diagnostic::Severity;
+use crate::diagnostic::{Diagnostic, Severity};
 use crate::po::entry::Entry;
 use crate::po::format::iter::FormatWordPos;
 use crate::po::format::language::Language;
+use crate::po::message::Message;
 use crate::rules::rule::RuleChecker;
 
 pub struct SpellingCtxtRule;
@@ -57,24 +58,20 @@ impl RuleChecker for SpellingCtxtRule {
     ///
     /// Diagnostics reported with severity [`info`](Severity::Info):
     /// - `misspelled words in context: xxx`
-    fn check_ctxt(&self, checker: &mut Checker, entry: &Entry, msgctxt: &str) {
+    fn check_ctxt(&self, checker: &Checker, entry: &Entry, msgctxt: &Message) -> Vec<Diagnostic> {
         if let Some(dict) = &checker.dict_id {
-            let (misspelled_words, pos_words) = check_words(msgctxt, &entry.format_language, dict);
+            let (misspelled_words, pos_words) =
+                check_words(&msgctxt.value, &entry.format_language, dict);
             if !misspelled_words.is_empty() {
-                checker.report_ctxt(
-                    entry,
-                    format!(
-                        "misspelled words in context: {}",
-                        misspelled_words.join(", ")
-                    ),
-                    msgctxt,
-                    &pos_words,
-                );
-                for word in misspelled_words {
-                    checker.add_misspelled_word(word);
-                }
+                return vec![
+                    checker
+                        .new_diag("misspelled words in context")
+                        .with_msg_hl(msgctxt, &pos_words)
+                        .with_misspelled_words(misspelled_words),
+                ];
             }
         }
+        vec![]
     }
 }
 
@@ -115,26 +112,26 @@ impl RuleChecker for SpellingIdRule {
     ///
     /// Diagnostics reported with severity [`info`](Severity::Info):
     /// - `misspelled words in source: xxx`
-    fn check_msg(&self, checker: &mut Checker, entry: &Entry, msgid: &str, msgstr: &str) {
+    fn check_msg(
+        &self,
+        checker: &Checker,
+        entry: &Entry,
+        msgid: &Message,
+        msgstr: &Message,
+    ) -> Vec<Diagnostic> {
         if let Some(dict) = &checker.dict_id {
-            let (misspelled_words, pos_words) = check_words(msgid, &entry.format_language, dict);
+            let (misspelled_words, pos_words) =
+                check_words(&msgid.value, &entry.format_language, dict);
             if !misspelled_words.is_empty() {
-                checker.report_id_str(
-                    entry,
-                    format!(
-                        "misspelled words in source: {}",
-                        misspelled_words.join(", ")
-                    ),
-                    msgid,
-                    &pos_words,
-                    msgstr,
-                    &[],
-                );
-                for word in misspelled_words {
-                    checker.add_misspelled_word(word);
-                }
+                return vec![
+                    checker
+                        .new_diag("misspelled words in source")
+                        .with_msgs_hl(msgid, &pos_words, msgstr, &[])
+                        .with_misspelled_words(misspelled_words),
+                ];
             }
         }
+        vec![]
     }
 }
 
@@ -175,26 +172,26 @@ impl RuleChecker for SpellingStrRule {
     ///
     /// Diagnostics reported with severity [`info`](Severity::Info):
     /// - `misspelled words in translation: xxx`
-    fn check_msg(&self, checker: &mut Checker, entry: &Entry, msgid: &str, msgstr: &str) {
+    fn check_msg(
+        &self,
+        checker: &Checker,
+        entry: &Entry,
+        msgid: &Message,
+        msgstr: &Message,
+    ) -> Vec<Diagnostic> {
         if let Some(dict) = &checker.dict_str {
-            let (misspelled_words, pos_words) = check_words(msgstr, &entry.format_language, dict);
+            let (misspelled_words, pos_words) =
+                check_words(&msgstr.value, &entry.format_language, dict);
             if !misspelled_words.is_empty() {
-                checker.report_id_str(
-                    entry,
-                    format!(
-                        "misspelled words in translation: {}",
-                        misspelled_words.join(", ")
-                    ),
-                    msgid,
-                    &[],
-                    msgstr,
-                    &pos_words,
-                );
-                for word in misspelled_words {
-                    checker.add_misspelled_word(word);
-                }
+                return vec![
+                    checker
+                        .new_diag("misspelled words in translation")
+                        .with_msgs_hl(msgid, &[], msgstr, &pos_words)
+                        .with_misspelled_words(misspelled_words),
+                ];
             }
         }
+        vec![]
     }
 }
 
@@ -205,7 +202,7 @@ fn check_words<'s>(
     s: &'s str,
     format_language: &Language,
     dict: &Dictionary,
-) -> (Vec<&'s str>, Vec<(usize, usize)>) {
+) -> (HashSet<&'s str>, Vec<(usize, usize)>) {
     let mut misspelled_words: HashSet<&str> = HashSet::new();
     let mut hash_words: HashSet<&str> = HashSet::new();
     let mut pos_words = Vec::new();
@@ -230,9 +227,7 @@ fn check_words<'s>(
             }
         }
     }
-    let mut list_words = misspelled_words.iter().copied().collect::<Vec<_>>();
-    list_words.sort_unstable();
-    (list_words, pos_words)
+    (misspelled_words, pos_words)
 }
 
 #[cfg(test)]
@@ -304,12 +299,24 @@ msgstr "ceci est unz fôte, ceci est unz fôte"
         assert_eq!(diags.len(), 3);
         let diag = &diags[0];
         assert_eq!(diag.severity, Severity::Info);
-        assert_eq!(diag.message, "misspelled words in context: contxet");
+        assert_eq!(diag.build_message(), "misspelled words in context: contxet");
+        assert_eq!(
+            diag.misspelled_words,
+            HashSet::from(["contxet".to_string()])
+        );
         let diag = &diags[1];
         assert_eq!(diag.severity, Severity::Info);
-        assert_eq!(diag.message, "misspelled words in source: tyypo");
+        assert_eq!(diag.build_message(), "misspelled words in source: tyypo");
+        assert_eq!(diag.misspelled_words, HashSet::from(["tyypo".to_string()]));
         let diag = &diags[2];
         assert_eq!(diag.severity, Severity::Info);
-        assert_eq!(diag.message, "misspelled words in translation: fôte, unz");
+        assert_eq!(
+            diag.build_message(),
+            "misspelled words in translation: fôte, unz"
+        );
+        assert_eq!(
+            diag.misspelled_words,
+            HashSet::from(["fôte".to_string(), "unz".to_string()])
+        );
     }
 }

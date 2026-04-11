@@ -125,7 +125,8 @@ fn display_diagnostics_json(result: &[CheckFileResult], _args: &args::CheckArgs)
 fn display_misspelled_words(result: &[CheckFileResult], _args: &args::CheckArgs) {
     let hash_misspelled_words: HashSet<_> = result
         .iter()
-        .flat_map(|x| &x.misspelled_words)
+        .flat_map(|x| &x.diagnostics)
+        .flat_map(|d| d.misspelled_words.iter())
         .collect::<HashSet<_>>();
     let mut misspelled_words = hash_misspelled_words.iter().copied().collect::<Vec<_>>();
     misspelled_words.sort_unstable();

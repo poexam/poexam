@@ -5,8 +5,9 @@
 //! Implementation of the `tabs` rule: check inconsistent tabs.
 
 use crate::checker::Checker;
-use crate::diagnostic::Severity;
+use crate::diagnostic::{Diagnostic, Severity};
 use crate::po::entry::Entry;
+use crate::po::message::Message;
 use crate::rules::rule::RuleChecker;
 
 pub struct TabsRule;
@@ -45,41 +46,47 @@ impl RuleChecker for TabsRule {
     /// Diagnostics reported with severity [`error`](Severity::Error):
     /// - `missing tabs '\t' (# / #)`
     /// - `extra tabs '\t' (# / #)`
-    fn check_msg(&self, checker: &mut Checker, entry: &Entry, msgid: &str, msgstr: &str) {
+    fn check_msg(
+        &self,
+        checker: &Checker,
+        _entry: &Entry,
+        msgid: &Message,
+        msgstr: &Message,
+    ) -> Vec<Diagnostic> {
         let id_tabs: Vec<_> = msgid
+            .value
             .match_indices('\t')
             .map(|(idx, value)| (idx, idx + value.len()))
             .collect();
         let str_tabs: Vec<_> = msgstr
+            .value
             .match_indices('\t')
             .map(|(idx, value)| (idx, idx + value.len()))
             .collect();
         match id_tabs.len().cmp(&str_tabs.len()) {
             std::cmp::Ordering::Greater => {
-                checker.report_id_str(
-                    entry,
-                    format!(
-                        "missing tabs '\\t' ({} / {})",
-                        id_tabs.len(),
-                        str_tabs.len()
-                    ),
-                    msgid,
-                    &id_tabs,
-                    msgstr,
-                    &str_tabs,
-                );
+                vec![
+                    checker
+                        .new_diag(format!(
+                            "missing tabs '\\t' ({} / {})",
+                            id_tabs.len(),
+                            str_tabs.len()
+                        ))
+                        .with_msgs_hl(msgid, &id_tabs, msgstr, &str_tabs),
+                ]
             }
             std::cmp::Ordering::Less => {
-                checker.report_id_str(
-                    entry,
-                    format!("extra tabs '\\t' ({} / {})", id_tabs.len(), str_tabs.len()),
-                    msgid,
-                    &id_tabs,
-                    msgstr,
-                    &str_tabs,
-                );
+                vec![
+                    checker
+                        .new_diag(format!(
+                            "extra tabs '\\t' ({} / {})",
+                            id_tabs.len(),
+                            str_tabs.len()
+                        ))
+                        .with_msgs_hl(msgid, &id_tabs, msgstr, &str_tabs),
+                ]
             }
-            std::cmp::Ordering::Equal => {}
+            std::cmp::Ordering::Equal => vec![],
         }
     }
 }

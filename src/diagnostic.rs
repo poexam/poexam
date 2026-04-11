@@ -6,6 +6,7 @@
 
 use std::{
     borrow::Cow,
+    collections::HashSet,
     path::{Path, PathBuf},
 };
 
@@ -15,6 +16,8 @@ use serde::{
     Deserialize, Serialize,
     ser::{SerializeStruct, Serializer},
 };
+
+use crate::po::{entry::Entry, message::Message};
 
 const HIGHLIGHT_COLOR: &str = "bright yellow";
 const HIGHLIGHT_ON_COLOR: &str = "red";
@@ -55,6 +58,7 @@ pub struct Diagnostic {
     pub severity: Severity,
     pub message: String,
     pub lines: Vec<DiagnosticLine>,
+    pub misspelled_words: HashSet<String>,
 }
 
 impl std::fmt::Display for Severity {
@@ -132,14 +136,85 @@ impl DiagnosticLine {
 impl Diagnostic {
     /// Create a new `Diagnostic` with the given path, severity, and message.
     #[allow(clippy::too_many_arguments)]
-    pub fn new(path: &Path, rule: &'static str, severity: Severity, message: String) -> Self {
+    pub fn new(
+        path: &Path,
+        rule: &'static str,
+        severity: Severity,
+        message: impl Into<String>,
+    ) -> Self {
         Self {
             path: PathBuf::from(path),
             rule,
             severity,
-            message,
+            message: message.into(),
             ..Default::default()
         }
+    }
+
+    /// Add a PO entry to the diagnostic.
+    pub fn with_entry(mut self, entry: &Entry) -> Self {
+        for (line_no, line) in entry.to_po_lines() {
+            self.add_line(line_no, &line, &[]);
+        }
+        self
+    }
+
+    /// Add one message to the diagnostic with the given highlights.
+    pub fn with_msg_hl(mut self, msg: &Message, hl: &[(usize, usize)]) -> Self {
+        self.add_line(msg.line_number, &msg.value, hl);
+        self
+    }
+
+    /// Add two messages (typically msgid and msgstr) to the diagnostic.
+    pub fn with_msgs(mut self, msgid: &Message, msgstr: &Message) -> Self {
+        self.add_line(msgid.line_number, &msgid.value, &[]);
+        self.add_line(0, "", &[]);
+        self.add_line(msgstr.line_number, &msgstr.value, &[]);
+        self
+    }
+
+    /// Add two messages (typically msgid and msgstr) to the diagnostic with the given highlights.
+    pub fn with_msgs_hl(
+        mut self,
+        msgid: &Message,
+        hl_id: &[(usize, usize)],
+        msgstr: &Message,
+        hl_str: &[(usize, usize)],
+    ) -> Self {
+        self.add_line(msgid.line_number, &msgid.value, hl_id);
+        self.add_line(0, "", &[]);
+        self.add_line(msgstr.line_number, &msgstr.value, hl_str);
+        self
+    }
+
+    /// Add multiple lines to the diagnostic with the given multiline string.
+    pub fn with_multiline(mut self, lines: &str) -> Self {
+        if !lines.trim().is_empty() {
+            for line in lines.lines() {
+                self.add_line(0, line, &[]);
+            }
+        }
+        self
+    }
+
+    /// Add misspelled words to the diagnostic.
+    pub fn with_misspelled_words(mut self, misspelled_words: HashSet<&str>) -> Self {
+        self.misspelled_words = misspelled_words.into_iter().map(String::from).collect();
+        self
+    }
+
+    /// Add a line message to the diagnostic with the given line number and highlights.
+    pub fn add_line(
+        &mut self,
+        line: usize,
+        message: impl Into<String>,
+        highlights: &[(usize, usize)],
+    ) {
+        self.lines.push(DiagnosticLine {
+            line_number: line,
+            message: message.into(),
+            highlights: highlights.to_vec(),
+        });
     }
 
     /// Add a message to the diagnostic with the given line number and highlights.
@@ -149,6 +224,22 @@ impl Diagnostic {
             message: message.to_string(),
             highlights: highlights.to_vec(),
         });
+    }
+
+    /// Build the diagnostic message (append misspelled words if any).
+    pub fn build_message(&self) -> Cow<'_, str> {
+        if self.misspelled_words.is_empty() {
+            Cow::Borrowed(&self.message)
+        } else {
+            // Sort misspelled words for predictable output.
+            let mut list_words = self
+                .misspelled_words
+                .iter()
+                .map(String::as_str)
+                .collect::<Vec<&str>>();
+            list_words.sort_unstable();
+            Cow::Owned(format!("{}: {}", self.message, list_words.join(", ")))
+        }
     }
 
     /// Format the diagnostic line (number + message) with colors for display.
@@ -206,7 +297,7 @@ impl std::fmt::Display for Diagnostic {
             self.path.display().to_string().white().bold(),
             self.severity,
             self.rule,
-            self.message,
+            self.build_message(),
             self.format_lines(),
         )
     }

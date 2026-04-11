@@ -7,9 +7,10 @@
 use std::collections::HashSet;
 
 use crate::checker::Checker;
-use crate::diagnostic::Severity;
+use crate::diagnostic::{Diagnostic, Severity};
 use crate::po::entry::Entry;
 use crate::po::format::iter::FormatPathPos;
+use crate::po::message::Message;
 use crate::rules::double_quotes::DOUBLE_QUOTES;
 use crate::rules::rule::RuleChecker;
 
@@ -52,41 +53,59 @@ impl RuleChecker for PathsRule {
     /// - `missing paths (# / #)`
     /// - `extra paths (# / #)`
     /// - `different paths`
-    fn check_msg(&self, checker: &mut Checker, entry: &Entry, msgid: &str, msgstr: &str) {
-        let id_paths: Vec<_> = FormatPathPos::new(msgid, &entry.format_language).collect();
-        let str_paths: Vec<_> = FormatPathPos::new(msgstr, &entry.format_language).collect();
+    fn check_msg(
+        &self,
+        checker: &Checker,
+        entry: &Entry,
+        msgid: &Message,
+        msgstr: &Message,
+    ) -> Vec<Diagnostic> {
+        let id_paths: Vec<_> = FormatPathPos::new(&msgid.value, &entry.format_language).collect();
+        let str_paths: Vec<_> = FormatPathPos::new(&msgstr.value, &entry.format_language).collect();
         match id_paths.len().cmp(&str_paths.len()) {
             std::cmp::Ordering::Greater => {
-                checker.report_id_str(
-                    entry,
-                    format!("missing paths ({} / {})", id_paths.len(), str_paths.len()),
-                    msgid,
-                    &id_paths
-                        .iter()
-                        .map(|m| (m.start, m.end))
-                        .collect::<Vec<_>>(),
-                    msgstr,
-                    &str_paths
-                        .iter()
-                        .map(|m| (m.start, m.end))
-                        .collect::<Vec<_>>(),
-                );
+                vec![
+                    checker
+                        .new_diag(format!(
+                            "missing paths ({} / {})",
+                            id_paths.len(),
+                            str_paths.len()
+                        ))
+                        .with_msgs_hl(
+                            msgid,
+                            &id_paths
+                                .iter()
+                                .map(|m| (m.start, m.end))
+                                .collect::<Vec<_>>(),
+                            msgstr,
+                            &str_paths
+                                .iter()
+                                .map(|m| (m.start, m.end))
+                                .collect::<Vec<_>>(),
+                        ),
+                ]
             }
             std::cmp::Ordering::Less => {
-                checker.report_id_str(
-                    entry,
-                    format!("extra paths ({} / {})", id_paths.len(), str_paths.len()),
-                    msgid,
-                    &id_paths
-                        .iter()
-                        .map(|m| (m.start, m.end))
-                        .collect::<Vec<_>>(),
-                    msgstr,
-                    &str_paths
-                        .iter()
-                        .map(|m| (m.start, m.end))
-                        .collect::<Vec<_>>(),
-                );
+                vec![
+                    checker
+                        .new_diag(format!(
+                            "extra paths ({} / {})",
+                            id_paths.len(),
+                            str_paths.len()
+                        ))
+                        .with_msgs_hl(
+                            msgid,
+                            &id_paths
+                                .iter()
+                                .map(|m| (m.start, m.end))
+                                .collect::<Vec<_>>(),
+                            msgstr,
+                            &str_paths
+                                .iter()
+                                .map(|m| (m.start, m.end))
+                                .collect::<Vec<_>>(),
+                        ),
+                ]
             }
             std::cmp::Ordering::Equal => {
                 // Check that paths are the same, in any order.
@@ -94,21 +113,23 @@ impl RuleChecker for PathsRule {
                 let id_paths_hash: HashSet<_> = id_paths.iter().map(|m| trim_quotes(m.s)).collect();
                 let str_paths_hash: HashSet<_> =
                     str_paths.iter().map(|m| trim_quotes(m.s)).collect();
-                if id_paths_hash != str_paths_hash {
-                    checker.report_id_str(
-                        entry,
-                        "different paths".to_string(),
-                        msgid,
-                        &id_paths
-                            .iter()
-                            .map(|m| (m.start, m.end))
-                            .collect::<Vec<_>>(),
-                        msgstr,
-                        &str_paths
-                            .iter()
-                            .map(|m| (m.start, m.end))
-                            .collect::<Vec<_>>(),
-                    );
+                if id_paths_hash == str_paths_hash {
+                    vec![]
+                } else {
+                    vec![
+                        checker.new_diag("different paths").with_msgs_hl(
+                            msgid,
+                            &id_paths
+                                .iter()
+                                .map(|m| (m.start, m.end))
+                                .collect::<Vec<_>>(),
+                            msgstr,
+                            &str_paths
+                                .iter()
+                                .map(|m| (m.start, m.end))
+                                .collect::<Vec<_>>(),
+                        ),
+                    ]
                 }
             }
         }

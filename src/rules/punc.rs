@@ -7,8 +7,9 @@
 //! - `punc-end`: punctuation at the end of the string
 
 use crate::checker::Checker;
-use crate::diagnostic::Severity;
+use crate::diagnostic::{Diagnostic, Severity};
 use crate::po::entry::Entry;
+use crate::po::message::Message;
 use crate::rules::rule::RuleChecker;
 
 pub struct PuncStartRule;
@@ -60,11 +61,17 @@ impl RuleChecker for PuncStartRule {
     ///
     /// Diagnostics reported with severity [`info`](Severity::Info):
     /// - `inconsistent leading punctuation ('…' / '…')`
-    fn check_msg(&self, checker: &mut Checker, entry: &Entry, msgid: &str, msgstr: &str) {
+    fn check_msg(
+        &self,
+        checker: &Checker,
+        _entry: &Entry,
+        msgid: &Message,
+        msgstr: &Message,
+    ) -> Vec<Diagnostic> {
         let language = checker.language_code();
         let ignore_ellipsis = checker.config.check.punc_ignore_ellipsis;
-        let id_punc = get_punc_start(msgid);
-        let str_punc = get_punc_start(msgstr);
+        let id_punc = get_punc_start(&msgid.value);
+        let str_punc = get_punc_start(&msgstr.value);
         let id_punc2 = punc_normalize(id_punc.trim(), language, ignore_ellipsis);
         let str_punc2 = punc_normalize(str_punc.trim(), language, ignore_ellipsis);
         if id_punc2.starts_with('.') || str_punc2.starts_with('.') {
@@ -73,17 +80,18 @@ impl RuleChecker for PuncStartRule {
             // For example:
             //   msgid ".po file broken"
             //   msgstr "fichier .po cassé"
-            return;
+            return vec![];
         }
-        if id_punc2 != str_punc2 {
-            checker.report_id_str(
-                entry,
-                format!("inconsistent leading punctuation ('{id_punc2}' / '{str_punc2}')"),
-                msgid,
-                &[(0, id_punc.len())],
-                msgstr,
-                &[(0, str_punc.len())],
-            );
+        if id_punc2 == str_punc2 {
+            vec![]
+        } else {
+            vec![
+                checker
+                    .new_diag(format!(
+                        "inconsistent leading punctuation ('{id_punc2}' / '{str_punc2}')"
+                    ))
+                    .with_msgs_hl(msgid, &[(0, id_punc.len())], msgstr, &[(0, str_punc.len())]),
+            ]
         }
     }
 }
@@ -135,22 +143,34 @@ impl RuleChecker for PuncEndRule {
     ///
     /// Diagnostics reported with severity [`info`](Severity::Info):
     /// - `inconsistent trailing punctuation ('…' / '…')`
-    fn check_msg(&self, checker: &mut Checker, entry: &Entry, msgid: &str, msgstr: &str) {
+    fn check_msg(
+        &self,
+        checker: &Checker,
+        _entry: &Entry,
+        msgid: &Message,
+        msgstr: &Message,
+    ) -> Vec<Diagnostic> {
         let language = checker.language_code();
         let ignore_ellipsis = checker.config.check.punc_ignore_ellipsis;
-        let id_punc = get_punc_end(msgid);
-        let str_punc = get_punc_end(msgstr);
+        let id_punc = get_punc_end(&msgid.value);
+        let str_punc = get_punc_end(&msgstr.value);
         let id_punc2 = punc_normalize(id_punc.trim(), language, ignore_ellipsis);
         let str_punc2 = punc_normalize(str_punc.trim(), language, ignore_ellipsis);
-        if id_punc2 != str_punc2 {
-            checker.report_id_str(
-                entry,
-                format!("inconsistent trailing punctuation ('{id_punc2}' / '{str_punc2}')"),
-                msgid,
-                &[(msgid.len() - id_punc.len(), msgid.len())],
-                msgstr,
-                &[(msgstr.len() - str_punc.len(), msgstr.len())],
-            );
+        if id_punc2 == str_punc2 {
+            vec![]
+        } else {
+            vec![
+                checker
+                    .new_diag(format!(
+                        "inconsistent trailing punctuation ('{id_punc2}' / '{str_punc2}')"
+                    ))
+                    .with_msgs_hl(
+                        msgid,
+                        &[(msgid.value.len() - id_punc.len(), msgid.value.len())],
+                        msgstr,
+                        &[(msgstr.value.len() - str_punc.len(), msgstr.value.len())],
+                    ),
+            ]
         }
     }
 }

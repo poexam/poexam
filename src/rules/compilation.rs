@@ -5,7 +5,7 @@
 //! Implementation of the `compilation` rule: check compilation of PO file with msgfmt command.
 
 use crate::checker::Checker;
-use crate::diagnostic::Severity;
+use crate::diagnostic::{Diagnostic, Severity};
 use crate::rules::rule::RuleChecker;
 
 pub struct CompilationRule;
@@ -34,7 +34,7 @@ impl RuleChecker for CompilationRule {
     /// Diagnostics reported with severity [`error`](Severity::Error):
     /// - `command '/usr/bin/msgfmt' reported errors`
     /// - `failed to run command '/usr/bin/msgfmt'`
-    fn check_file(&self, checker: &mut Checker) {
+    fn check_file(&self, checker: &Checker) -> Vec<Diagnostic> {
         match std::process::Command::new(&checker.config.check.path_msgfmt)
             .arg("--check-format")
             .arg("-o")
@@ -43,24 +43,28 @@ impl RuleChecker for CompilationRule {
             .output()
         {
             Ok(output) => {
-                if !output.status.success() {
-                    checker.report_file(
-                        format!(
-                            "command `{}` reported errors",
-                            checker.config.check.path_msgfmt.display()
-                        ),
-                        Some(String::from_utf8_lossy(&output.stderr).to_string()),
-                    );
+                if output.status.success() {
+                    vec![]
+                } else {
+                    vec![
+                        checker
+                            .new_diag(format!(
+                                "command `{}` reported errors",
+                                checker.config.check.path_msgfmt.display()
+                            ))
+                            .with_multiline(&String::from_utf8_lossy(&output.stderr)),
+                    ]
                 }
             }
             Err(err) => {
-                checker.report_file(
-                    format!(
-                        "failed to run command `{}`",
-                        checker.config.check.path_msgfmt.display()
-                    ),
-                    Some(err.to_string()),
-                );
+                vec![
+                    checker
+                        .new_diag(format!(
+                            "failed to run command `{}`",
+                            checker.config.check.path_msgfmt.display()
+                        ))
+                        .with_multiline(&err.to_string()),
+                ]
             }
         }
     }

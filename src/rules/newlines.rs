@@ -5,179 +5,162 @@
 //! Implementation of the `newlines` rule: check missing/extra newlines.
 
 use crate::checker::Checker;
-use crate::diagnostic::Severity;
+use crate::diagnostic::{Diagnostic, Severity};
 use crate::po::entry::Entry;
+use crate::po::message::Message;
 use crate::rules::rule::RuleChecker;
 
 pub struct NewlinesRule;
 
 impl NewlinesRule {
     /// Check the number of CR ('\r') and LF ('\n') characters.
-    fn check_cr_lf_count(checker: &mut Checker, entry: &Entry, msgid: &str, msgstr: &str) {
+    fn check_cr_lf_count(checker: &Checker, msgid: &Message, msgstr: &Message) -> Vec<Diagnostic> {
+        let mut diags = vec![];
         // Check the number of CR ('\r').
-        let id_count_cr = msgid.matches('\r').count();
-        let str_count_cr = msgstr.matches('\r').count();
+        let id_count_cr = msgid.value.matches('\r').count();
+        let str_count_cr = msgstr.value.matches('\r').count();
         match id_count_cr.cmp(&str_count_cr) {
             std::cmp::Ordering::Greater => {
-                checker.report_id_str(
-                    entry,
-                    format!("missing carriage returns '\\r' ({id_count_cr} / {str_count_cr})"),
-                    msgid,
-                    &[],
-                    msgstr,
-                    &[],
+                diags.push(
+                    checker
+                        .new_diag(format!(
+                            "missing carriage returns '\\r' ({id_count_cr} / {str_count_cr})"
+                        ))
+                        .with_msgs(msgid, msgstr),
                 );
             }
             std::cmp::Ordering::Less => {
-                checker.report_id_str(
-                    entry,
-                    format!("extra carriage returns '\\r' ({id_count_cr} / {str_count_cr})"),
-                    msgid,
-                    &[],
-                    msgstr,
-                    &[],
+                diags.push(
+                    checker
+                        .new_diag(format!(
+                            "extra carriage returns '\\r' ({id_count_cr} / {str_count_cr})"
+                        ))
+                        .with_msgs(msgid, msgstr),
                 );
             }
             std::cmp::Ordering::Equal => {}
         }
         // Check the number of LF ('\n').
-        let id_count_lf = msgid.matches('\n').count();
-        let str_count_lf = msgstr.matches('\n').count();
+        let id_count_lf = msgid.value.matches('\n').count();
+        let str_count_lf = msgstr.value.matches('\n').count();
         match id_count_lf.cmp(&str_count_lf) {
             std::cmp::Ordering::Greater => {
-                checker.report_id_str(
-                    entry,
-                    format!("missing line feeds '\\n' ({id_count_lf} / {str_count_lf})"),
-                    msgid,
-                    &[],
-                    msgstr,
-                    &[],
+                diags.push(
+                    checker
+                        .new_diag(format!(
+                            "missing line feeds '\\n' ({id_count_lf} / {str_count_lf})"
+                        ))
+                        .with_msgs(msgid, msgstr),
                 );
             }
             std::cmp::Ordering::Less => {
-                checker.report_id_str(
-                    entry,
-                    format!("extra line feeds '\\n' ({id_count_lf} / {str_count_lf})"),
-                    msgid,
-                    &[],
-                    msgstr,
-                    &[],
+                diags.push(
+                    checker
+                        .new_diag(format!(
+                            "extra line feeds '\\n' ({id_count_lf} / {str_count_lf})"
+                        ))
+                        .with_msgs(msgid, msgstr),
                 );
             }
             std::cmp::Ordering::Equal => {}
         }
+        diags
     }
 
     /// Check for CR ('\r') and LF ('\n') at the beginning of the strings.
-    fn check_cr_lf_beginning(checker: &mut Checker, entry: &Entry, msgid: &str, msgstr: &str) {
+    fn check_cr_lf_beginning(
+        checker: &Checker,
+        msgid: &Message,
+        msgstr: &Message,
+    ) -> Vec<Diagnostic> {
+        let mut diags = vec![];
         // Check CR ('\r') at beginning.
-        let id_starts_with_cr = msgid.starts_with('\r');
-        let str_starts_with_cr = msgstr.starts_with('\r');
+        let id_starts_with_cr = msgid.value.starts_with('\r');
+        let str_starts_with_cr = msgstr.value.starts_with('\r');
         match id_starts_with_cr.cmp(&str_starts_with_cr) {
             std::cmp::Ordering::Greater => {
-                checker.report_id_str(
-                    entry,
-                    "missing carriage return '\\r' at the beginning".to_string(),
-                    msgid,
-                    &[],
-                    msgstr,
-                    &[],
+                diags.push(
+                    checker
+                        .new_diag("missing carriage return '\\r' at the beginning")
+                        .with_msgs(msgid, msgstr),
                 );
             }
             std::cmp::Ordering::Less => {
-                checker.report_id_str(
-                    entry,
-                    "extra carriage return '\\r' at the beginning".to_string(),
-                    msgid,
-                    &[],
-                    msgstr,
-                    &[],
+                diags.push(
+                    checker
+                        .new_diag("extra carriage return '\\r' at the beginning")
+                        .with_msgs(msgid, msgstr),
                 );
             }
             std::cmp::Ordering::Equal => {}
         }
         // Check LF ('\n') at beginning.
-        let id_starts_with_lf = msgid.starts_with('\n');
-        let str_starts_with_lf = msgstr.starts_with('\n');
+        let id_starts_with_lf = msgid.value.starts_with('\n');
+        let str_starts_with_lf = msgstr.value.starts_with('\n');
         match id_starts_with_lf.cmp(&str_starts_with_lf) {
             std::cmp::Ordering::Greater => {
-                checker.report_id_str(
-                    entry,
-                    "missing line feed '\\n' at the beginning".to_string(),
-                    msgid,
-                    &[],
-                    msgstr,
-                    &[],
+                diags.push(
+                    checker
+                        .new_diag("missing line feed '\\n' at the beginning")
+                        .with_msgs(msgid, msgstr),
                 );
             }
             std::cmp::Ordering::Less => {
-                checker.report_id_str(
-                    entry,
-                    "extra line feed '\\n' at the beginning".to_string(),
-                    msgid,
-                    &[],
-                    msgstr,
-                    &[],
+                diags.push(
+                    checker
+                        .new_diag("extra line feed '\\n' at the beginning")
+                        .with_msgs(msgid, msgstr),
                 );
             }
             std::cmp::Ordering::Equal => {}
         }
+        diags
     }
 
     /// Check for CR ('\r') and LF ('\n') at the end of the strings.
-    fn check_cr_lf_end(checker: &mut Checker, entry: &Entry, msgid: &str, msgstr: &str) {
+    fn check_cr_lf_end(checker: &Checker, msgid: &Message, msgstr: &Message) -> Vec<Diagnostic> {
+        let mut diags = vec![];
         // Check CR ('\r') at end.
-        let id_ends_with_cr = msgid.ends_with('\r');
-        let str_ends_with_cr = msgstr.ends_with('\r');
+        let id_ends_with_cr = msgid.value.ends_with('\r');
+        let str_ends_with_cr = msgstr.value.ends_with('\r');
         match id_ends_with_cr.cmp(&str_ends_with_cr) {
             std::cmp::Ordering::Greater => {
-                checker.report_id_str(
-                    entry,
-                    "missing carriage return '\\r' at the end".to_string(),
-                    msgid,
-                    &[],
-                    msgstr,
-                    &[],
+                diags.push(
+                    checker
+                        .new_diag("missing carriage return '\\r' at the end")
+                        .with_msgs(msgid, msgstr),
                 );
             }
             std::cmp::Ordering::Less => {
-                checker.report_id_str(
-                    entry,
-                    "extra carriage return '\\r' at the end".to_string(),
-                    msgid,
-                    &[],
-                    msgstr,
-                    &[],
+                diags.push(
+                    checker
+                        .new_diag("extra carriage return '\\r' at the end")
+                        .with_msgs(msgid, msgstr),
                 );
             }
             std::cmp::Ordering::Equal => {}
         }
         // Check LF ('\n') at end.
-        let id_ends_with_lf = msgid.ends_with('\n');
-        let str_ends_with_lf = msgstr.ends_with('\n');
+        let id_ends_with_lf = msgid.value.ends_with('\n');
+        let str_ends_with_lf = msgstr.value.ends_with('\n');
         match id_ends_with_lf.cmp(&str_ends_with_lf) {
             std::cmp::Ordering::Greater => {
-                checker.report_id_str(
-                    entry,
-                    "missing line feed '\\n' at the end".to_string(),
-                    msgid,
-                    &[],
-                    msgstr,
-                    &[],
+                diags.push(
+                    checker
+                        .new_diag("missing line feed '\\n' at the end")
+                        .with_msgs(msgid, msgstr),
                 );
             }
             std::cmp::Ordering::Less => {
-                checker.report_id_str(
-                    entry,
-                    "extra line feed '\\n' at the end".to_string(),
-                    msgid,
-                    &[],
-                    msgstr,
-                    &[],
+                diags.push(
+                    checker
+                        .new_diag("extra line feed '\\n' at the end")
+                        .with_msgs(msgid, msgstr),
                 );
             }
             std::cmp::Ordering::Equal => {}
         }
+        diags
     }
 }
 
@@ -229,10 +212,18 @@ impl RuleChecker for NewlinesRule {
     /// - `extra carriage return '\r' at the end`
     /// - `missing line feed '\n' at the end`
     /// - `extra line feed '\n' at the end`
-    fn check_msg(&self, checker: &mut Checker, entry: &Entry, msgid: &str, msgstr: &str) {
-        NewlinesRule::check_cr_lf_count(checker, entry, msgid, msgstr);
-        NewlinesRule::check_cr_lf_beginning(checker, entry, msgid, msgstr);
-        NewlinesRule::check_cr_lf_end(checker, entry, msgid, msgstr);
+    fn check_msg(
+        &self,
+        checker: &Checker,
+        _entry: &Entry,
+        msgid: &Message,
+        msgstr: &Message,
+    ) -> Vec<Diagnostic> {
+        let mut diags = vec![];
+        diags.extend(NewlinesRule::check_cr_lf_count(checker, msgid, msgstr));
+        diags.extend(NewlinesRule::check_cr_lf_beginning(checker, msgid, msgstr));
+        diags.extend(NewlinesRule::check_cr_lf_end(checker, msgid, msgstr));
+        diags
     }
 }
 

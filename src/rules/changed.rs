@@ -5,8 +5,9 @@
 //! Implementation of the `changed` rule: check changed translations.
 
 use crate::checker::Checker;
-use crate::diagnostic::Severity;
+use crate::diagnostic::{Diagnostic, Severity};
 use crate::po::entry::Entry;
+use crate::po::message::Message;
 use crate::rules::rule::RuleChecker;
 
 pub struct ChangedRule;
@@ -51,16 +52,24 @@ impl RuleChecker for ChangedRule {
     ///
     /// Diagnostics reported with severity [`info`](Severity::Info):
     /// - `changed translation`
-    fn check_msg(&self, checker: &mut Checker, entry: &Entry, msgid: &str, msgstr: &str) {
-        if !msgid.trim().is_empty() && !msgstr.trim().is_empty() && msgstr != msgid {
-            checker.report_id_str(
-                entry,
-                "changed translation".to_string(),
-                msgid,
-                &[],
-                msgstr,
-                &[],
-            );
+    fn check_msg(
+        &self,
+        checker: &Checker,
+        _entry: &Entry,
+        msgid: &Message,
+        msgstr: &Message,
+    ) -> Vec<Diagnostic> {
+        if !msgid.value.trim().is_empty()
+            && !msgstr.value.trim().is_empty()
+            && msgstr.value != msgid.value
+        {
+            vec![
+                checker
+                    .new_diag("changed translation")
+                    .with_msgs(msgid, msgstr),
+            ]
+        } else {
+            vec![]
         }
     }
 }

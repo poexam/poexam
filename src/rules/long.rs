@@ -5,8 +5,9 @@
 //! Implementation of the `long` rule: check if translation is too long.
 
 use crate::checker::Checker;
-use crate::diagnostic::Severity;
+use crate::diagnostic::{Diagnostic, Severity};
 use crate::po::entry::Entry;
+use crate::po::message::Message;
 use crate::rules::rule::RuleChecker;
 
 pub struct LongRule;
@@ -50,35 +51,42 @@ impl RuleChecker for LongRule {
     ///
     /// Diagnostics reported with severity [`warning`](Severity::Warning):
     /// - `translation too long (# / #)`
-    fn check_msg(&self, checker: &mut Checker, entry: &Entry, msgid: &str, msgstr: &str) {
+    fn check_msg(
+        &self,
+        checker: &Checker,
+        _entry: &Entry,
+        msgid: &Message,
+        msgstr: &Message,
+    ) -> Vec<Diagnostic> {
         // Count the number of UTF-8 chars in both strings, ignoring leading/trailing whitespace.
         let len_msgid = msgid
+            .value
             .trim()
             .as_bytes()
             .iter()
             .filter(|&&b| b & 0xC0 != 0x80)
             .count();
         if len_msgid == 0 {
-            return;
+            return vec![];
         }
         let len_msgstr = msgstr
+            .value
             .trim()
             .as_bytes()
             .iter()
             .filter(|&&b| b & 0xC0 != 0x80)
             .count();
         if len_msgstr == 0 {
-            return;
+            return vec![];
         }
         if len_msgid * 10 <= len_msgstr || (len_msgid == 1 && len_msgstr > 1) {
-            checker.report_id_str(
-                entry,
-                format!("translation too long ({len_msgid} / {len_msgstr})"),
-                msgid,
-                &[],
-                msgstr,
-                &[],
-            );
+            vec![
+                checker
+                    .new_diag(format!("translation too long ({len_msgid} / {len_msgstr})"))
+                    .with_msgs(msgid, msgstr),
+            ]
+        } else {
+            vec![]
         }
     }
 }

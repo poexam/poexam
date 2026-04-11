@@ -5,7 +5,7 @@
 //! Implementation of the `obsolete` rule: report obsolete entries.
 
 use crate::checker::Checker;
-use crate::diagnostic::Severity;
+use crate::diagnostic::{Diagnostic, Severity};
 use crate::po::entry::Entry;
 use crate::rules::rule::RuleChecker;
 
@@ -49,9 +49,11 @@ impl RuleChecker for ObsoleteRule {
     ///
     /// Diagnostics reported with severity [`info`](Severity::Info):
     /// - `obsolete entry`
-    fn check_entry(&self, checker: &mut Checker, entry: &Entry) {
+    fn check_entry(&self, checker: &Checker, entry: &Entry) -> Vec<Diagnostic> {
         if entry.obsolete {
-            checker.report_entry("obsolete entry".to_string(), entry);
+            vec![checker.new_diag("obsolete entry").with_entry(entry)]
+        } else {
+            vec![]
         }
     }
 }

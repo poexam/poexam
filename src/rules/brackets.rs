@@ -5,8 +5,9 @@
 //! Implementation of the `brackets` rule: check missing/extra brackets.
 
 use crate::checker::Checker;
-use crate::diagnostic::Severity;
+use crate::diagnostic::{Diagnostic, Severity};
 use crate::po::entry::Entry;
+use crate::po::message::Message;
 use crate::rules::rule::RuleChecker;
 
 const BRACKET_PAIRS: &[(char, char)] = &[('(', ')'), ('[', ']'), ('{', '}'), ('<', '>')];
@@ -55,15 +56,22 @@ impl RuleChecker for BracketsRule {
     /// - `extra opening xxx brackets '…' (# / #)`
     /// - `missing closing xxx brackets '…' (# / #)`
     /// - `extra closing xxx brackets '…' (# / #)`
-    fn check_msg(&self, checker: &mut Checker, entry: &Entry, msgid: &str, msgstr: &str) {
+    fn check_msg(
+        &self,
+        checker: &Checker,
+        _entry: &Entry,
+        msgid: &Message,
+        msgstr: &Message,
+    ) -> Vec<Diagnostic> {
+        let mut diags = vec![];
         for (idx, bracket) in BRACKET_PAIRS.iter().enumerate() {
-            let mut id_open = get_opening_bracket_pos(msgid, bracket.0);
+            let mut id_open = get_opening_bracket_pos(&msgid.value, bracket.0);
             let id_count_open = id_open.len();
-            let mut str_open = get_opening_bracket_pos(msgstr, bracket.0);
+            let mut str_open = get_opening_bracket_pos(&msgstr.value, bracket.0);
             let str_count_open = str_open.len();
-            let id_close = get_closing_bracket_pos(msgid, bracket.1);
+            let id_close = get_closing_bracket_pos(&msgid.value, bracket.1);
             let id_count_close = id_close.len();
-            let str_close = get_closing_bracket_pos(msgstr, bracket.1);
+            let str_close = get_closing_bracket_pos(&msgstr.value, bracket.1);
             let str_count_close = str_close.len();
             if BRACKET_PAIRS[idx].0 == '('
                 && id_count_open < str_count_open
@@ -83,78 +91,71 @@ impl RuleChecker for BracketsRule {
                 id_open.sort_unstable();
                 str_open.extend(&str_close);
                 str_open.sort_unstable();
-                checker.report_id_str(
-                    entry,
-                    format!(
-                        "{} opening and closing {} brackets '{}' ({id_count_open} / {str_count_open}) \
-                        and '{}' ({id_count_close} / {str_count_close})",
-                        if id_count_open > str_count_open {
-                            "missing"
-                        } else {
-                            "extra"
-                        },
-                        BRACKET_NAMES[idx], bracket.0, bracket.1,
-                    ),
-                    msgid,
-                    &id_open,
-                    msgstr,
-                    &str_open,
+                let msg = format!(
+                    "{} opening and closing {} brackets '{}' ({id_count_open} / {str_count_open}) \
+                            and '{}' ({id_count_close} / {str_count_close})",
+                    if id_count_open > str_count_open {
+                        "missing"
+                    } else {
+                        "extra"
+                    },
+                    BRACKET_NAMES[idx],
+                    bracket.0,
+                    bracket.1,
+                );
+                diags.push(
+                    checker
+                        .new_diag(msg)
+                        .with_msgs_hl(msgid, &id_open, msgstr, &str_open),
                 );
                 continue;
             }
             if id_count_open > str_count_open {
-                checker.report_id_str(
-                    entry,
-                    format!(
-                        "missing opening {} brackets '{}' ({id_count_open} / {str_count_open})",
-                        BRACKET_NAMES[idx], bracket.0,
-                    ),
-                    msgid,
-                    &id_open,
-                    msgstr,
-                    &str_open,
+                let msg = format!(
+                    "missing opening {} brackets '{}' ({id_count_open} / {str_count_open})",
+                    BRACKET_NAMES[idx], bracket.0,
+                );
+                diags.push(
+                    checker
+                        .new_diag(msg)
+                        .with_msgs_hl(msgid, &id_open, msgstr, &str_open),
                 );
             }
             if id_count_open < str_count_open {
-                checker.report_id_str(
-                    entry,
-                    format!(
-                        "extra opening {} brackets '{}' ({id_count_open} / {str_count_open})",
-                        BRACKET_NAMES[idx], bracket.0,
-                    ),
-                    msgid,
-                    &id_open,
-                    msgstr,
-                    &str_open,
+                let msg = format!(
+                    "extra opening {} brackets '{}' ({id_count_open} / {str_count_open})",
+                    BRACKET_NAMES[idx], bracket.0,
+                );
+                diags.push(
+                    checker
+                        .new_diag(msg)
+                        .with_msgs_hl(msgid, &id_open, msgstr, &str_open),
                 );
             }
             if id_count_close > str_count_close {
-                checker.report_id_str(
-                    entry,
-                    format!(
-                        "missing closing {} brackets '{}' ({id_count_close} / {str_count_close})",
-                        BRACKET_NAMES[idx], bracket.1,
-                    ),
-                    msgid,
-                    &id_close,
-                    msgstr,
-                    &str_close,
+                let msg = format!(
+                    "missing closing {} brackets '{}' ({id_count_close} / {str_count_close})",
+                    BRACKET_NAMES[idx], bracket.1,
+                );
+                diags.push(
+                    checker
+                        .new_diag(msg)
+                        .with_msgs_hl(msgid, &id_close, msgstr, &str_close),
                 );
             }
             if id_count_close < str_count_close {
-                checker.report_id_str(
-                    entry,
-                    format!(
-                        "extra closing {} brackets '{}' ({id_count_close} / {str_count_close})",
-                        BRACKET_NAMES[idx], bracket.1,
-                    ),
-                    msgid,
-                    &id_close,
-                    msgstr,
-                    &str_close,
+                let msg = format!(
+                    "extra closing {} brackets '{}' ({id_count_close} / {str_count_close})",
+                    BRACKET_NAMES[idx], bracket.1,
+                );
+                diags.push(
+                    checker
+                        .new_diag(msg)
+                        .with_msgs_hl(msgid, &id_close, msgstr, &str_close),
                 );
             }
         }
+        diags
     }
 }
 

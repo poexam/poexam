@@ -5,7 +5,7 @@
 //! Implementation of the `plurals` rule: check incorrect number of plurals.
 
 use crate::checker::Checker;
-use crate::diagnostic::Severity;
+use crate::diagnostic::{Diagnostic, Severity};
 use crate::po::entry::Entry;
 use crate::rules::rule::RuleChecker;
 
@@ -55,27 +55,29 @@ impl RuleChecker for PluralsRule {
     /// Diagnostics reported with severity [`error`](Severity::Error):
     /// - `missing translated plural form (found: #, expected: #)`
     /// - `extra translated plural form (found: #, expected: #)`
-    fn check_entry(&self, checker: &mut Checker, entry: &Entry) {
-        let nplurals_expected = checker.nplurals() as usize;
-        if nplurals_expected == 0 || !entry.has_plural_form() {
+    fn check_entry(&self, checker: &Checker, entry: &Entry) -> Vec<Diagnostic> {
+        let expected = checker.nplurals() as usize;
+        if expected == 0 || !entry.has_plural_form() {
             // We check only entries with plural form and when nplurals is defined.
-            return;
+            return vec![];
         }
-        let nplurals_found = entry.msgstr.len();
-        if nplurals_found < nplurals_expected {
-            checker.report_entry(
-                format!(
-                    "missing translated plural form (found: {nplurals_found}, expected: {nplurals_expected})",
-                ),
-                entry,
-            );
-        } else if nplurals_found > nplurals_expected {
-            checker.report_entry(
-                format!(
-                    "extra translated plural form (found: {nplurals_found}, expected: {nplurals_expected})",
-                ),
-                entry,
-            );
+        let found = entry.msgstr.len();
+        match found.cmp(&expected) {
+            std::cmp::Ordering::Less => vec![
+                checker
+                    .new_diag(format!(
+                        "missing translated plural form (found: {found}, expected: {expected})",
+                    ))
+                    .with_entry(entry),
+            ],
+            std::cmp::Ordering::Greater => vec![
+                checker
+                    .new_diag(format!(
+                        "extra translated plural form (found: {found}, expected: {expected})",
+                    ))
+                    .with_entry(entry),
+            ],
+            std::cmp::Ordering::Equal => vec![],
         }
     }
 }

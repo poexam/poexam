@@ -5,7 +5,7 @@
 //! Implementation of the `noqa` rule: report entries with `noqa` comments.
 
 use crate::checker::Checker;
-use crate::diagnostic::Severity;
+use crate::diagnostic::{Diagnostic, Severity};
 use crate::po::entry::Entry;
 use crate::rules::rule::RuleChecker;
 
@@ -47,9 +47,11 @@ impl RuleChecker for NoqaRule {
     ///
     /// Diagnostics reported with severity [`info`](Severity::Info):
     /// - `entry with noqa`
-    fn check_entry(&self, checker: &mut Checker, entry: &Entry) {
+    fn check_entry(&self, checker: &Checker, entry: &Entry) -> Vec<Diagnostic> {
         if entry.noqa || !entry.noqa_rules.is_empty() {
-            checker.report_entry("entry with noqa".to_string(), entry);
+            vec![checker.new_diag("entry with noqa").with_entry(entry)]
+        } else {
+            vec![]
         }
     }
 }

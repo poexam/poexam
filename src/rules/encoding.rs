@@ -5,7 +5,7 @@
 //! Implementation of the `encoding` rule: check incorrect encoding.
 
 use crate::checker::Checker;
-use crate::diagnostic::Severity;
+use crate::diagnostic::{Diagnostic, Severity};
 use crate::po::entry::Entry;
 use crate::rules::rule::RuleChecker;
 
@@ -50,15 +50,18 @@ impl RuleChecker for EncodingRule {
     ///
     /// Diagnostics reported with severity [`info`](Severity::Info):
     /// - `invalid characters for encoding xxx`
-    fn check_entry(&self, checker: &mut Checker, entry: &Entry) {
+    fn check_entry(&self, checker: &Checker, entry: &Entry) -> Vec<Diagnostic> {
         if entry.encoding_error {
-            checker.report_entry(
-                format!(
-                    "invalid characters for encoding {}",
-                    checker.encoding_name()
-                ),
-                entry,
-            );
+            vec![
+                checker
+                    .new_diag(format!(
+                        "invalid characters for encoding {}",
+                        checker.encoding_name()
+                    ))
+                    .with_entry(entry),
+            ]
+        } else {
+            vec![]
         }
     }
 }

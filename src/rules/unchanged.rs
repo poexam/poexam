@@ -5,8 +5,9 @@
 //! Implementation of the `unchanged` rule: check unchanged translations.
 
 use crate::checker::Checker;
-use crate::diagnostic::Severity;
+use crate::diagnostic::{Diagnostic, Severity};
 use crate::po::entry::Entry;
+use crate::po::message::Message;
 use crate::rules::rule::RuleChecker;
 
 pub struct UnchangedRule;
@@ -48,23 +49,31 @@ impl RuleChecker for UnchangedRule {
     ///
     /// Diagnostics reported with severity [`info`](Severity::Info):
     /// - `unchanged translation`
-    fn check_msg(&self, checker: &mut Checker, entry: &Entry, msgid: &str, msgstr: &str) {
-        if !msgid.trim().is_empty() && !msgstr.trim().is_empty() && msgstr == msgid {
+    fn check_msg(
+        &self,
+        checker: &Checker,
+        _entry: &Entry,
+        msgid: &Message,
+        msgstr: &Message,
+    ) -> Vec<Diagnostic> {
+        if !msgid.value.trim().is_empty()
+            && !msgstr.value.trim().is_empty()
+            && msgid.value == msgstr.value
+        {
             let all_upper = msgid
+                .value
                 .chars()
                 .filter(|c| c.is_alphabetic())
                 .all(char::is_uppercase);
-            if !all_upper && msgid.to_uppercase() != msgid {
-                checker.report_id_str(
-                    entry,
-                    "unchanged translation".to_string(),
-                    msgid,
-                    &[],
-                    msgstr,
-                    &[],
-                );
+            if !all_upper && msgid.value.to_uppercase() != msgid.value {
+                return vec![
+                    checker
+                        .new_diag("unchanged translation")
+                        .with_msgs(msgid, msgstr),
+                ];
             }
         }
+        vec![]
     }
 }
 

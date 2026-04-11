@@ -5,8 +5,9 @@
 //! Implementation of the `escapes` rule: check missing/extra escape characters.
 
 use crate::checker::Checker;
-use crate::diagnostic::Severity;
+use crate::diagnostic::{Diagnostic, Severity};
 use crate::po::entry::Entry;
+use crate::po::message::Message;
 use crate::rules::rule::RuleChecker;
 
 pub struct EscapesRule;
@@ -47,83 +48,81 @@ impl RuleChecker for EscapesRule {
     /// - `extra escaped escape characters '\\' (# / #)`
     /// - `missing escaped escape characters '\' (# / #)`
     /// - `extra escaped escape characters '\' (# / #)`
-    fn check_msg(&self, checker: &mut Checker, entry: &Entry, msgid: &str, msgstr: &str) {
+    fn check_msg(
+        &self,
+        checker: &Checker,
+        _entry: &Entry,
+        msgid: &Message,
+        msgstr: &Message,
+    ) -> Vec<Diagnostic> {
         let id_esc: Vec<_> = msgid
+            .value
             .match_indices("\\\\")
             .map(|(idx, value)| (idx, idx + value.len()))
             .collect();
         let str_esc: Vec<_> = msgstr
+            .value
             .match_indices("\\\\")
             .map(|(idx, value)| (idx, idx + value.len()))
             .collect();
         match id_esc.len().cmp(&str_esc.len()) {
             std::cmp::Ordering::Greater => {
-                checker.report_id_str(
-                    entry,
-                    format!(
-                        "missing escaped escape characters '\\\\' ({} / {})",
-                        id_esc.len(),
-                        str_esc.len()
-                    ),
-                    msgid,
-                    &id_esc,
-                    msgstr,
-                    &str_esc,
-                );
+                vec![
+                    checker
+                        .new_diag(format!(
+                            "missing escaped escape characters '\\\\' ({} / {})",
+                            id_esc.len(),
+                            str_esc.len()
+                        ))
+                        .with_msgs_hl(msgid, &id_esc, msgstr, &str_esc),
+                ]
             }
             std::cmp::Ordering::Less => {
-                checker.report_id_str(
-                    entry,
-                    format!(
-                        "extra escaped escape characters '\\\\' ({} / {})",
-                        id_esc.len(),
-                        str_esc.len()
-                    ),
-                    msgid,
-                    &id_esc,
-                    msgstr,
-                    &str_esc,
-                );
+                vec![
+                    checker
+                        .new_diag(format!(
+                            "extra escaped escape characters '\\\\' ({} / {})",
+                            id_esc.len(),
+                            str_esc.len()
+                        ))
+                        .with_msgs_hl(msgid, &id_esc, msgstr, &str_esc),
+                ]
             }
             std::cmp::Ordering::Equal => {
                 let id_esc: Vec<_> = msgid
+                    .value
                     .match_indices('\\')
                     .map(|(idx, value)| (idx, idx + value.len()))
                     .collect();
                 let str_esc: Vec<_> = msgstr
+                    .value
                     .match_indices('\\')
                     .map(|(idx, value)| (idx, idx + value.len()))
                     .collect();
                 match id_esc.len().cmp(&str_esc.len()) {
                     std::cmp::Ordering::Greater => {
-                        checker.report_id_str(
-                            entry,
-                            format!(
-                                "missing escape characters '\\' ({} / {})",
-                                id_esc.len(),
-                                str_esc.len()
-                            ),
-                            msgid,
-                            &id_esc,
-                            msgstr,
-                            &str_esc,
-                        );
+                        vec![
+                            checker
+                                .new_diag(format!(
+                                    "missing escape characters '\\' ({} / {})",
+                                    id_esc.len(),
+                                    str_esc.len()
+                                ))
+                                .with_msgs_hl(msgid, &id_esc, msgstr, &str_esc),
+                        ]
                     }
                     std::cmp::Ordering::Less => {
-                        checker.report_id_str(
-                            entry,
-                            format!(
-                                "extra escape characters '\\' ({} / {})",
-                                id_esc.len(),
-                                str_esc.len()
-                            ),
-                            msgid,
-                            &id_esc,
-                            msgstr,
-                            &str_esc,
-                        );
+                        vec![
+                            checker
+                                .new_diag(format!(
+                                    "extra escape characters '\\' ({} / {})",
+                                    id_esc.len(),
+                                    str_esc.len()
+                                ))
+                                .with_msgs_hl(msgid, &id_esc, msgstr, &str_esc),
+                        ]
                     }
-                    std::cmp::Ordering::Equal => {}
+                    std::cmp::Ordering::Equal => vec![],
                 }
             }
         }

@@ -5,8 +5,9 @@
 //! Implementation of the `untranslated` rule: report untranslated entries.
 
 use crate::checker::Checker;
-use crate::diagnostic::Severity;
+use crate::diagnostic::{Diagnostic, Severity};
 use crate::po::entry::Entry;
+use crate::po::message::Message;
 use crate::rules::rule::RuleChecker;
 
 pub struct UntranslatedRule;
@@ -49,16 +50,21 @@ impl RuleChecker for UntranslatedRule {
     ///
     /// Diagnostics reported with severity [`info`](Severity::Info):
     /// - `untranslated message`
-    fn check_msg(&self, checker: &mut Checker, entry: &Entry, msgid: &str, msgstr: &str) {
-        if msgstr.is_empty() {
-            checker.report_id_str(
-                entry,
-                "untranslated message".to_string(),
-                msgid,
-                &[],
-                msgstr,
-                &[],
-            );
+    fn check_msg(
+        &self,
+        checker: &Checker,
+        _entry: &Entry,
+        msgid: &Message,
+        msgstr: &Message,
+    ) -> Vec<Diagnostic> {
+        if msgstr.value.is_empty() {
+            vec![
+                checker
+                    .new_diag("untranslated message")
+                    .with_msgs(msgid, msgstr),
+            ]
+        } else {
+            vec![]
         }
     }
 }

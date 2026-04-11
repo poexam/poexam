@@ -5,9 +5,10 @@
 //! Implementation of the `double-words` rule: check for consecutive repeated words.
 
 use crate::checker::Checker;
-use crate::diagnostic::Severity;
+use crate::diagnostic::{Diagnostic, Severity};
 use crate::po::entry::Entry;
 use crate::po::format::iter::FormatWordPos;
+use crate::po::message::Message;
 use crate::rules::rule::RuleChecker;
 
 pub struct DoubleWordsRule;
@@ -47,28 +48,33 @@ impl RuleChecker for DoubleWordsRule {
     ///
     /// Diagnostics reported with severity [`info`](Severity::Info):
     /// - `word 'xxx' is repeated`
-    fn check_msg(&self, checker: &mut Checker, entry: &Entry, msgid: &str, msgstr: &str) {
-        let mut words_iter = FormatWordPos::new(msgstr, &entry.format_language).peekable();
+    fn check_msg(
+        &self,
+        checker: &Checker,
+        entry: &Entry,
+        msgid: &Message,
+        msgstr: &Message,
+    ) -> Vec<Diagnostic> {
+        let mut diags = vec![];
+        let mut words_iter = FormatWordPos::new(&msgstr.value, &entry.format_language).peekable();
         while let Some(word) = words_iter.next()
             && let Some(next_word) = words_iter.peek()
         {
             // If the current word is the same as the next word, and that there is only
             // whitespace between them, then report a double word.
             if word.s == next_word.s
-                && msgstr[word.end..next_word.start]
+                && msgstr.value[word.end..next_word.start]
                     .chars()
                     .all(char::is_whitespace)
             {
-                checker.report_id_str(
-                    entry,
-                    format!("word '{}' is repeated", word.s),
-                    msgid,
-                    &[],
-                    msgstr,
-                    &[(word.start, next_word.end)],
+                diags.push(
+                    checker
+                        .new_diag(format!("word '{}' is repeated", word.s))
+                        .with_msgs_hl(msgid, &[], msgstr, &[(word.start, next_word.end)]),
                 );
             }
         }
+        diags
     }
 }
 

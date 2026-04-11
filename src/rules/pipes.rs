@@ -5,8 +5,9 @@
 //! Implementation of the `pipes` rule: check missing/extra pipes.
 
 use crate::checker::Checker;
-use crate::diagnostic::Severity;
+use crate::diagnostic::{Diagnostic, Severity};
 use crate::po::entry::Entry;
+use crate::po::message::Message;
 use crate::rules::rule::RuleChecker;
 
 pub struct PipesRule;
@@ -45,41 +46,47 @@ impl RuleChecker for PipesRule {
     /// Diagnostics reported with severity [`info`](Severity::Info):
     /// - `missing pipes '|' (# / #)`
     /// - `extra pipes '|' (# / #)`
-    fn check_msg(&self, checker: &mut Checker, entry: &Entry, msgid: &str, msgstr: &str) {
+    fn check_msg(
+        &self,
+        checker: &Checker,
+        _entry: &Entry,
+        msgid: &Message,
+        msgstr: &Message,
+    ) -> Vec<Diagnostic> {
         let id_pipes: Vec<_> = msgid
+            .value
             .match_indices('|')
             .map(|(idx, value)| (idx, idx + value.len()))
             .collect();
         let str_pipes: Vec<_> = msgstr
+            .value
             .match_indices('|')
             .map(|(idx, value)| (idx, idx + value.len()))
             .collect();
         match id_pipes.len().cmp(&str_pipes.len()) {
             std::cmp::Ordering::Greater => {
-                checker.report_id_str(
-                    entry,
-                    format!(
-                        "missing pipes '|' ({} / {})",
-                        id_pipes.len(),
-                        str_pipes.len()
-                    ),
-                    msgid,
-                    &id_pipes,
-                    msgstr,
-                    &str_pipes,
-                );
+                vec![
+                    checker
+                        .new_diag(format!(
+                            "missing pipes '|' ({} / {})",
+                            id_pipes.len(),
+                            str_pipes.len()
+                        ))
+                        .with_msgs_hl(msgid, &id_pipes, msgstr, &str_pipes),
+                ]
             }
             std::cmp::Ordering::Less => {
-                checker.report_id_str(
-                    entry,
-                    format!("extra pipes '|' ({} / {})", id_pipes.len(), str_pipes.len()),
-                    msgid,
-                    &id_pipes,
-                    msgstr,
-                    &str_pipes,
-                );
+                vec![
+                    checker
+                        .new_diag(format!(
+                            "extra pipes '|' ({} / {})",
+                            id_pipes.len(),
+                            str_pipes.len()
+                        ))
+                        .with_msgs_hl(msgid, &id_pipes, msgstr, &str_pipes),
+                ]
             }
-            std::cmp::Ordering::Equal => {}
+            std::cmp::Ordering::Equal => vec![],
         }
     }
 }

@@ -5,7 +5,7 @@
 //! Implementation of the `fuzzy` rule: report fuzzy entries.
 
 use crate::checker::Checker;
-use crate::diagnostic::Severity;
+use crate::diagnostic::{Diagnostic, Severity};
 use crate::po::entry::Entry;
 use crate::rules::rule::RuleChecker;
 
@@ -50,9 +50,11 @@ impl RuleChecker for FuzzyRule {
     ///
     /// Diagnostics reported with severity [`info`](Severity::Info):
     /// - `fuzzy entry`
-    fn check_entry(&self, checker: &mut Checker, entry: &Entry) {
+    fn check_entry(&self, checker: &Checker, entry: &Entry) -> Vec<Diagnostic> {
         if entry.fuzzy {
-            checker.report_entry("fuzzy entry".to_string(), entry);
+            vec![checker.new_diag("fuzzy entry").with_entry(entry)]
+        } else {
+            vec![]
         }
     }
 }

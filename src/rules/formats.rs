@@ -7,13 +7,14 @@
 use std::collections::HashSet;
 
 use crate::checker::Checker;
-use crate::diagnostic::Severity;
+use crate::diagnostic::{Diagnostic, Severity};
 use crate::po::entry::Entry;
 use crate::po::format::language::Language;
 use crate::po::format::{
     iter::FormatPos,
     lang_c::{fmt_sort_index, fmt_strip_index},
 };
+use crate::po::message::Message;
 use crate::rules::rule::RuleChecker;
 
 pub struct FormatsRule;
@@ -69,12 +70,18 @@ impl RuleChecker for FormatsRule {
     ///
     /// Diagnostics reported with severity [`error`](Severity::Error):
     /// - `inconsistent format strings (xxx)`
-    fn check_msg(&self, checker: &mut Checker, entry: &Entry, msgid: &str, msgstr: &str) {
+    fn check_msg(
+        &self,
+        checker: &Checker,
+        entry: &Entry,
+        msgid: &Message,
+        msgstr: &Message,
+    ) -> Vec<Diagnostic> {
         if entry.format_language == Language::Null {
-            return;
+            return vec![];
         }
-        let id_fmt: Vec<_> = FormatPos::new(msgid, &entry.format_language).collect();
-        let str_fmt: Vec<_> = FormatPos::new(msgstr, &entry.format_language).collect();
+        let id_fmt: Vec<_> = FormatPos::new(&msgid.value, &entry.format_language).collect();
+        let str_fmt: Vec<_> = FormatPos::new(&msgstr.value, &entry.format_language).collect();
         let error = if let Language::C = entry.format_language {
             // C format strings can include reordering position, so we need to sort them
             // and strip index before comparing.
@@ -100,14 +107,16 @@ impl RuleChecker for FormatsRule {
         if error {
             let pos_id: Vec<_> = id_fmt.iter().map(|m| (m.start, m.end)).collect();
             let pos_str: Vec<_> = str_fmt.iter().map(|m| (m.start, m.end)).collect();
-            checker.report_id_str(
-                entry,
-                format!("inconsistent format strings ({})", entry.format_language),
-                msgid,
-                &pos_id,
-                msgstr,
-                &pos_str,
-            );
+            vec![
+                checker
+                    .new_diag(format!(
+                        "inconsistent format strings ({})",
+                        entry.format_language
+                    ))
+                    .with_msgs_hl(msgid, &pos_id, msgstr, &pos_str),
+            ]
+        } else {
+            vec![]
         }
     }
 }

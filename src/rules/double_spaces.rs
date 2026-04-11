@@ -5,8 +5,9 @@
 //! Implementation of the `double-spaces` rule: check missing/extra double spaces.
 
 use crate::checker::Checker;
-use crate::diagnostic::Severity;
+use crate::diagnostic::{Diagnostic, Severity};
 use crate::po::entry::Entry;
+use crate::po::message::Message;
 use crate::rules::rule::RuleChecker;
 
 pub struct DoubleSpacesRule;
@@ -45,45 +46,47 @@ impl RuleChecker for DoubleSpacesRule {
     /// Diagnostics reported with severity [`info`](Severity::Info):
     /// - `missing double spaces '  ' (# / #)`
     /// - `extra double spaces '  ' (# / #)`
-    fn check_msg(&self, checker: &mut Checker, entry: &Entry, msgid: &str, msgstr: &str) {
+    fn check_msg(
+        &self,
+        checker: &Checker,
+        _entry: &Entry,
+        msgid: &Message,
+        msgstr: &Message,
+    ) -> Vec<Diagnostic> {
         let id_quotes: Vec<_> = msgid
+            .value
             .match_indices("  ")
             .map(|(idx, value)| (idx, idx + value.len()))
             .collect();
         let str_quotes: Vec<_> = msgstr
+            .value
             .match_indices("  ")
             .map(|(idx, value)| (idx, idx + value.len()))
             .collect();
         match id_quotes.len().cmp(&str_quotes.len()) {
             std::cmp::Ordering::Greater => {
-                checker.report_id_str(
-                    entry,
-                    format!(
-                        "missing double spaces '  ' ({} / {})",
-                        id_quotes.len(),
-                        str_quotes.len()
-                    ),
-                    msgid,
-                    &id_quotes,
-                    msgstr,
-                    &str_quotes,
-                );
+                vec![
+                    checker
+                        .new_diag(format!(
+                            "missing double spaces '  ' ({} / {})",
+                            id_quotes.len(),
+                            str_quotes.len()
+                        ))
+                        .with_msgs_hl(msgid, &id_quotes, msgstr, &str_quotes),
+                ]
             }
             std::cmp::Ordering::Less => {
-                checker.report_id_str(
-                    entry,
-                    format!(
-                        "extra double spaces '  ' ({} / {})",
-                        id_quotes.len(),
-                        str_quotes.len()
-                    ),
-                    msgid,
-                    &id_quotes,
-                    msgstr,
-                    &str_quotes,
-                );
+                vec![
+                    checker
+                        .new_diag(format!(
+                            "extra double spaces '  ' ({} / {})",
+                            id_quotes.len(),
+                            str_quotes.len()
+                        ))
+                        .with_msgs_hl(msgid, &id_quotes, msgstr, &str_quotes),
+                ]
             }
-            std::cmp::Ordering::Equal => {}
+            std::cmp::Ordering::Equal => vec![],
         }
     }
 }
