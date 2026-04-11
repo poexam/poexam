@@ -34,6 +34,8 @@ impl RuleChecker for PathsRule {
 
     /// Check for missing, extra or different paths in the translation.
     ///
+    /// This rule is not enabled by default.
+    ///
     /// Wrong entry:
     /// ```text
     /// msgid "Path: /tmp/output.txt"
