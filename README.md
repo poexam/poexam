@@ -90,7 +90,7 @@ It can perform a lot of checks via the default rules:
 | brackets         | info     | Missing/extra brackets.                            |
 | double-quotes    | info     | Missing/extra double quotes.                       |
 | double-spaces    | info     | Missing/extra double spaces.                       |
-| emails           | warning  | Missing/extra/different emails.                    |
+| emails           | info     | Missing/extra/different emails.                    |
 | encoding         | info     | Incorrect encoding (charset).                      |
 | escapes          | error    | Missing/extra escape characters.                   |
 | formats          | error    | Inconsistent format strings.                       |
@@ -104,7 +104,7 @@ It can perform a lot of checks via the default rules:
 | punc-space-str   | info     | Incorrect spaces around punctuation (translation). |
 | short            | warning  | Translation too short.                             |
 | tabs             | error    | Missing/extra tabs.                                |
-| urls             | warning  | Missing/extra/different URLs.                      |
+| urls             | info     | Missing/extra/different URLs.                      |
 | whitespace-end   | info     | Missing/extra whitespace at the end.               |
 | whitespace-start | info     | Missing/extra whitespace at the start.             |
 
@@ -127,7 +127,7 @@ For the rule `formats`, the following languages are supported:
 | fuzzy          | info     | Fuzzy entry.                                     |
 | noqa           | info     | Entry has `noqa` comment.                        |
 | obsolete       | info     | Obsolete entry.                                  |
-| paths          | warning  | Missing/extra/different paths.                   |
+| paths          | info     | Missing/extra/different paths.                   |
 | spelling-ctxt  | info     | Spelling error (context).                        |
 | spelling-id    | info     | Spelling error (source).                         |
 | spelling-str   | info     | Spelling error (translation).                    |

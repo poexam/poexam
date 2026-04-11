@@ -29,7 +29,7 @@ impl RuleChecker for EmailsRule {
     }
 
     fn severity(&self) -> Severity {
-        Severity::Warning
+        Severity::Info
     }
 
     /// Check for missing, extra or different emails in the translation.
@@ -46,7 +46,7 @@ impl RuleChecker for EmailsRule {
     /// msgstr "Email de test : user@example.com"
     /// ```
     ///
-    /// Diagnostics reported with severity [`warning`](Severity::Warning):
+    /// Diagnostics reported with severity [`info`](Severity::Info):
     /// - `missing emails (# / #)`
     /// - `extra emails (# / #)`
     /// - `different emails`
@@ -183,13 +183,13 @@ msgstr "e-mails différents : user@domain.com -- user2@example.com"
         );
         assert_eq!(diags.len(), 3);
         let diag = &diags[0];
-        assert_eq!(diag.severity, Severity::Warning);
+        assert_eq!(diag.severity, Severity::Info);
         assert_eq!(diag.message, "missing emails (2 / 1)");
         let diag = &diags[1];
-        assert_eq!(diag.severity, Severity::Warning);
+        assert_eq!(diag.severity, Severity::Info);
         assert_eq!(diag.message, "extra emails (1 / 2)");
         let diag = &diags[2];
-        assert_eq!(diag.severity, Severity::Warning);
+        assert_eq!(diag.severity, Severity::Info);
         assert_eq!(diag.message, "different emails");
     }
 }

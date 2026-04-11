@@ -29,7 +29,7 @@ impl RuleChecker for PathsRule {
     }
 
     fn severity(&self) -> Severity {
-        Severity::Warning
+        Severity::Info
     }
 
     /// Check for missing, extra or different paths in the translation.
@@ -48,7 +48,7 @@ impl RuleChecker for PathsRule {
     /// msgstr "Chemin : /tmp/output.txt"
     /// ```
     ///
-    /// Diagnostics reported with severity [`warning`](Severity::Warning):
+    /// Diagnostics reported with severity [`info`](Severity::Info):
     /// - `missing paths (# / #)`
     /// - `extra paths (# / #)`
     /// - `different paths`
@@ -180,13 +180,13 @@ msgstr "chemins différents : /tmp/output.txt -- ./relative/path"
         );
         assert_eq!(diags.len(), 3);
         let diag = &diags[0];
-        assert_eq!(diag.severity, Severity::Warning);
+        assert_eq!(diag.severity, Severity::Info);
         assert_eq!(diag.message, "missing paths (2 / 1)");
         let diag = &diags[1];
-        assert_eq!(diag.severity, Severity::Warning);
+        assert_eq!(diag.severity, Severity::Info);
         assert_eq!(diag.message, "extra paths (1 / 2)");
         let diag = &diags[2];
-        assert_eq!(diag.severity, Severity::Warning);
+        assert_eq!(diag.severity, Severity::Info);
         assert_eq!(diag.message, "different paths");
     }
 }

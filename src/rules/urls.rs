@@ -29,7 +29,7 @@ impl RuleChecker for UrlsRule {
     }
 
     fn severity(&self) -> Severity {
-        Severity::Warning
+        Severity::Info
     }
 
     /// Check for missing, extra or different URLs in the translation.
@@ -46,7 +46,7 @@ impl RuleChecker for UrlsRule {
     /// msgstr "URL de test : https://example.com"
     /// ```
     ///
-    /// Diagnostics reported with severity [`warning`](Severity::Warning):
+    /// Diagnostics reported with severity [`info`](Severity::Info):
     /// - `missing URLs (# / #)`
     /// - `extra URLs (# / #)`
     /// - `different URLs`
@@ -167,13 +167,13 @@ msgstr "URLs différentes : https://exampe.com/test -- http://google.com"
         );
         assert_eq!(diags.len(), 3);
         let diag = &diags[0];
-        assert_eq!(diag.severity, Severity::Warning);
+        assert_eq!(diag.severity, Severity::Info);
         assert_eq!(diag.message, "missing URLs (2 / 1)");
         let diag = &diags[1];
-        assert_eq!(diag.severity, Severity::Warning);
+        assert_eq!(diag.severity, Severity::Info);
         assert_eq!(diag.message, "extra URLs (1 / 2)");
         let diag = &diags[2];
-        assert_eq!(diag.severity, Severity::Warning);
+        assert_eq!(diag.severity, Severity::Info);
         assert_eq!(diag.message, "different URLs");
     }
 }
