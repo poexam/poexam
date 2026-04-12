@@ -206,7 +206,7 @@ impl<'a> FormatEmailPos<'a> {
 /// local and domain parts are not empty and contain only allowed characters, with
 /// relaxed rules (e.g. allow language formats like `%s` or `{0}`).
 fn is_valid_email(email: &str) -> bool {
-    if let Some(pos_arobase) = email.find('@') {
+    email.find('@').is_some_and(|pos_arobase| {
         let local = &email[..pos_arobase];
         let domain = &email[pos_arobase + 1..];
         !local.is_empty()
@@ -241,9 +241,7 @@ fn is_valid_email(email: &str) -> bool {
                     || c == '»'
             })
             && domain.contains('.')
-    } else {
-        false
-    }
+    })
 }
 
 /// Iterator returning emails of a string, according to the given language, skipping
