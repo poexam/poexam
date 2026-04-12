@@ -231,15 +231,6 @@ impl Diagnostic {
         });
     }
 
-    /// Add a message to the diagnostic with the given line number and highlights.
-    pub fn add_message(&mut self, line: usize, message: &str, highlights: &[(usize, usize)]) {
-        self.lines.push(DiagnosticLine {
-            line_number: line,
-            message: message.to_string(),
-            highlights: highlights.to_vec(),
-        });
-    }
-
     /// Build the diagnostic message (append misspelled words if any).
     pub fn build_message(&self) -> Cow<'_, str> {
         if self.misspelled_words.is_empty() {
