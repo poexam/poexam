@@ -44,7 +44,7 @@ pub fn find_po_files(paths: &[PathBuf]) -> HashSet<PathBuf> {
                             dirent
                                 .path()
                                 .strip_prefix("./")
-                                .unwrap_or(dirent.path())
+                                .unwrap_or_else(|_| dirent.path())
                                 .to_path_buf(),
                         );
                     }
