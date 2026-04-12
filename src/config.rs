@@ -27,106 +27,118 @@ pub struct Config {
 #[derive(Debug, Serialize, Deserialize)]
 #[allow(clippy::struct_excessive_bools)]
 pub struct CheckConfig {
-    #[serde(default = "default_fuzzy")]
+    #[serde(default = "default_check_fuzzy")]
     pub fuzzy: bool,
 
-    #[serde(default = "default_noqa")]
+    #[serde(default = "default_check_noqa")]
     pub noqa: bool,
 
-    #[serde(default = "default_obsolete")]
+    #[serde(default = "default_check_obsolete")]
     pub obsolete: bool,
 
-    #[serde(default = "default_select")]
+    #[serde(default = "default_check_select")]
     pub select: Vec<String>,
 
-    #[serde(default = "default_ignore")]
+    #[serde(default = "default_check_ignore")]
     pub ignore: Vec<String>,
 
-    #[serde(default = "default_path_msgfmt")]
+    #[serde(default = "default_check_path_msgfmt")]
     pub path_msgfmt: PathBuf,
 
-    #[serde(default = "default_path_dicts")]
+    #[serde(default = "default_check_path_dicts")]
     pub path_dicts: PathBuf,
 
-    #[serde(default = "default_path_words")]
+    #[serde(default = "default_check_path_words")]
     pub path_words: Option<PathBuf>,
 
-    #[serde(default = "default_lang_id")]
+    #[serde(default = "default_check_lang_id")]
     pub lang_id: String,
 
-    #[serde(default = "default_langs")]
+    #[serde(default = "default_check_langs")]
     pub langs: Vec<String>,
 
-    #[serde(default = "default_severity")]
+    #[serde(default = "default_check_severity")]
     pub severity: Vec<Severity>,
 
-    #[serde(default = "default_punc_ignore_ellipsis")]
+    #[serde(default = "default_check_punc_ignore_ellipsis")]
     pub punc_ignore_ellipsis: bool,
 }
 
-fn default_fuzzy() -> bool {
+/// Default value for `check.fuzzy`.
+fn default_check_fuzzy() -> bool {
     false
 }
 
-fn default_noqa() -> bool {
+/// Default value for `check.noqa`.
+fn default_check_noqa() -> bool {
     false
 }
 
-fn default_obsolete() -> bool {
+/// Default value for `check.obsolete`.
+fn default_check_obsolete() -> bool {
     false
 }
 
-fn default_select() -> Vec<String> {
+/// Default value for `check.select`.
+fn default_check_select() -> Vec<String> {
     vec![String::from("default")]
 }
 
-fn default_ignore() -> Vec<String> {
+/// Default value for `check.ignore`.
+fn default_check_ignore() -> Vec<String> {
     vec![]
 }
 
-fn default_path_msgfmt() -> PathBuf {
+/// Default value for `check.path_msgfmt`.
+fn default_check_path_msgfmt() -> PathBuf {
     PathBuf::from(DEFAULT_PATH_MSGFMT)
 }
 
-fn default_path_dicts() -> PathBuf {
+/// Default value for `check.path_dicts`.
+fn default_check_path_dicts() -> PathBuf {
     PathBuf::from(dict::DEFAULT_PATH_DICTS)
 }
 
-fn default_path_words() -> Option<PathBuf> {
+/// Default value for `check.path_words`.
+fn default_check_path_words() -> Option<PathBuf> {
     None
 }
 
-fn default_lang_id() -> String {
+/// Default value for `check.lang_id`.
+fn default_check_lang_id() -> String {
     String::from(dict::DEFAULT_LANG_ID)
 }
 
-fn default_langs() -> Vec<String> {
+/// Default value for `check.langs`.
+fn default_check_langs() -> Vec<String> {
     vec![]
 }
 
-fn default_severity() -> Vec<Severity> {
+/// Default value for `check.severity`.
+fn default_check_severity() -> Vec<Severity> {
     vec![]
 }
 
-fn default_punc_ignore_ellipsis() -> bool {
+/// Default value for `check.punc_ignore_ellipsis`.
+fn default_check_punc_ignore_ellipsis() -> bool {
     false
 }
 
 impl Default for CheckConfig {
     fn default() -> Self {
         Self {
-            fuzzy: default_fuzzy(),
-            noqa: default_noqa(),
-            obsolete: default_obsolete(),
-            select: default_select(),
-            ignore: default_ignore(),
-            path_msgfmt: default_path_msgfmt(),
-            path_dicts: default_path_dicts(),
-            path_words: default_path_words(),
-            lang_id: default_lang_id(),
-            langs: default_langs(),
-            severity: default_severity(),
-            punc_ignore_ellipsis: default_punc_ignore_ellipsis(),
+            fuzzy: default_check_fuzzy(),
+            noqa: default_check_noqa(),
+            obsolete: default_check_obsolete(),
+            select: default_check_select(),
+            ignore: default_check_ignore(),
+            path_msgfmt: default_check_path_msgfmt(),
+            path_dicts: default_check_path_dicts(),
+            path_words: default_check_path_words(),
+            lang_id: default_check_lang_id(),
+            langs: default_check_langs(),
+            severity: default_check_severity(),
+            punc_ignore_ellipsis: default_check_punc_ignore_ellipsis(),
         }
     }
 }
