@@ -9,6 +9,7 @@ authors = ["Sébastien Helleu <flashcode@flashtux.org>"]
 edition = "2024"
 rust-version = "1.87"
 description = "Blazingly fast PO linter."
+exclude = ["resources/test/", "examples/"]
 documentation = "https://docs.rs/poexam/"
 readme = "README.md"
 homepage = "https://github.com/poexam/poexam"
