@@ -151,10 +151,7 @@ impl Config {
             && let Some(config_dir) = config_path.parent()
         {
             let path = PathBuf::from(config_dir).join(path_words);
-            self.check.path_words = match path.canonicalize() {
-                Ok(abs_path) => Some(abs_path),
-                Err(_) => Some(path),
-            };
+            self.check.path_words = path.canonicalize().map_or(Some(path), Some);
         }
         if let Some(lang_id) = &args.lang_id {
             self.check.lang_id = String::from(lang_id);
