@@ -7,6 +7,7 @@ name = "poexam"
 version = "0.0.9-dev"
 authors = ["Sébastien Helleu <flashcode@flashtux.org>"]
 edition = "2024"
+rust-version = "1.87"
 description = "Blazingly fast PO linter."
 documentation = "https://docs.rs/poexam/"
 readme = "README.md"
