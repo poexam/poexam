@@ -64,20 +64,38 @@ impl Rules {
     }
 }
 
+/// Trait for rules to check PO files. Each rule can check files, entries, contexts and messages and report diagnostics.
+///
+/// The check methods have default implementations that do nothing, so a rule can implement only the methods it needs.
 pub trait RuleChecker {
+    /// Get the name of the rule, used to select it with command line parameters.
     fn name(&self) -> &'static str;
+
+    /// Whether the rule is enabled by default (when no `--select` parameter is provided).
     fn is_default(&self) -> bool;
+
+    /// Whether the rule is a check (as opposed to a special rule like "fuzzy" or "noqa").
     fn is_check(&self) -> bool;
+
+    /// Get the severity of the rule.
     fn severity(&self) -> Severity;
+
+    /// Check a file for diagnostics.
     fn check_file(&self, _checker: &Checker) -> Vec<Diagnostic> {
         vec![]
     }
+
+    /// Check an entry for diagnostics.
     fn check_entry(&self, _checker: &Checker, _entry: &Entry) -> Vec<Diagnostic> {
         vec![]
     }
+
+    /// Check a context for diagnostics.
     fn check_ctxt(&self, _checker: &Checker, _entry: &Entry, _ctxt: &Message) -> Vec<Diagnostic> {
         vec![]
     }
+
+    /// Check a message for diagnostics.
     fn check_msg(
         &self,
         _checker: &Checker,
