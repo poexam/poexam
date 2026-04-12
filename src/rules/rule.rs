@@ -89,6 +89,7 @@ pub trait RuleChecker {
     }
 }
 
+/// Get all available rules.
 pub fn get_all_rules() -> Vec<Rule> {
     vec![
         Box::new(blank::BlankRule {}),

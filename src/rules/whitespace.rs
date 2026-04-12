@@ -139,6 +139,7 @@ impl RuleChecker for WhitespaceEndRule {
     }
 }
 
+/// Get the leading whitespace of a string (up to the first non-whitespace character or newline).
 fn get_whitespace_start(value: &str) -> &str {
     let pos = value
         .chars()
@@ -148,6 +149,7 @@ fn get_whitespace_start(value: &str) -> &str {
     &value[..pos]
 }
 
+/// Get the trailing whitespace of a string (up to the last non-whitespace character or newline).
 fn get_whitespace_end(value: &str) -> &str {
     let pos = value
         .chars()

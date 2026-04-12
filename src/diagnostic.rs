@@ -74,6 +74,7 @@ impl std::fmt::Display for Severity {
 }
 
 impl Serialize for DiagnosticLine {
+    /// Custom serialization for `DiagnosticLine` to convert highlights from byte positions to character positions.
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,

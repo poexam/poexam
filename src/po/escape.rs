@@ -5,7 +5,10 @@
 //! Utilities for escaping and unescaping strings for PO file format.
 
 pub trait EscapePoExt {
+    /// Escape special characters in a string for PO file format.
     fn escape_po(&self) -> String;
+
+    /// Unescape special character sequences in a string from a PO file.
     fn unescape_po(&self) -> String;
 }
 

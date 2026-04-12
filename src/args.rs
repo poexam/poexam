@@ -181,6 +181,7 @@ pub enum CheckOutputFormat {
 }
 
 impl std::fmt::Display for CheckOutputFormat {
+    /// Display the output format as a string.
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             CheckOutputFormat::Human => write!(f, "human"),
@@ -202,6 +203,7 @@ pub enum StatsOutputFormat {
 }
 
 impl std::fmt::Display for StatsOutputFormat {
+    /// Display the output format as a string.
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             StatsOutputFormat::Human => write!(f, "human"),
