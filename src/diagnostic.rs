@@ -290,10 +290,11 @@ impl Diagnostic {
 impl std::fmt::Display for Diagnostic {
     /// Format the `Diagnostic` for display, including file, severity, message, and context.
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let str_first_line = match self.lines.iter().find(|line| line.line_number > 0) {
-            Some(line) => format!(":{}", line.line_number),
-            _ => String::new(),
-        };
+        let str_first_line = self
+            .lines
+            .iter()
+            .find(|line| line.line_number > 0)
+            .map_or_else(String::new, |line| format!(":{}", line.line_number));
         write!(
             f,
             "{}{str_first_line}: [{}:{}] {}{}",
