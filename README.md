@@ -114,10 +114,10 @@ For the rule `formats`, the following languages are supported:
 - Python (`python-format`): Python % format strings (e.g. `%s %(age)d`)
 - Python brace (`python-brace-format`): Python brace format strings (e.g. `{0!r:20} {1}`).
 
- Some extra rules are not used by default because they are not really "checks",
- report too many false positives or can slow down the process.
+Some extra rules are not used by default because they are not really "checks",
+report too many false positives or can slow down the process.
 
- You can enable them on-demand:
+You can enable them on-demand:
 
 | Rule name      | Severity | Diagnostic reported                              |
 |----------------|----------|--------------------------------------------------|
