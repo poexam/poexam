@@ -76,7 +76,7 @@ The following options are available in the `check` section (each option can be o
 | lang_id              | String           | Language used to check source strings.                            |
 | langs                | Array of strings | Check spelling only for these languages.                          |
 | severity             | Array of strings | Run only checks with these severities (`info`/`warning`/`error`). |
-| punc_ignore_ellipsis | Boolean          | Ignore ellipsis differences (`...` vs `…`) in punc rules .        |
+| punc_ignore_ellipsis | Boolean          | Ignore ellipsis differences (`...` vs `…`) in punc rules.         |
 
 See configuration file example: [poexam.toml](examples/poexam.toml).
 
@@ -123,7 +123,7 @@ For the rule `formats`, the following languages are supported:
 |----------------|----------|--------------------------------------------------|
 | changed        | info     | Translation is different from the source string. |
 | compilation    | error    | Compilation with `msgfmt`.                       |
-| double-words   | info     | Translation has Consecutive repeated words.      |
+| double-words   | info     | Translation has consecutive repeated words.      |
 | fuzzy          | info     | Fuzzy entry.                                     |
 | noqa           | info     | Entry has `noqa` comment.                        |
 | obsolete       | info     | Obsolete entry.                                  |
@@ -208,7 +208,7 @@ poexam check --select spelling-str --output misspelled fr.po > fr.dic
 
 ### Statistics
 
-Poexam can also give statistics about the translation progress and number of lines/words/charecters, see: `poexam help stats`.
+Poexam can also give statistics about the translation progress and number of lines/words/characters, see: `poexam help stats`.
 
 Example:
 
