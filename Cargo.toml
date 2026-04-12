@@ -38,3 +38,6 @@ toml = "1.0.1"
 [profile.release]
 lto = true
 strip = true
+
+[lints.rust]
+unsafe_code = "forbid"
