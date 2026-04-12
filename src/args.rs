@@ -184,9 +184,9 @@ impl std::fmt::Display for CheckOutputFormat {
     /// Display the output format as a string.
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            CheckOutputFormat::Human => write!(f, "human"),
-            CheckOutputFormat::Json => write!(f, "json"),
-            CheckOutputFormat::Misspelled => write!(f, "misspelled"),
+            Self::Human => write!(f, "human"),
+            Self::Json => write!(f, "json"),
+            Self::Misspelled => write!(f, "misspelled"),
         }
     }
 }
@@ -206,8 +206,8 @@ impl std::fmt::Display for StatsOutputFormat {
     /// Display the output format as a string.
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            StatsOutputFormat::Human => write!(f, "human"),
-            StatsOutputFormat::Json => write!(f, "json"),
+            Self::Human => write!(f, "human"),
+            Self::Json => write!(f, "json"),
         }
     }
 }

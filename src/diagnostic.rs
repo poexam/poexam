@@ -65,9 +65,9 @@ impl std::fmt::Display for Severity {
     /// Format the `Severity` as a colored string for display.
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let s = match self {
-            Severity::Info => "info".cyan(),
-            Severity::Warning => "warning".yellow(),
-            Severity::Error => "error".bright_red().bold(),
+            Self::Info => "info".cyan(),
+            Self::Warning => "warning".yellow(),
+            Self::Error => "error".bright_red().bold(),
         };
         write!(f, "{s}")
     }
@@ -126,10 +126,7 @@ impl DiagnosticLine {
         if self.highlights.is_empty() {
             Cow::Borrowed(&self.message)
         } else {
-            Cow::Owned(DiagnosticLine::highlight_list_pos(
-                &self.message,
-                &self.highlights,
-            ))
+            Cow::Owned(Self::highlight_list_pos(&self.message, &self.highlights))
         }
     }
 }
@@ -281,7 +278,7 @@ impl Diagnostic {
             list_lines.push(String::new());
             list_lines.push("        |".cyan().to_string());
             for line in &self.lines {
-                list_lines.push(Diagnostic::format_line(line));
+                list_lines.push(Self::format_line(line));
             }
             list_lines.push("        |".cyan().to_string());
             list_lines.push(String::new());

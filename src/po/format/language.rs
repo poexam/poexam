@@ -36,10 +36,10 @@ impl From<&str> for Language {
 impl std::fmt::Display for Language {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Language::Null => write!(f, "none"),
-            Language::C => write!(f, "C"),
-            Language::Python => write!(f, "Python"),
-            Language::PythonBrace => write!(f, "Python brace"),
+            Self::Null => write!(f, "none"),
+            Self::C => write!(f, "C"),
+            Self::Python => write!(f, "Python"),
+            Self::PythonBrace => write!(f, "Python brace"),
         }
     }
 }
@@ -47,10 +47,10 @@ impl std::fmt::Display for Language {
 impl Language {
     pub fn format_parser(&self) -> Box<dyn FormatParser> {
         match self {
-            Language::C => Box::new(FormatC),
-            Language::Python => Box::new(FormatPython),
-            Language::PythonBrace => Box::new(FormatPythonBrace),
-            Language::Null => Box::new(FormatNull),
+            Self::C => Box::new(FormatC),
+            Self::Python => Box::new(FormatPython),
+            Self::PythonBrace => Box::new(FormatPythonBrace),
+            Self::Null => Box::new(FormatNull),
         }
     }
 }

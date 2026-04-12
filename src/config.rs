@@ -145,7 +145,7 @@ impl Default for CheckConfig {
 
 impl Config {
     /// Create a configuration by reading a configuration file.
-    pub fn new(path: Option<&PathBuf>) -> Result<Config, Box<dyn Error>> {
+    pub fn new(path: Option<&PathBuf>) -> Result<Self, Box<dyn Error>> {
         let content = match path {
             Some(cfg_path) => match read_to_string(cfg_path) {
                 Ok(content) => content,
@@ -153,7 +153,7 @@ impl Config {
             },
             None => String::new(),
         };
-        let mut config: Config = toml::from_str(&content)?;
+        let mut config: Self = toml::from_str(&content)?;
         if let Some(path) = path {
             config.path = Some(PathBuf::from(path));
         }

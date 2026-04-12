@@ -220,9 +220,9 @@ impl RuleChecker for NewlinesRule {
         msgstr: &Message,
     ) -> Vec<Diagnostic> {
         let mut diags = vec![];
-        diags.extend(NewlinesRule::check_cr_lf_count(checker, msgid, msgstr));
-        diags.extend(NewlinesRule::check_cr_lf_beginning(checker, msgid, msgstr));
-        diags.extend(NewlinesRule::check_cr_lf_end(checker, msgid, msgstr));
+        diags.extend(Self::check_cr_lf_count(checker, msgid, msgstr));
+        diags.extend(Self::check_cr_lf_beginning(checker, msgid, msgstr));
+        diags.extend(Self::check_cr_lf_end(checker, msgid, msgstr));
         diags
     }
 }

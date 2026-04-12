@@ -17,7 +17,7 @@ pub struct Message {
 impl Message {
     /// Create a new `Message` with the given line and value.
     pub fn new<S: AsRef<str>>(line_number: usize, value: S) -> Self {
-        Message {
+        Self {
             line_number,
             value: value.as_ref().to_string(),
         }
