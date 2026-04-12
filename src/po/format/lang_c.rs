@@ -90,10 +90,10 @@ pub fn fmt_sort_index(fmt: &str) -> usize {
     if pos == 1 || pos >= bytes.len() || bytes[pos] != b'$' {
         return usize::MAX;
     }
-    match &fmt[1..pos].parse::<usize>() {
-        Ok(index) => *index,
-        Err(_) => usize::MAX,
-    }
+    fmt[1..pos]
+        .parse::<usize>()
+        .as_ref()
+        .map_or(usize::MAX, |index| *index)
 }
 
 /// Return the format string without index (reordering part).
