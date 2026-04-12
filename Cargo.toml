@@ -41,3 +41,13 @@ strip = true
 
 [lints.rust]
 unsafe_code = "forbid"
+
+[lints.clippy]
+pedantic = { level = "deny", priority = -1 }
+enum_glob_use = "warn"
+clone_on_ref_ptr = "warn"
+needless_pass_by_value = "warn"
+implicit_clone = "warn"
+redundant_closure_for_method_calls = "warn"
+dbg_macro = "warn"
+todo = "warn"
