@@ -30,7 +30,6 @@ pub struct Entry {
 
 impl Entry {
     /// Create a new PO entry with the line number and default values.
-    #[must_use]
     pub fn new(line_number: usize) -> Self {
         Self {
             line_number,
@@ -67,7 +66,6 @@ impl Entry {
     }
 
     /// Return `true` if this entry is the header entry (`msgid` is set and is an empty string).
-    #[must_use]
     pub fn is_header(&self) -> bool {
         match &self.msgid {
             Some(msg) => msg.value.is_empty(),
@@ -76,14 +74,12 @@ impl Entry {
     }
 
     /// Return `true` if this entry has a plural form (`msgid_plural` is set).
-    #[must_use]
     pub fn has_plural_form(&self) -> bool {
         self.msgid_plural.is_some()
     }
 
     /// Return `true` if this entry has at least one non-empty translation string
     /// (even if the entry is marked as fuzzy).
-    #[must_use]
     pub fn is_translated(&self) -> bool {
         for msg in self.msgstr.values() {
             if !msg.value.is_empty() {

@@ -262,7 +262,6 @@ impl std::fmt::Display for StatsFile {
 }
 
 impl StatsFile {
-    #[must_use]
     /// Create a new `StatsFile` for the given path.
     pub fn new(path: &Path) -> Self {
         Self {

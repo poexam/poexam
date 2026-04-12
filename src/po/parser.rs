@@ -42,7 +42,6 @@ pub struct Parser<'a> {
 
 impl<'d> Parser<'d> {
     /// Create a new `Parser` from the given byte slice.
-    #[must_use]
     pub fn new(data: &'d [u8]) -> Self {
         Self {
             data,
@@ -54,7 +53,6 @@ impl<'d> Parser<'d> {
     }
 
     /// Return the encoding name.
-    #[must_use]
     pub fn encoding_name(&self) -> &'static str {
         if let Some(enc) = self.encoding {
             enc.name()
@@ -64,7 +62,6 @@ impl<'d> Parser<'d> {
     }
 
     /// Return the number of plurals defined in the header.
-    #[must_use]
     pub fn nplurals(&self) -> u32 {
         self.nplurals
     }
