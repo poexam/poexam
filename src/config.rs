@@ -27,19 +27,19 @@ pub struct Config {
 #[derive(Debug, Serialize, Deserialize)]
 #[allow(clippy::struct_excessive_bools)]
 pub struct CheckConfig {
-    #[serde(default = "default_check_fuzzy")]
+    #[serde(default)]
     pub fuzzy: bool,
 
-    #[serde(default = "default_check_noqa")]
+    #[serde(default)]
     pub noqa: bool,
 
-    #[serde(default = "default_check_obsolete")]
+    #[serde(default)]
     pub obsolete: bool,
 
     #[serde(default = "default_check_select")]
     pub select: Vec<String>,
 
-    #[serde(default = "default_check_ignore")]
+    #[serde(default)]
     pub ignore: Vec<String>,
 
     #[serde(default = "default_check_path_msgfmt")]
@@ -48,45 +48,25 @@ pub struct CheckConfig {
     #[serde(default = "default_check_path_dicts")]
     pub path_dicts: PathBuf,
 
-    #[serde(default = "default_check_path_words")]
+    #[serde(default)]
     pub path_words: Option<PathBuf>,
 
     #[serde(default = "default_check_lang_id")]
     pub lang_id: String,
 
-    #[serde(default = "default_check_langs")]
+    #[serde(default)]
     pub langs: Vec<String>,
 
-    #[serde(default = "default_check_severity")]
+    #[serde(default)]
     pub severity: Vec<Severity>,
 
-    #[serde(default = "default_check_punc_ignore_ellipsis")]
+    #[serde(default)]
     pub punc_ignore_ellipsis: bool,
-}
-
-/// Default value for `check.fuzzy`.
-fn default_check_fuzzy() -> bool {
-    false
-}
-
-/// Default value for `check.noqa`.
-fn default_check_noqa() -> bool {
-    false
-}
-
-/// Default value for `check.obsolete`.
-fn default_check_obsolete() -> bool {
-    false
 }
 
 /// Default value for `check.select`.
 fn default_check_select() -> Vec<String> {
     vec![String::from("default")]
-}
-
-/// Default value for `check.ignore`.
-fn default_check_ignore() -> Vec<String> {
-    vec![]
 }
 
 /// Default value for `check.path_msgfmt`.
@@ -99,46 +79,26 @@ fn default_check_path_dicts() -> PathBuf {
     PathBuf::from(dict::DEFAULT_PATH_DICTS)
 }
 
-/// Default value for `check.path_words`.
-fn default_check_path_words() -> Option<PathBuf> {
-    None
-}
-
 /// Default value for `check.lang_id`.
 fn default_check_lang_id() -> String {
     String::from(dict::DEFAULT_LANG_ID)
 }
 
-/// Default value for `check.langs`.
-fn default_check_langs() -> Vec<String> {
-    vec![]
-}
-
-/// Default value for `check.severity`.
-fn default_check_severity() -> Vec<Severity> {
-    vec![]
-}
-
-/// Default value for `check.punc_ignore_ellipsis`.
-fn default_check_punc_ignore_ellipsis() -> bool {
-    false
-}
-
 impl Default for CheckConfig {
     fn default() -> Self {
         Self {
-            fuzzy: default_check_fuzzy(),
-            noqa: default_check_noqa(),
-            obsolete: default_check_obsolete(),
+            fuzzy: false,
+            noqa: false,
+            obsolete: false,
             select: default_check_select(),
-            ignore: default_check_ignore(),
+            ignore: vec![],
             path_msgfmt: default_check_path_msgfmt(),
             path_dicts: default_check_path_dicts(),
-            path_words: default_check_path_words(),
+            path_words: None,
             lang_id: default_check_lang_id(),
-            langs: default_check_langs(),
-            severity: default_check_severity(),
-            punc_ignore_ellipsis: default_check_punc_ignore_ellipsis(),
+            langs: vec![],
+            severity: vec![],
+            punc_ignore_ellipsis: false,
         }
     }
 }
