@@ -291,9 +291,7 @@ mod tests {
 
     #[test]
     fn parse_empty_string() {
-        let parser = Parser::new(b"");
-        let entries: Vec<Entry> = parser.collect();
-        assert!(entries.is_empty());
+        assert!(Parser::new(b"").next().is_none());
     }
 
     #[test]
