@@ -84,7 +84,7 @@ impl<'d> Parser<'d> {
     }
 
     /// Parse the header of a PO entry to extract encoding information if present.
-    fn parse_header(&mut self, entry: &mut Entry) {
+    fn parse_header(&mut self, entry: &Entry) {
         let Some(id) = entry.msgid.as_ref() else {
             return;
         };
@@ -240,7 +240,7 @@ impl Iterator for Parser<'_> {
                 if started {
                     entry.encoding_error = self.encoding_error;
                     entry.unescape_strings();
-                    self.parse_header(&mut entry);
+                    self.parse_header(&entry);
                     return Some(entry);
                 }
                 entry.line_number = self.next_line_number;
@@ -277,7 +277,7 @@ impl Iterator for Parser<'_> {
             // Send the last entry if we reached the end of data.
             entry.encoding_error = self.encoding_error;
             entry.unescape_strings();
-            self.parse_header(&mut entry);
+            self.parse_header(&entry);
             Some(entry)
         } else {
             None
