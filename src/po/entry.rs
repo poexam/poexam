@@ -10,7 +10,7 @@ use std::collections::BTreeMap;
 
 use crate::{po::escape::EscapePoExt, po::format::language::Language, po::message::Message};
 
-#[derive(Debug, Default, PartialEq, Serialize)]
+#[derive(Debug, Default, PartialEq, Eq, Serialize)]
 #[allow(clippy::struct_excessive_bools)]
 pub struct Entry {
     pub line_number: usize,

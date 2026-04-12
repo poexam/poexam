@@ -8,7 +8,7 @@ use serde::Serialize;
 
 use crate::po::escape::EscapePoExt;
 
-#[derive(Debug, Default, PartialEq, Serialize)]
+#[derive(Debug, Default, PartialEq, Eq, Serialize)]
 pub struct Message {
     pub line_number: usize,
     pub value: String,

@@ -13,7 +13,7 @@ use crate::po::format::{
     lang_python::{FormatPython, FormatPythonBrace},
 };
 
-#[derive(Debug, Default, PartialEq, Serialize)]
+#[derive(Debug, Default, PartialEq, Eq, Serialize)]
 pub enum Language {
     #[default]
     Null,
