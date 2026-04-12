@@ -54,11 +54,8 @@ impl<'d> Parser<'d> {
 
     /// Return the encoding name.
     pub fn encoding_name(&self) -> &'static str {
-        if let Some(enc) = self.encoding {
-            enc.name()
-        } else {
-            encoding_rs::UTF_8.name()
-        }
+        self.encoding
+            .map_or_else(|| encoding_rs::UTF_8.name(), |enc| enc.name())
     }
 
     /// Return the number of plurals defined in the header.
