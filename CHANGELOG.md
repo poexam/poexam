@@ -35,13 +35,13 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ### Changed
 
 - Rename rule "c-formats" to "formats"
-- Ignore words with digits and words with at least two chars and only uppercase chars in spelling rules
+- Ignore words containing digits and all-uppercase words of at least two characters in spelling rules
 - Add French "guillemets" in rule "double-quotes"
 
 ### Added
 
-- Add support of configuration file "poexam.toml", add options `--config` and `--no-config`
-- Add support of format strings "python-format" and "python-brace-format"
+- Add support for configuration file "poexam.toml", add options `--config` and `--no-config`
+- Add support for format strings "python-format" and "python-brace-format"
 - Add rules "changed", "long" and "short"
 
 ### Fixed
@@ -62,7 +62,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 - Add option `--rule-stats` to display rule statistics
 - Add pre-commit hook
-- Add special rule "default" to allow add of extra rules
+- Add special rule "default" to allow adding extra rules
 - Add output `misspelled` in `check` command to display only all misspelled words
 - Add option `--path-words` to specify a path to a directory containing files with list of words to add per language
 
@@ -97,7 +97,8 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 ### Fixed
 
-- Fix detection of C formats in strings, fix panic in case of invalid format
+- Fix detection of C formats in strings
+- Fix panic in case of invalid format
 - Skip C format strings in count of words and characters
 - Fix message when no files are checked
 - Sort file status by path (option `--file-status`)
@@ -110,8 +111,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 ### Fixed
 
-- Remove color from JSON output, add field "highlights" (list of (start, end) positions in string)
-- Add support of full-width, Arabian, Greek and Persian punctuation
+- Remove color from JSON output
+- Add field "highlights" (list of (start, end) positions in string)
+- Add support for full-width, Arabic, Greek and Persian punctuation
 - Sort errors by filename to have a predictable order
 
 ## Version 0.0.1 (2026-02-02)
