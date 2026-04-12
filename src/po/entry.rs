@@ -66,7 +66,7 @@ impl Entry {
     }
 
     /// Return `true` if this entry is the header entry (`msgid` is set and is an empty string).
-    pub fn is_header(&self) -> bool {
+    pub const fn is_header(&self) -> bool {
         match &self.msgid {
             Some(msg) => msg.value.is_empty(),
             None => false,
@@ -74,7 +74,7 @@ impl Entry {
     }
 
     /// Return `true` if this entry has a plural form (`msgid_plural` is set).
-    pub fn has_plural_form(&self) -> bool {
+    pub const fn has_plural_form(&self) -> bool {
         self.msgid_plural.is_some()
     }
 

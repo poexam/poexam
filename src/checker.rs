@@ -86,7 +86,7 @@ impl<'d> Checker<'d> {
     }
 
     /// Return the number of plurals for the file being parsed.
-    pub fn nplurals(&self) -> u32 {
+    pub const fn nplurals(&self) -> u32 {
         self.parser.nplurals()
     }
 

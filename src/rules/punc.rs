@@ -176,7 +176,7 @@ impl RuleChecker for PuncEndRule {
 }
 
 /// Check if a character is considered as punctuation for this rule.
-fn is_punc(c: char) -> bool {
+const fn is_punc(c: char) -> bool {
     c == ':'
         || c == '：'
         || c == ';'

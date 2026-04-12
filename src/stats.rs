@@ -117,7 +117,7 @@ impl AddAssign for Entries {
 
 impl Entries {
     /// Return the percentage of translated entries as integer.
-    pub fn pct_translated(&self) -> u64 {
+    pub const fn pct_translated(&self) -> u64 {
         if self.total == 0 {
             0
         } else {
@@ -126,7 +126,7 @@ impl Entries {
     }
 
     /// Return the ratio of translated entries, scaled to 1,000,000.
-    pub fn ratio_translated(&self) -> u64 {
+    pub const fn ratio_translated(&self) -> u64 {
         if self.total == 0 {
             0
         } else {
@@ -135,7 +135,7 @@ impl Entries {
     }
 
     /// Return the percentage of fuzzy entries as integer.
-    pub fn pct_fuzzy(&self) -> u64 {
+    pub const fn pct_fuzzy(&self) -> u64 {
         if self.total == 0 {
             0
         } else {
@@ -144,7 +144,7 @@ impl Entries {
     }
 
     /// Return the ratio of fuzzy entries, scaled to 1,000,000.
-    pub fn ratio_fuzzy(&self) -> u64 {
+    pub const fn ratio_fuzzy(&self) -> u64 {
         if self.total == 0 {
             0
         } else {
@@ -153,7 +153,7 @@ impl Entries {
     }
 
     /// Return the percentage of untranslated entries as integer.
-    pub fn pct_untranslated(&self) -> u64 {
+    pub const fn pct_untranslated(&self) -> u64 {
         if self.total == 0 {
             0
         } else {
@@ -162,7 +162,7 @@ impl Entries {
     }
 
     /// Return the ratio of untranslated entries, scaled to 1,000,000.
-    pub fn ratio_untranslated(&self) -> u64 {
+    pub const fn ratio_untranslated(&self) -> u64 {
         if self.total == 0 {
             0
         } else {
@@ -171,7 +171,7 @@ impl Entries {
     }
 
     /// Return the percentage of obsolete entries as integer.
-    pub fn pct_obsolete(&self) -> u64 {
+    pub const fn pct_obsolete(&self) -> u64 {
         if self.total == 0 {
             0
         } else {
@@ -180,7 +180,7 @@ impl Entries {
     }
 
     /// Return the ratio of obsolete entries, scaled to 1,000,000.
-    pub fn ratio_obsolete(&self) -> u64 {
+    pub const fn ratio_obsolete(&self) -> u64 {
         if self.total == 0 {
             0
         } else {
@@ -189,7 +189,7 @@ impl Entries {
     }
 
     /// Return a tuple of (translated, fuzzy, untranslated, obsolete) percentages as integers.
-    pub fn pct(&self) -> (u64, u64, u64, u64) {
+    pub const fn pct(&self) -> (u64, u64, u64, u64) {
         (
             self.pct_translated(),
             self.pct_fuzzy(),
@@ -218,7 +218,7 @@ impl AddAssign for Counts {
 
 impl Counts {
     /// Return the percentage of translated words/characters in msgid as integer.
-    pub fn pct_id_translated(&self) -> u64 {
+    pub const fn pct_id_translated(&self) -> u64 {
         if self.id_total == 0 {
             0
         } else {
@@ -227,7 +227,7 @@ impl Counts {
     }
 
     /// Return the percentage of fuzzy words/characters in msgid as integer.
-    pub fn pct_id_fuzzy(&self) -> u64 {
+    pub const fn pct_id_fuzzy(&self) -> u64 {
         if self.id_total == 0 {
             0
         } else {
@@ -236,7 +236,7 @@ impl Counts {
     }
 
     /// Return the percentage of untranslated words/characters in msgid as integer.
-    pub fn pct_id_untranslated(&self) -> u64 {
+    pub const fn pct_id_untranslated(&self) -> u64 {
         if self.id_total == 0 {
             0
         } else {
@@ -245,7 +245,7 @@ impl Counts {
     }
 
     /// Return the percentage of obsolete words/characters in msgid as integer.
-    pub fn pct_id_obsolete(&self) -> u64 {
+    pub const fn pct_id_obsolete(&self) -> u64 {
         if self.id_total == 0 {
             0
         } else {

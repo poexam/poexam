@@ -62,7 +62,7 @@ impl<'d> Parser<'d> {
     }
 
     /// Return the number of plurals defined in the header.
-    pub fn nplurals(&self) -> u32 {
+    pub const fn nplurals(&self) -> u32 {
         self.nplurals
     }
 
