@@ -20,6 +20,10 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - Report ellipsis differences by default in rules "punc-start" and "punc-end"
 - Do not display empty translation in diagnostics produced by the "untranslated" rule
 
+### Fixed
+
+- Add double quote U+201C (left double quotation mark) in rule "double-quotes"
+
 ## Version 0.0.8 (2026-03-25)
 
 ### Added

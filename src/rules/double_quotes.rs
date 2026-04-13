@@ -10,7 +10,14 @@ use crate::po::entry::Entry;
 use crate::po::message::Message;
 use crate::rules::rule::RuleChecker;
 
-pub const DOUBLE_QUOTES: [char; 5] = ['"', '„', '”', '«', '»'];
+pub const DOUBLE_QUOTES: [char; 6] = [
+    '"', // U+0022: quotation mark
+    '«', // U+00AB: left pointing double angle quotation mark
+    '»', // U+00BB: right pointing double angle quotation mark
+    '“', // U+201C: left double quotation mark
+    '”', // U+201D: right double quotation mark
+    '„', // U+201E: double low quotation mark
+];
 
 pub struct DoubleQuotesRule;
 
@@ -33,7 +40,13 @@ impl RuleChecker for DoubleQuotesRule {
 
     /// Check for missing or extra double quotes in the translation.
     ///
-    /// The following quotes are considered: `"`, `„`, `”`, `«` and `»`.
+    /// The following quotes are considered:
+    /// - quotation mark: '"' (U+0022)
+    /// - left pointing double angle quotation mark: '«' (U+00AB)
+    /// - right pointing double angle quotation mark: '»' (U+00BB)
+    /// - left double quotation mark: '“' (U+201C)
+    /// - right double quotation mark: '”' (U+201D)
+    /// - double low quotation mark: '„' (U+201E)
     ///
     /// Wrong entry:
     /// ```text
