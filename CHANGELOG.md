@@ -22,7 +22,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 ### Fixed
 
-- Add double quote U+201C (left double quotation mark) in rule "double-quotes"
+- Add double quotes U+201C (left double quotation mark), U+201F (double high-reversed-9 quotation mark) and U+FF02 (fullwidth quotation mark) in rule "double-quotes"
 
 ## Version 0.0.8 (2026-03-25)
 

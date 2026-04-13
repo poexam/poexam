@@ -10,13 +10,15 @@ use crate::po::entry::Entry;
 use crate::po::message::Message;
 use crate::rules::rule::RuleChecker;
 
-pub const DOUBLE_QUOTES: [char; 6] = [
-    '"', // U+0022: quotation mark
-    '«', // U+00AB: left pointing double angle quotation mark
-    '»', // U+00BB: right pointing double angle quotation mark
-    '“', // U+201C: left double quotation mark
-    '”', // U+201D: right double quotation mark
-    '„', // U+201E: double low quotation mark
+pub const DOUBLE_QUOTES: [char; 8] = [
+    '"',  // U+0022: quotation mark
+    '«',  // U+00AB: left pointing double angle quotation mark
+    '»',  // U+00BB: right pointing double angle quotation mark
+    '“',  // U+201C: left double quotation mark
+    '”',  // U+201D: right double quotation mark
+    '„',  // U+201E: double low quotation mark
+    '‟',  // U+201F: double high-reversed-9 quotation mark
+    '＂', // U+FF02: fullwidth quotation mark
 ];
 
 pub struct DoubleQuotesRule;
@@ -47,6 +49,8 @@ impl RuleChecker for DoubleQuotesRule {
     /// - left double quotation mark: '“' (U+201C)
     /// - right double quotation mark: '”' (U+201D)
     /// - double low quotation mark: '„' (U+201E)
+    /// - double high-reversed-9 quotation mark: '‟' (U+201F)
+    /// - fullwidth quotation mark: '＂' (U+FF02)
     ///
     /// Wrong entry:
     /// ```text
