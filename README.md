@@ -128,9 +128,9 @@ You can enable them on-demand:
 | noqa           | info     | Entry has `noqa` comment.                        |
 | obsolete       | info     | Obsolete entry.                                  |
 | paths          | info     | Missing/extra/different paths.                   |
-| spelling-ctxt  | info     | Spelling error (context).                        |
-| spelling-id    | info     | Spelling error (source).                         |
-| spelling-str   | info     | Spelling error (translation).                    |
+| spelling-ctxt  | info     | Spelling error in the context.                   |
+| spelling-id    | info     | Spelling error in the source.                    |
+| spelling-str   | info     | Spelling error in the translation.               |
 | unchanged      | info     | Translation is the same as the source string.    |
 | untranslated   | info     | Untranslated entry.                              |
 
