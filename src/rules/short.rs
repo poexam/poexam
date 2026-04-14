@@ -83,11 +83,11 @@ impl RuleChecker for ShortRule {
             || (len_msgstr == 1 && len_msgid > 1 && msgid.value.chars().any(char::is_whitespace))
         {
             vec![
-                checker
-                    .new_diag(format!(
-                        "translation too short ({len_msgid} / {len_msgstr})"
-                    ))
-                    .with_msgs(msgid, msgstr),
+                self.new_diag(
+                    checker,
+                    format!("translation too short ({len_msgid} / {len_msgstr})"),
+                )
+                .with_msgs(msgid, msgstr),
             ]
         } else {
             vec![]

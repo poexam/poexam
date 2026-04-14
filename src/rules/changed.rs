@@ -64,8 +64,7 @@ impl RuleChecker for ChangedRule {
             && msgstr.value != msgid.value
         {
             vec![
-                checker
-                    .new_diag("changed translation")
+                self.new_diag(checker, "changed translation".to_string())
                     .with_msgs(msgid, msgstr),
             ]
         } else {

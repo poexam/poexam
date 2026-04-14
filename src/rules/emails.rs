@@ -64,46 +64,46 @@ impl RuleChecker for EmailsRule {
         match id_emails.len().cmp(&str_emails.len()) {
             std::cmp::Ordering::Greater => {
                 vec![
-                    checker
-                        .new_diag(format!(
+                    self.new_diag(
+                        checker,
+                        format!(
                             "missing emails ({} / {})",
                             id_emails.len(),
                             str_emails.len()
-                        ))
-                        .with_msgs_hl(
-                            msgid,
-                            &id_emails
-                                .iter()
-                                .map(|m| (m.start, m.end))
-                                .collect::<Vec<_>>(),
-                            msgstr,
-                            &str_emails
-                                .iter()
-                                .map(|m| (m.start, m.end))
-                                .collect::<Vec<_>>(),
                         ),
+                    )
+                    .with_msgs_hl(
+                        msgid,
+                        &id_emails
+                            .iter()
+                            .map(|m| (m.start, m.end))
+                            .collect::<Vec<_>>(),
+                        msgstr,
+                        &str_emails
+                            .iter()
+                            .map(|m| (m.start, m.end))
+                            .collect::<Vec<_>>(),
+                    ),
                 ]
             }
             std::cmp::Ordering::Less => {
                 vec![
-                    checker
-                        .new_diag(format!(
-                            "extra emails ({} / {})",
-                            id_emails.len(),
-                            str_emails.len()
-                        ))
-                        .with_msgs_hl(
-                            msgid,
-                            &id_emails
-                                .iter()
-                                .map(|m| (m.start, m.end))
-                                .collect::<Vec<_>>(),
-                            msgstr,
-                            &str_emails
-                                .iter()
-                                .map(|m| (m.start, m.end))
-                                .collect::<Vec<_>>(),
-                        ),
+                    self.new_diag(
+                        checker,
+                        format!("extra emails ({} / {})", id_emails.len(), str_emails.len()),
+                    )
+                    .with_msgs_hl(
+                        msgid,
+                        &id_emails
+                            .iter()
+                            .map(|m| (m.start, m.end))
+                            .collect::<Vec<_>>(),
+                        msgstr,
+                        &str_emails
+                            .iter()
+                            .map(|m| (m.start, m.end))
+                            .collect::<Vec<_>>(),
+                    ),
                 ]
             }
             std::cmp::Ordering::Equal => {
@@ -117,18 +117,19 @@ impl RuleChecker for EmailsRule {
                     vec![]
                 } else {
                     vec![
-                        checker.new_diag("different emails").with_msgs_hl(
-                            msgid,
-                            &id_emails
-                                .iter()
-                                .map(|m| (m.start, m.end))
-                                .collect::<Vec<_>>(),
-                            msgstr,
-                            &str_emails
-                                .iter()
-                                .map(|m| (m.start, m.end))
-                                .collect::<Vec<_>>(),
-                        ),
+                        self.new_diag(checker, "different emails".to_string())
+                            .with_msgs_hl(
+                                msgid,
+                                &id_emails
+                                    .iter()
+                                    .map(|m| (m.start, m.end))
+                                    .collect::<Vec<_>>(),
+                                msgstr,
+                                &str_emails
+                                    .iter()
+                                    .map(|m| (m.start, m.end))
+                                    .collect::<Vec<_>>(),
+                            ),
                     ]
                 }
             }

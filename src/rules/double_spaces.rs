@@ -66,24 +66,28 @@ impl RuleChecker for DoubleSpacesRule {
         match id_quotes.len().cmp(&str_quotes.len()) {
             std::cmp::Ordering::Greater => {
                 vec![
-                    checker
-                        .new_diag(format!(
+                    self.new_diag(
+                        checker,
+                        format!(
                             "missing double spaces '  ' ({} / {})",
                             id_quotes.len(),
                             str_quotes.len()
-                        ))
-                        .with_msgs_hl(msgid, &id_quotes, msgstr, &str_quotes),
+                        ),
+                    )
+                    .with_msgs_hl(msgid, &id_quotes, msgstr, &str_quotes),
                 ]
             }
             std::cmp::Ordering::Less => {
                 vec![
-                    checker
-                        .new_diag(format!(
+                    self.new_diag(
+                        checker,
+                        format!(
                             "extra double spaces '  ' ({} / {})",
                             id_quotes.len(),
                             str_quotes.len()
-                        ))
-                        .with_msgs_hl(msgid, &id_quotes, msgstr, &str_quotes),
+                        ),
+                    )
+                    .with_msgs_hl(msgid, &id_quotes, msgstr, &str_quotes),
                 ]
             }
             std::cmp::Ordering::Equal => vec![],

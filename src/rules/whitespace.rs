@@ -63,11 +63,16 @@ impl RuleChecker for WhitespaceStartRule {
             vec![]
         } else {
             vec![
-                checker
-                    .new_diag(format!(
-                        "inconsistent leading whitespace ('{id_ws}' / '{str_ws}')"
-                    ))
-                    .with_msgs_hl(msgid, &[(0, id_ws.len())], msgstr, &[(0, str_ws.len())]),
+                self.new_diag(
+                    checker,
+                    format!("inconsistent leading whitespace ('{id_ws}' / '{str_ws}')"),
+                )
+                .with_msgs_hl(
+                    msgid,
+                    &[(0, id_ws.len())],
+                    msgstr,
+                    &[(0, str_ws.len())],
+                ),
             ]
         }
     }
@@ -124,16 +129,16 @@ impl RuleChecker for WhitespaceEndRule {
             vec![]
         } else {
             vec![
-                checker
-                    .new_diag(format!(
-                        "inconsistent trailing whitespace ('{id_ws}' / '{str_ws}')"
-                    ))
-                    .with_msgs_hl(
-                        msgid,
-                        &[(msgid.value.len() - id_ws.len(), msgid.value.len())],
-                        msgstr,
-                        &[(msgstr.value.len() - str_ws.len(), msgstr.value.len())],
-                    ),
+                self.new_diag(
+                    checker,
+                    format!("inconsistent trailing whitespace ('{id_ws}' / '{str_ws}')"),
+                )
+                .with_msgs_hl(
+                    msgid,
+                    &[(msgid.value.len() - id_ws.len(), msgid.value.len())],
+                    msgstr,
+                    &[(msgstr.value.len() - str_ws.len(), msgstr.value.len())],
+                ),
             ]
         }
     }

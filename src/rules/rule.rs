@@ -105,6 +105,11 @@ pub trait RuleChecker {
     ) -> Vec<Diagnostic> {
         vec![]
     }
+
+    /// Create a diagnostic for the rule.
+    fn new_diag(&self, checker: &Checker, message: String) -> Diagnostic {
+        Diagnostic::new(&checker.path, self.name(), self.severity(), message)
+    }
 }
 
 /// Get all available rules.

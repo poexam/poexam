@@ -47,23 +47,27 @@ impl RuleChecker for CompilationRule {
                     vec![]
                 } else {
                     vec![
-                        checker
-                            .new_diag(format!(
+                        self.new_diag(
+                            checker,
+                            format!(
                                 "command `{}` reported errors",
                                 checker.config.check.path_msgfmt.display()
-                            ))
-                            .with_multiline(&String::from_utf8_lossy(&output.stderr)),
+                            ),
+                        )
+                        .with_multiline(&String::from_utf8_lossy(&output.stderr)),
                     ]
                 }
             }
             Err(err) => {
                 vec![
-                    checker
-                        .new_diag(format!(
+                    self.new_diag(
+                        checker,
+                        format!(
                             "failed to run command `{}`",
                             checker.config.check.path_msgfmt.display()
-                        ))
-                        .with_multiline(&err.to_string()),
+                        ),
+                    )
+                    .with_multiline(&err.to_string()),
                 ]
             }
         }

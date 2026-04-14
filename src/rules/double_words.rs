@@ -68,8 +68,7 @@ impl RuleChecker for DoubleWordsRule {
                     .all(char::is_whitespace)
             {
                 diags.push(
-                    checker
-                        .new_diag(format!("word '{}' is repeated", word.s))
+                    self.new_diag(checker, format!("word '{}' is repeated", word.s))
                         .with_msgs_hl(msgid, &[], msgstr, &[(word.start, next_word.end)]),
                 );
             }

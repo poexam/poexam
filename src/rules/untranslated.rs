@@ -58,7 +58,10 @@ impl RuleChecker for UntranslatedRule {
         msgstr: &Message,
     ) -> Vec<Diagnostic> {
         if msgstr.value.is_empty() {
-            vec![checker.new_diag("untranslated message").with_msg(msgid)]
+            vec![
+                self.new_diag(checker, "untranslated message".to_string())
+                    .with_msg(msgid),
+            ]
         } else {
             vec![]
         }

@@ -81,9 +81,11 @@ impl RuleChecker for LongRule {
         }
         if len_msgid * 10 <= len_msgstr || (len_msgid == 1 && len_msgstr > 1) {
             vec![
-                checker
-                    .new_diag(format!("translation too long ({len_msgid} / {len_msgstr})"))
-                    .with_msgs(msgid, msgstr),
+                self.new_diag(
+                    checker,
+                    format!("translation too long ({len_msgid} / {len_msgstr})"),
+                )
+                .with_msgs(msgid, msgstr),
             ]
         } else {
             vec![]

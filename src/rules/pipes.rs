@@ -66,24 +66,24 @@ impl RuleChecker for PipesRule {
         match id_pipes.len().cmp(&str_pipes.len()) {
             std::cmp::Ordering::Greater => {
                 vec![
-                    checker
-                        .new_diag(format!(
+                    self.new_diag(
+                        checker,
+                        format!(
                             "missing pipes '|' ({} / {})",
                             id_pipes.len(),
                             str_pipes.len()
-                        ))
-                        .with_msgs_hl(msgid, &id_pipes, msgstr, &str_pipes),
+                        ),
+                    )
+                    .with_msgs_hl(msgid, &id_pipes, msgstr, &str_pipes),
                 ]
             }
             std::cmp::Ordering::Less => {
                 vec![
-                    checker
-                        .new_diag(format!(
-                            "extra pipes '|' ({} / {})",
-                            id_pipes.len(),
-                            str_pipes.len()
-                        ))
-                        .with_msgs_hl(msgid, &id_pipes, msgstr, &str_pipes),
+                    self.new_diag(
+                        checker,
+                        format!("extra pipes '|' ({} / {})", id_pipes.len(), str_pipes.len()),
+                    )
+                    .with_msgs_hl(msgid, &id_pipes, msgstr, &str_pipes),
                 ]
             }
             std::cmp::Ordering::Equal => vec![],

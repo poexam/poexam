@@ -63,20 +63,28 @@ impl RuleChecker for PluralsRule {
         }
         let found = entry.msgstr.len();
         match found.cmp(&expected) {
-            std::cmp::Ordering::Less => vec![
-                checker
-                    .new_diag(format!(
-                        "missing translated plural form (found: {found}, expected: {expected})",
-                    ))
+            std::cmp::Ordering::Less => {
+                vec![
+                    self.new_diag(
+                        checker,
+                        format!(
+                            "missing translated plural form (found: {found}, expected: {expected})",
+                        ),
+                    )
                     .with_entry(entry),
-            ],
-            std::cmp::Ordering::Greater => vec![
-                checker
-                    .new_diag(format!(
-                        "extra translated plural form (found: {found}, expected: {expected})",
-                    ))
+                ]
+            }
+            std::cmp::Ordering::Greater => {
+                vec![
+                    self.new_diag(
+                        checker,
+                        format!(
+                            "extra translated plural form (found: {found}, expected: {expected})",
+                        ),
+                    )
                     .with_entry(entry),
-            ],
+                ]
+            }
             std::cmp::Ordering::Equal => vec![],
         }
     }

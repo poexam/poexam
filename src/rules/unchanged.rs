@@ -67,8 +67,7 @@ impl RuleChecker for UnchangedRule {
                 .all(char::is_uppercase);
             if !all_upper && msgid.value.to_uppercase() != msgid.value {
                 return vec![
-                    checker
-                        .new_diag("unchanged translation")
+                    self.new_diag(checker, "unchanged translation".to_string())
                         .with_msgs(msgid, msgstr),
                 ];
             }

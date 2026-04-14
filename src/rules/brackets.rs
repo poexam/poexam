@@ -104,8 +104,7 @@ impl RuleChecker for BracketsRule {
                     bracket.1,
                 );
                 diags.push(
-                    checker
-                        .new_diag(msg)
+                    self.new_diag(checker, msg)
                         .with_msgs_hl(msgid, &id_open, msgstr, &str_open),
                 );
                 continue;
@@ -116,8 +115,7 @@ impl RuleChecker for BracketsRule {
                     BRACKET_NAMES[idx], bracket.0,
                 );
                 diags.push(
-                    checker
-                        .new_diag(msg)
+                    self.new_diag(checker, msg)
                         .with_msgs_hl(msgid, &id_open, msgstr, &str_open),
                 );
             }
@@ -127,8 +125,7 @@ impl RuleChecker for BracketsRule {
                     BRACKET_NAMES[idx], bracket.0,
                 );
                 diags.push(
-                    checker
-                        .new_diag(msg)
+                    self.new_diag(checker, msg)
                         .with_msgs_hl(msgid, &id_open, msgstr, &str_open),
                 );
             }
@@ -138,8 +135,7 @@ impl RuleChecker for BracketsRule {
                     BRACKET_NAMES[idx], bracket.1,
                 );
                 diags.push(
-                    checker
-                        .new_diag(msg)
+                    self.new_diag(checker, msg)
                         .with_msgs_hl(msgid, &id_close, msgstr, &str_close),
                 );
             }
@@ -149,8 +145,7 @@ impl RuleChecker for BracketsRule {
                     BRACKET_NAMES[idx], bracket.1,
                 );
                 diags.push(
-                    checker
-                        .new_diag(msg)
+                    self.new_diag(checker, msg)
                         .with_msgs_hl(msgid, &id_close, msgstr, &str_close),
                 );
             }

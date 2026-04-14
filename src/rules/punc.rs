@@ -86,11 +86,16 @@ impl RuleChecker for PuncStartRule {
             vec![]
         } else {
             vec![
-                checker
-                    .new_diag(format!(
-                        "inconsistent leading punctuation ('{id_punc2}' / '{str_punc2}')"
-                    ))
-                    .with_msgs_hl(msgid, &[(0, id_punc.len())], msgstr, &[(0, str_punc.len())]),
+                self.new_diag(
+                    checker,
+                    format!("inconsistent leading punctuation ('{id_punc2}' / '{str_punc2}')"),
+                )
+                .with_msgs_hl(
+                    msgid,
+                    &[(0, id_punc.len())],
+                    msgstr,
+                    &[(0, str_punc.len())],
+                ),
             ]
         }
     }
@@ -160,16 +165,16 @@ impl RuleChecker for PuncEndRule {
             vec![]
         } else {
             vec![
-                checker
-                    .new_diag(format!(
-                        "inconsistent trailing punctuation ('{id_punc2}' / '{str_punc2}')"
-                    ))
-                    .with_msgs_hl(
-                        msgid,
-                        &[(msgid.value.len() - id_punc.len(), msgid.value.len())],
-                        msgstr,
-                        &[(msgstr.value.len() - str_punc.len(), msgstr.value.len())],
-                    ),
+                self.new_diag(
+                    checker,
+                    format!("inconsistent trailing punctuation ('{id_punc2}' / '{str_punc2}')"),
+                )
+                .with_msgs_hl(
+                    msgid,
+                    &[(msgid.value.len() - id_punc.len(), msgid.value.len())],
+                    msgstr,
+                    &[(msgstr.value.len() - str_punc.len(), msgstr.value.len())],
+                ),
             ]
         }
     }

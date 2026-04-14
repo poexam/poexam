@@ -65,46 +65,42 @@ impl RuleChecker for PathsRule {
         match id_paths.len().cmp(&str_paths.len()) {
             std::cmp::Ordering::Greater => {
                 vec![
-                    checker
-                        .new_diag(format!(
-                            "missing paths ({} / {})",
-                            id_paths.len(),
-                            str_paths.len()
-                        ))
-                        .with_msgs_hl(
-                            msgid,
-                            &id_paths
-                                .iter()
-                                .map(|m| (m.start, m.end))
-                                .collect::<Vec<_>>(),
-                            msgstr,
-                            &str_paths
-                                .iter()
-                                .map(|m| (m.start, m.end))
-                                .collect::<Vec<_>>(),
-                        ),
+                    self.new_diag(
+                        checker,
+                        format!("missing paths ({} / {})", id_paths.len(), str_paths.len()),
+                    )
+                    .with_msgs_hl(
+                        msgid,
+                        &id_paths
+                            .iter()
+                            .map(|m| (m.start, m.end))
+                            .collect::<Vec<_>>(),
+                        msgstr,
+                        &str_paths
+                            .iter()
+                            .map(|m| (m.start, m.end))
+                            .collect::<Vec<_>>(),
+                    ),
                 ]
             }
             std::cmp::Ordering::Less => {
                 vec![
-                    checker
-                        .new_diag(format!(
-                            "extra paths ({} / {})",
-                            id_paths.len(),
-                            str_paths.len()
-                        ))
-                        .with_msgs_hl(
-                            msgid,
-                            &id_paths
-                                .iter()
-                                .map(|m| (m.start, m.end))
-                                .collect::<Vec<_>>(),
-                            msgstr,
-                            &str_paths
-                                .iter()
-                                .map(|m| (m.start, m.end))
-                                .collect::<Vec<_>>(),
-                        ),
+                    self.new_diag(
+                        checker,
+                        format!("extra paths ({} / {})", id_paths.len(), str_paths.len()),
+                    )
+                    .with_msgs_hl(
+                        msgid,
+                        &id_paths
+                            .iter()
+                            .map(|m| (m.start, m.end))
+                            .collect::<Vec<_>>(),
+                        msgstr,
+                        &str_paths
+                            .iter()
+                            .map(|m| (m.start, m.end))
+                            .collect::<Vec<_>>(),
+                    ),
                 ]
             }
             std::cmp::Ordering::Equal => {
@@ -117,18 +113,19 @@ impl RuleChecker for PathsRule {
                     vec![]
                 } else {
                     vec![
-                        checker.new_diag("different paths").with_msgs_hl(
-                            msgid,
-                            &id_paths
-                                .iter()
-                                .map(|m| (m.start, m.end))
-                                .collect::<Vec<_>>(),
-                            msgstr,
-                            &str_paths
-                                .iter()
-                                .map(|m| (m.start, m.end))
-                                .collect::<Vec<_>>(),
-                        ),
+                        self.new_diag(checker, "different paths".to_string())
+                            .with_msgs_hl(
+                                msgid,
+                                &id_paths
+                                    .iter()
+                                    .map(|m| (m.start, m.end))
+                                    .collect::<Vec<_>>(),
+                                msgstr,
+                                &str_paths
+                                    .iter()
+                                    .map(|m| (m.start, m.end))
+                                    .collect::<Vec<_>>(),
+                            ),
                     ]
                 }
             }

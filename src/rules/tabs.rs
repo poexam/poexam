@@ -66,24 +66,24 @@ impl RuleChecker for TabsRule {
         match id_tabs.len().cmp(&str_tabs.len()) {
             std::cmp::Ordering::Greater => {
                 vec![
-                    checker
-                        .new_diag(format!(
+                    self.new_diag(
+                        checker,
+                        format!(
                             "missing tabs '\\t' ({} / {})",
                             id_tabs.len(),
                             str_tabs.len()
-                        ))
-                        .with_msgs_hl(msgid, &id_tabs, msgstr, &str_tabs),
+                        ),
+                    )
+                    .with_msgs_hl(msgid, &id_tabs, msgstr, &str_tabs),
                 ]
             }
             std::cmp::Ordering::Less => {
                 vec![
-                    checker
-                        .new_diag(format!(
-                            "extra tabs '\\t' ({} / {})",
-                            id_tabs.len(),
-                            str_tabs.len()
-                        ))
-                        .with_msgs_hl(msgid, &id_tabs, msgstr, &str_tabs),
+                    self.new_diag(
+                        checker,
+                        format!("extra tabs '\\t' ({} / {})", id_tabs.len(), str_tabs.len()),
+                    )
+                    .with_msgs_hl(msgid, &id_tabs, msgstr, &str_tabs),
                 ]
             }
             std::cmp::Ordering::Equal => vec![],

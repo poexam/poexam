@@ -108,12 +108,11 @@ impl RuleChecker for FormatsRule {
             let pos_id: Vec<_> = id_fmt.iter().map(|m| (m.start, m.end)).collect();
             let pos_str: Vec<_> = str_fmt.iter().map(|m| (m.start, m.end)).collect();
             vec![
-                checker
-                    .new_diag(format!(
-                        "inconsistent format strings ({})",
-                        entry.format_language
-                    ))
-                    .with_msgs_hl(msgid, &pos_id, msgstr, &pos_str),
+                self.new_diag(
+                    checker,
+                    format!("inconsistent format strings ({})", entry.format_language),
+                )
+                .with_msgs_hl(msgid, &pos_id, msgstr, &pos_str),
             ]
         } else {
             vec![]

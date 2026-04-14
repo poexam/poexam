@@ -52,7 +52,10 @@ impl RuleChecker for FuzzyRule {
     /// - `fuzzy entry`
     fn check_entry(&self, checker: &Checker, entry: &Entry) -> Vec<Diagnostic> {
         if entry.fuzzy {
-            vec![checker.new_diag("fuzzy entry").with_entry(entry)]
+            vec![
+                self.new_diag(checker, "fuzzy entry".to_string())
+                    .with_entry(entry),
+            ]
         } else {
             vec![]
         }

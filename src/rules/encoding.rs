@@ -53,12 +53,14 @@ impl RuleChecker for EncodingRule {
     fn check_entry(&self, checker: &Checker, entry: &Entry) -> Vec<Diagnostic> {
         if entry.encoding_error {
             vec![
-                checker
-                    .new_diag(format!(
+                self.new_diag(
+                    checker,
+                    format!(
                         "invalid characters for encoding {}",
                         checker.encoding_name()
-                    ))
-                    .with_entry(entry),
+                    ),
+                )
+                .with_entry(entry),
             ]
         } else {
             vec![]

@@ -63,40 +63,36 @@ impl RuleChecker for UrlsRule {
         match id_urls.len().cmp(&str_urls.len()) {
             std::cmp::Ordering::Greater => {
                 vec![
-                    checker
-                        .new_diag(format!(
-                            "missing URLs ({} / {})",
-                            id_urls.len(),
-                            str_urls.len()
-                        ))
-                        .with_msgs_hl(
-                            msgid,
-                            &id_urls.iter().map(|m| (m.start, m.end)).collect::<Vec<_>>(),
-                            msgstr,
-                            &str_urls
-                                .iter()
-                                .map(|m| (m.start, m.end))
-                                .collect::<Vec<_>>(),
-                        ),
+                    self.new_diag(
+                        checker,
+                        format!("missing URLs ({} / {})", id_urls.len(), str_urls.len()),
+                    )
+                    .with_msgs_hl(
+                        msgid,
+                        &id_urls.iter().map(|m| (m.start, m.end)).collect::<Vec<_>>(),
+                        msgstr,
+                        &str_urls
+                            .iter()
+                            .map(|m| (m.start, m.end))
+                            .collect::<Vec<_>>(),
+                    ),
                 ]
             }
             std::cmp::Ordering::Less => {
                 vec![
-                    checker
-                        .new_diag(format!(
-                            "extra URLs ({} / {})",
-                            id_urls.len(),
-                            str_urls.len()
-                        ))
-                        .with_msgs_hl(
-                            msgid,
-                            &id_urls.iter().map(|m| (m.start, m.end)).collect::<Vec<_>>(),
-                            msgstr,
-                            &str_urls
-                                .iter()
-                                .map(|m| (m.start, m.end))
-                                .collect::<Vec<_>>(),
-                        ),
+                    self.new_diag(
+                        checker,
+                        format!("extra URLs ({} / {})", id_urls.len(), str_urls.len()),
+                    )
+                    .with_msgs_hl(
+                        msgid,
+                        &id_urls.iter().map(|m| (m.start, m.end)).collect::<Vec<_>>(),
+                        msgstr,
+                        &str_urls
+                            .iter()
+                            .map(|m| (m.start, m.end))
+                            .collect::<Vec<_>>(),
+                    ),
                 ]
             }
             std::cmp::Ordering::Equal => {
@@ -108,15 +104,16 @@ impl RuleChecker for UrlsRule {
                     vec![]
                 } else {
                     vec![
-                        checker.new_diag("different URLs").with_msgs_hl(
-                            msgid,
-                            &id_urls.iter().map(|m| (m.start, m.end)).collect::<Vec<_>>(),
-                            msgstr,
-                            &str_urls
-                                .iter()
-                                .map(|m| (m.start, m.end))
-                                .collect::<Vec<_>>(),
-                        ),
+                        self.new_diag(checker, "different URLs".to_string())
+                            .with_msgs_hl(
+                                msgid,
+                                &id_urls.iter().map(|m| (m.start, m.end)).collect::<Vec<_>>(),
+                                msgstr,
+                                &str_urls
+                                    .iter()
+                                    .map(|m| (m.start, m.end))
+                                    .collect::<Vec<_>>(),
+                            ),
                     ]
                 }
             }

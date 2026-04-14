@@ -134,17 +134,12 @@ impl DiagnosticLine {
 impl Diagnostic {
     /// Create a new `Diagnostic` with the given path, severity, and message.
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        path: &Path,
-        rule: &'static str,
-        severity: Severity,
-        message: impl Into<String>,
-    ) -> Self {
+    pub fn new(path: &Path, rule: &'static str, severity: Severity, message: String) -> Self {
         Self {
             path: PathBuf::from(path),
             rule,
             severity,
-            message: message.into(),
+            message,
             ..Default::default()
         }
     }
