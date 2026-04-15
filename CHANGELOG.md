@@ -10,8 +10,8 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 ### Added
 
-- Add default rules "double-words", "emails", "paths", "urls", "punc-space-id" and "punc-space-str"
-- Add non-default rules "compilation" and "noqa"
+- Add default rules "emails", "urls", "punc-space-id" and "punc-space-str"
+- Add non-default rules "compilation", "double-words", "paths" and "noqa"
 - Add option `--punc-ignore-ellipsis` for rules "punc-start" and "punc-end"
 - Add option `--path-msgfmt` for rule "compilation"
 
