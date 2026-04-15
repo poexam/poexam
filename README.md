@@ -104,7 +104,6 @@ It can perform a lot of checks via the default rules:
 | punc-space-str   | info     | Incorrect spaces around punctuation (translation). |
 | short            | warning  | Translation too short.                             |
 | tabs             | error    | Missing/extra tabs.                                |
-| urls             | info     | Missing/extra/different URLs.                      |
 | whitespace-end   | info     | Missing/extra whitespace at the end.               |
 | whitespace-start | info     | Missing/extra whitespace at the start.             |
 
@@ -133,6 +132,7 @@ You can enable them on-demand:
 | spelling-str   | info     | Spelling error in the translation.               |
 | unchanged      | info     | Translation is the same as the source string.    |
 | untranslated   | info     | Untranslated entry.                              |
+| urls           | info     | Missing/extra/different URLs.                    |
 
 The result is very clear, almost all errors are highlighted in the strings so you can immediately see where the issue is.
 

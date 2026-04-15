@@ -22,7 +22,7 @@ impl RuleChecker for UrlsRule {
     }
 
     fn is_default(&self) -> bool {
-        true
+        false
     }
 
     fn is_check(&self) -> bool {
