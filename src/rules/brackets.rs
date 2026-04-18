@@ -69,13 +69,13 @@ impl RuleChecker for BracketsRule {
     ) -> Vec<Diagnostic> {
         let mut diags = vec![];
         for (idx, bracket) in BRACKET_PAIRS.iter().enumerate() {
-            let mut id_open = get_opening_bracket_pos(&msgid.value, bracket.0);
+            let mut id_open = Self::get_opening_bracket_pos(&msgid.value, bracket.0);
             let id_count_open = id_open.len();
-            let mut str_open = get_opening_bracket_pos(&msgstr.value, bracket.0);
+            let mut str_open = Self::get_opening_bracket_pos(&msgstr.value, bracket.0);
             let str_count_open = str_open.len();
-            let id_close = get_closing_bracket_pos(&msgid.value, bracket.1);
+            let id_close = Self::get_closing_bracket_pos(&msgid.value, bracket.1);
             let id_count_close = id_close.len();
-            let str_close = get_closing_bracket_pos(&msgstr.value, bracket.1);
+            let str_close = Self::get_closing_bracket_pos(&msgstr.value, bracket.1);
             let str_count_close = str_close.len();
             if BRACKET_PAIRS[idx].0 == '('
                 && id_count_open < str_count_open
@@ -158,48 +158,50 @@ impl RuleChecker for BracketsRule {
     }
 }
 
-/// Get positions of opening brackets in the string, excluding some patterns.
-fn get_opening_bracket_pos(s: &str, bracket_char: char) -> Vec<(usize, usize)> {
-    s.match_indices(bracket_char)
-        .map(|(idx, value)| (idx, idx + value.len()))
-        .filter(|(idx, _)| !is_excluded_start(s, *idx, bracket_char))
-        .collect()
-}
-
-/// Get positions of closing brackets in the string, excluding some patterns.
-fn get_closing_bracket_pos(s: &str, bracket_char: char) -> Vec<(usize, usize)> {
-    s.match_indices(bracket_char)
-        .map(|(idx, value)| (idx, idx + value.len()))
-        .filter(|(idx, _)| !is_excluded_end(s, *idx, bracket_char))
-        .collect()
-}
-
-/// Check if an excluded pattern is found at index of opening bracket.
-///
-/// Excluded patterns are "(s)" and "(S)" for opening bracket '(', because they are
-/// often used to indicate optional plural forms.
-fn is_excluded_start(s: &str, index: usize, bracket_char: char) -> bool {
-    if bracket_char == '(' {
-        // Exclude "(s)" and "(S)" patterns.
-        if s[index..].starts_with("(s)") || s[index..].starts_with("(S)") {
-            return true;
-        }
+impl BracketsRule {
+    /// Get positions of opening brackets in the string, excluding some patterns.
+    fn get_opening_bracket_pos(s: &str, bracket_char: char) -> Vec<(usize, usize)> {
+        s.match_indices(bracket_char)
+            .map(|(idx, value)| (idx, idx + value.len()))
+            .filter(|(idx, _)| !Self::is_excluded_start(s, *idx, bracket_char))
+            .collect()
     }
-    false
-}
 
-/// Check if an excluded pattern is found until the index of closing bracket.
-///
-/// Excluded patterns are "(s)" and "(S)" for closing bracket ')', because they are
-/// often used to indicate optional plural forms.
-fn is_excluded_end(s: &str, index: usize, bracket_char: char) -> bool {
-    if bracket_char == ')' {
-        // Exclude "(s)" and "(S)" patterns.
-        if s[..=index].ends_with("(s)") || s[..=index].ends_with("(S)") {
-            return true;
-        }
+    /// Get positions of closing brackets in the string, excluding some patterns.
+    fn get_closing_bracket_pos(s: &str, bracket_char: char) -> Vec<(usize, usize)> {
+        s.match_indices(bracket_char)
+            .map(|(idx, value)| (idx, idx + value.len()))
+            .filter(|(idx, _)| !Self::is_excluded_end(s, *idx, bracket_char))
+            .collect()
     }
-    false
+
+    /// Check if an excluded pattern is found at index of opening bracket.
+    ///
+    /// Excluded patterns are "(s)" and "(S)" for opening bracket '(', because they are
+    /// often used to indicate optional plural forms.
+    fn is_excluded_start(s: &str, index: usize, bracket_char: char) -> bool {
+        if bracket_char == '(' {
+            // Exclude "(s)" and "(S)" patterns.
+            if s[index..].starts_with("(s)") || s[index..].starts_with("(S)") {
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Check if an excluded pattern is found until the index of closing bracket.
+    ///
+    /// Excluded patterns are "(s)" and "(S)" for closing bracket ')', because they are
+    /// often used to indicate optional plural forms.
+    fn is_excluded_end(s: &str, index: usize, bracket_char: char) -> bool {
+        if bracket_char == ')' {
+            // Exclude "(s)" and "(S)" patterns.
+            if s[..=index].ends_with("(s)") || s[..=index].ends_with("(S)") {
+                return true;
+            }
+        }
+        false
+    }
 }
 
 #[cfg(test)]
