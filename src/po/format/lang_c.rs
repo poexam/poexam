@@ -152,371 +152,131 @@ mod tests {
     }
 
     #[test]
-    fn test_no_format() {
-        let s = "Hello, world! https://example.com user@domain.com";
-        assert!(FormatPos::new(s, &Language::C).next().is_none());
+    fn test_strip_formats() {
+        assert_eq!(strip_formats("", &Language::C), "");
         assert_eq!(
-            FormatWordPos::new(s, &Language::C)
+            strip_formats("Hello, world!", &Language::C),
+            "Hello, world!"
+        );
+        assert_eq!(
+            strip_formats(
+                "Hello/你好, %3$d %2$s %1$f %05.2f %ld %hhd %zd %% %é world! %",
+                &Language::C
+            ),
+            "Hello/你好,        % é world! %"
+        );
+    }
+
+    #[test]
+    fn test_format_pos() {
+        assert!(FormatPos::new("", &Language::C).next().is_none());
+        assert!(
+            FormatPos::new("Hello, world!", &Language::C)
+                .next()
+                .is_none()
+        );
+        assert_eq!(
+            FormatPos::new(
+                "Hello/你好, %3$d %2$s %1$f %05.2f %lld %hhd %zd %% %é world! %",
+                &Language::C
+            )
+            .map(|m| (m.s, m.start, m.end))
+            .collect::<Vec<_>>(),
+            vec![
+                ("%3$d", 14, 18),
+                ("%2$s", 19, 23),
+                ("%1$f", 24, 28),
+                ("%05.2f", 29, 35),
+                ("%lld", 36, 40),
+                ("%hhd", 41, 45),
+                ("%zd", 46, 49),
+                ("%", 53, 54),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_word_pos() {
+        assert!(FormatWordPos::new("", &Language::C).next().is_none());
+        assert_eq!(
+            FormatWordPos::new("Hello, world!", &Language::C)
                 .map(|m| (m.s, m.start, m.end))
                 .collect::<Vec<_>>(),
+            vec![("Hello", 0, 5), ("world", 7, 12)]
+        );
+        assert_eq!(
+            FormatWordPos::new(
+                "Hello/你好, %3$d %2$s %1$f %05.2f %lld %hhd %zd %% %é world! %",
+                &Language::C
+            )
+            .map(|m| (m.s, m.start, m.end))
+            .collect::<Vec<_>>(),
             vec![
                 ("Hello", 0, 5),
-                ("world", 7, 12),
-                ("https", 14, 19),
-                ("example", 22, 29),
-                ("com", 30, 33),
-                ("user", 34, 38),
-                ("domain", 39, 45),
-                ("com", 46, 49),
+                ("你好", 6, 12),
+                ("é", 54, 56),
+                ("world", 57, 62),
             ]
-        );
-        assert_eq!(
-            FormatUrlPos::new(s, &Language::C)
-                .map(|m| (m.s, m.start, m.end))
-                .collect::<Vec<_>>(),
-            vec![("https://example.com", 14, 33),]
-        );
-        assert_eq!(
-            FormatEmailPos::new(s, &Language::C)
-                .map(|m| (m.s, m.start, m.end))
-                .collect::<Vec<_>>(),
-            vec![("user@domain.com", 34, 49),]
-        );
-        assert_eq!(strip_formats(s, &Language::C), s);
-    }
-
-    #[test]
-    fn test_invalid_format() {
-        let s = "%";
-        assert!(FormatPos::new(s, &Language::C).next().is_none());
-        assert!(FormatWordPos::new(s, &Language::C).next().is_none());
-        assert!(FormatUrlPos::new(s, &Language::C).next().is_none());
-        assert!(FormatEmailPos::new(s, &Language::C).next().is_none());
-        assert_eq!(strip_formats(s, &Language::C), "%");
-
-        let s = "%é";
-        assert_eq!(
-            FormatPos::new(s, &Language::C)
-                .map(|m| (m.s, m.start, m.end))
-                .collect::<Vec<_>>(),
-            vec![("%", 0, 1),]
-        );
-        assert_eq!(
-            FormatWordPos::new(s, &Language::C)
-                .map(|m| (m.s, m.start, m.end))
-                .collect::<Vec<_>>(),
-            vec![("é", 1, 3),]
-        );
-        assert!(FormatUrlPos::new(s, &Language::C).next().is_none());
-        assert!(FormatEmailPos::new(s, &Language::C).next().is_none());
-        assert_eq!(strip_formats(s, &Language::C), "é");
-    }
-
-    #[test]
-    fn test_single_format() {
-        let s = "Hello, %s world! https://example.com user@domain.com";
-        assert_eq!(
-            FormatPos::new(s, &Language::C)
-                .map(|m| (m.s, m.start, m.end))
-                .collect::<Vec<_>>(),
-            vec![("%s", 7, 9)]
-        );
-        assert_eq!(
-            FormatWordPos::new(s, &Language::C)
-                .map(|m| (m.s, m.start, m.end))
-                .collect::<Vec<_>>(),
-            vec![
-                ("Hello", 0, 5),
-                ("world", 10, 15),
-                ("https", 17, 22),
-                ("example", 25, 32),
-                ("com", 33, 36),
-                ("user", 37, 41),
-                ("domain", 42, 48),
-                ("com", 49, 52),
-            ]
-        );
-        assert_eq!(
-            FormatUrlPos::new(s, &Language::C)
-                .map(|m| (m.s, m.start, m.end))
-                .collect::<Vec<_>>(),
-            vec![("https://example.com", 17, 36),]
-        );
-        assert_eq!(
-            FormatEmailPos::new(s, &Language::C)
-                .map(|m| (m.s, m.start, m.end))
-                .collect::<Vec<_>>(),
-            vec![("user@domain.com", 37, 52),]
-        );
-        assert_eq!(
-            strip_formats(s, &Language::C),
-            "Hello,  world! https://example.com user@domain.com"
         );
     }
 
     #[test]
-    fn test_multiple_formats() {
-        let s = "Hello, %d%s%f world! https://%s.example.com user@%s.domain.com";
+    fn test_url_pos() {
+        assert!(FormatUrlPos::new("", &Language::C).next().is_none());
+        assert!(
+            FormatUrlPos::new("Hello, world!", &Language::C)
+                .next()
+                .is_none()
+        );
         assert_eq!(
-            FormatPos::new(s, &Language::C)
+            FormatUrlPos::new("Visit https://example.com for more info.", &Language::C)
                 .map(|m| (m.s, m.start, m.end))
                 .collect::<Vec<_>>(),
+            vec![("https://example.com", 6, 25)]
+        );
+        assert_eq!(
+            FormatUrlPos::new(
+                "Invalid URL: https://example, valid URL: https://example.com",
+                &Language::C
+            )
+            .map(|m| (m.s, m.start, m.end))
+            .collect::<Vec<_>>(),
+            vec![("https://example.com", 41, 60)]
+        );
+        assert_eq!(
+            FormatUrlPos::new(
+                "Test https://%s.example.com https://example2.com %",
+                &Language::C
+            )
+            .map(|m| (m.s, m.start, m.end))
+            .collect::<Vec<_>>(),
             vec![
-                ("%d", 7, 9),
-                ("%s", 9, 11),
-                ("%f", 11, 13),
-                ("%s", 29, 31),
-                ("%s", 49, 51),
+                ("https://%s.example.com", 5, 27),
+                ("https://example2.com", 28, 48),
             ]
-        );
-        assert_eq!(
-            FormatWordPos::new(s, &Language::C)
-                .map(|m| (m.s, m.start, m.end))
-                .collect::<Vec<_>>(),
-            vec![
-                ("Hello", 0, 5),
-                ("world", 14, 19),
-                ("https", 21, 26),
-                ("example", 32, 39),
-                ("com", 40, 43),
-                ("user", 44, 48),
-                ("domain", 52, 58),
-                ("com", 59, 62),
-            ]
-        );
-        assert_eq!(
-            FormatUrlPos::new(s, &Language::C)
-                .map(|m| (m.s, m.start, m.end))
-                .collect::<Vec<_>>(),
-            vec![("https://%s.example.com", 21, 43),]
-        );
-        assert_eq!(
-            FormatEmailPos::new(s, &Language::C)
-                .map(|m| (m.s, m.start, m.end))
-                .collect::<Vec<_>>(),
-            vec![("user@%s.domain.com", 44, 62),]
-        );
-        assert_eq!(
-            strip_formats(s, &Language::C),
-            "Hello,  world! https://.example.com user@.domain.com"
         );
     }
 
     #[test]
-    fn test_multiple_formats_with_reordering() {
-        let s = "Hello, %3$d %2$s %1$f world! https://%s.example.com user@%s.domain.com";
+    fn test_email_pos() {
+        assert!(FormatEmailPos::new("", &Language::C).next().is_none());
         assert_eq!(
-            FormatPos::new(s, &Language::C)
-                .map(|m| (m.s, m.start, m.end))
-                .collect::<Vec<_>>(),
-            vec![
-                ("%3$d", 7, 11),
-                ("%2$s", 12, 16),
-                ("%1$f", 17, 21),
-                ("%s", 37, 39),
-                ("%s", 57, 59),
-            ]
+            FormatEmailPos::new(
+                "Contact us at user@example.com for more info.",
+                &Language::C
+            )
+            .map(|m| (m.s, m.start, m.end))
+            .collect::<Vec<_>>(),
+            vec![("user@example.com", 14, 30)]
         );
         assert_eq!(
-            FormatWordPos::new(s, &Language::C)
-                .map(|m| (m.s, m.start, m.end))
-                .collect::<Vec<_>>(),
-            vec![
-                ("Hello", 0, 5),
-                ("world", 22, 27),
-                ("https", 29, 34),
-                ("example", 40, 47),
-                ("com", 48, 51),
-                ("user", 52, 56),
-                ("domain", 60, 66),
-                ("com", 67, 70),
-            ]
-        );
-        assert_eq!(
-            FormatUrlPos::new(s, &Language::C)
-                .map(|m| (m.s, m.start, m.end))
-                .collect::<Vec<_>>(),
-            vec![("https://%s.example.com", 29, 51),]
-        );
-        assert_eq!(
-            strip_formats(s, &Language::C),
-            "Hello,    world! https://.example.com user@.domain.com"
-        );
-    }
-
-    #[test]
-    fn test_escaped_percent() {
-        let s = "Hello, %% %s world! https://%s.example.com user@%s.domain.com";
-        assert_eq!(
-            FormatPos::new(s, &Language::C)
-                .map(|m| (m.s, m.start, m.end))
-                .collect::<Vec<_>>(),
-            vec![("%s", 10, 12), ("%s", 28, 30), ("%s", 48, 50),]
-        );
-        assert_eq!(
-            FormatWordPos::new(s, &Language::C)
-                .map(|m| (m.s, m.start, m.end))
-                .collect::<Vec<_>>(),
-            vec![
-                ("Hello", 0, 5),
-                ("world", 13, 18),
-                ("https", 20, 25),
-                ("example", 31, 38),
-                ("com", 39, 42),
-                ("user", 43, 47),
-                ("domain", 51, 57),
-                ("com", 58, 61),
-            ]
-        );
-        assert_eq!(
-            FormatUrlPos::new(s, &Language::C)
-                .map(|m| (m.s, m.start, m.end))
-                .collect::<Vec<_>>(),
-            vec![("https://%s.example.com", 20, 42),]
-        );
-        assert_eq!(
-            FormatEmailPos::new(s, &Language::C)
-                .map(|m| (m.s, m.start, m.end))
-                .collect::<Vec<_>>(),
-            vec![("user@%s.domain.com", 43, 61),]
-        );
-        assert_eq!(
-            strip_formats(s, &Language::C),
-            "Hello, %  world! https://.example.com user@.domain.com"
-        );
-    }
-
-    #[test]
-    fn test_flags_width_precision() {
-        let s = "Hello, %05.2f world! https://%s.example.com user@%s.domain.com";
-        assert_eq!(
-            FormatPos::new(s, &Language::C)
-                .map(|m| (m.s, m.start, m.end))
-                .collect::<Vec<_>>(),
-            vec![("%05.2f", 7, 13), ("%s", 29, 31), ("%s", 49, 51),]
-        );
-        assert_eq!(
-            FormatWordPos::new(s, &Language::C)
-                .map(|m| (m.s, m.start, m.end))
-                .collect::<Vec<_>>(),
-            vec![
-                ("Hello", 0, 5),
-                ("world", 14, 19),
-                ("https", 21, 26),
-                ("example", 32, 39),
-                ("com", 40, 43),
-                ("user", 44, 48),
-                ("domain", 52, 58),
-                ("com", 59, 62),
-            ]
-        );
-        assert_eq!(
-            FormatUrlPos::new(s, &Language::C)
-                .map(|m| (m.s, m.start, m.end))
-                .collect::<Vec<_>>(),
-            vec![("https://%s.example.com", 21, 43),]
-        );
-        assert_eq!(
-            FormatEmailPos::new(s, &Language::C)
-                .map(|m| (m.s, m.start, m.end))
-                .collect::<Vec<_>>(),
-            vec![("user@%s.domain.com", 44, 62),]
-        );
-        assert_eq!(
-            strip_formats(s, &Language::C),
-            "Hello,  world! https://.example.com user@.domain.com"
-        );
-    }
-
-    #[test]
-    fn test_flags_width_length() {
-        let s = "Hello, %ld %9llu %hhd %zd world! https://%s.example.com user@%s.domain.com";
-        assert_eq!(
-            FormatPos::new(s, &Language::C)
-                .map(|m| (m.s, m.start, m.end))
-                .collect::<Vec<_>>(),
-            vec![
-                ("%ld", 7, 10),
-                ("%9llu", 11, 16),
-                ("%hhd", 17, 21),
-                ("%zd", 22, 25),
-                ("%s", 41, 43),
-                ("%s", 61, 63),
-            ]
-        );
-        assert_eq!(
-            FormatWordPos::new(s, &Language::C)
-                .map(|m| (m.s, m.start, m.end))
-                .collect::<Vec<_>>(),
-            vec![
-                ("Hello", 0, 5),
-                ("world", 26, 31),
-                ("https", 33, 38),
-                ("example", 44, 51),
-                ("com", 52, 55),
-                ("user", 56, 60),
-                ("domain", 64, 70),
-                ("com", 71, 74),
-            ]
-        );
-        assert_eq!(
-            FormatUrlPos::new(s, &Language::C)
-                .map(|m| (m.s, m.start, m.end))
-                .collect::<Vec<_>>(),
-            vec![("https://%s.example.com", 33, 55),]
-        );
-        assert_eq!(
-            FormatEmailPos::new(s, &Language::C)
-                .map(|m| (m.s, m.start, m.end))
-                .collect::<Vec<_>>(),
-            vec![("user@%s.domain.com", 56, 74),]
-        );
-        assert_eq!(
-            strip_formats(s, &Language::C),
-            "Hello,     world! https://.example.com user@.domain.com"
-        );
-    }
-
-    #[test]
-    fn test_unicode() {
-        let s = "héllo, мир! %lld 你好 https://%s.example.com user@%s.domain.com";
-        assert_eq!(
-            FormatPos::new(s, &Language::C)
-                .map(|m| (m.s, m.start, m.end))
-                .collect::<Vec<_>>(),
-            vec![("%lld", 16, 20), ("%s", 36, 38), ("%s", 56, 58),]
-        );
-        assert_eq!(
-            FormatWordPos::new(s, &Language::C)
-                .map(|m| (m.s, m.start, m.end))
-                .collect::<Vec<_>>(),
-            vec![
-                ("héllo", 0, 6),
-                ("мир", 8, 14),
-                ("你好", 21, 27),
-                ("https", 28, 33),
-                ("example", 39, 46),
-                ("com", 47, 50),
-                ("user", 51, 55),
-                ("domain", 59, 65),
-                ("com", 66, 69),
-            ]
-        );
-        assert_eq!(
-            FormatUrlPos::new(s, &Language::C)
-                .map(|m| (m.s, m.start, m.end))
-                .collect::<Vec<_>>(),
-            vec![("https://%s.example.com", 28, 50),]
-        );
-        assert_eq!(
-            FormatEmailPos::new(s, &Language::C)
-                .map(|m| (m.s, m.start, m.end))
-                .collect::<Vec<_>>(),
-            vec![("user@%s.domain.com", 51, 69),]
-        );
-        assert_eq!(
-            strip_formats(s, &Language::C),
-            "héllo, мир!  你好 https://.example.com user@.domain.com"
+            FormatEmailPos::new(
+                "Invalid email: user@domain, valid email: user@%s.domain.com %",
+                &Language::C
+            )
+            .map(|m| (m.s, m.start, m.end))
+            .collect::<Vec<_>>(),
+            vec![("user@%s.domain.com", 41, 59)]
         );
     }
 }

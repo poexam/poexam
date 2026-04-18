@@ -32,49 +32,67 @@ mod tests {
     };
 
     #[test]
-    fn test_empty_string() {
-        let s = "";
-        assert!(FormatPos::new(s, &Language::Null).next().is_none());
-        assert!(FormatWordPos::new(s, &Language::Null).next().is_none());
-        assert!(FormatUrlPos::new(s, &Language::Null).next().is_none());
-        assert!(strip_formats(s, &Language::Null).is_empty());
+    fn test_strip_formats() {
+        assert_eq!(strip_formats("", &Language::Null), "");
+        assert_eq!(
+            strip_formats("Hello, %s world!", &Language::Null),
+            "Hello, %s world!"
+        );
     }
 
     #[test]
-    fn test_no_format() {
-        let s = "Hello, %s world! 'test' https://example.com invalid@domain user@domain.com";
-        assert!(FormatPos::new(s, &Language::Null).next().is_none());
+    fn test_format_pos() {
+        assert!(FormatPos::new("", &Language::Null).next().is_none());
+        assert!(
+            FormatPos::new("Hello, %s world!", &Language::Null)
+                .next()
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn test_word_pos() {
+        assert!(FormatWordPos::new("", &Language::Null).next().is_none());
         assert_eq!(
-            FormatWordPos::new(s, &Language::Null)
+            FormatWordPos::new("Hello, %s world!", &Language::Null)
                 .map(|m| (m.s, m.start, m.end))
                 .collect::<Vec<_>>(),
-            vec![
-                ("Hello", 0, 5),
-                ("s", 8, 9),
-                ("world", 10, 15),
-                ("test", 18, 22),
-                ("https", 24, 29),
-                ("example", 32, 39),
-                ("com", 40, 43),
-                ("invalid", 44, 51),
-                ("domain", 52, 58),
-                ("user", 59, 63),
-                ("domain", 64, 70),
-                ("com", 71, 74),
-            ]
+            vec![("Hello", 0, 5), ("s", 8, 9), ("world", 10, 15)]
+        );
+    }
+
+    #[test]
+    fn test_url_pos() {
+        assert!(FormatUrlPos::new("", &Language::Null).next().is_none());
+        assert!(
+            FormatUrlPos::new("Hello, %s world!", &Language::Null)
+                .next()
+                .is_none()
         );
         assert_eq!(
-            FormatUrlPos::new(s, &Language::Null)
+            FormatUrlPos::new("Visit https://example.com for more info.", &Language::Null)
                 .map(|m| (m.s, m.start, m.end))
                 .collect::<Vec<_>>(),
-            vec![("https://example.com", 24, 43)]
+            vec![("https://example.com", 6, 25)]
+        );
+    }
+
+    #[test]
+    fn test_email_pos() {
+        assert!(FormatEmailPos::new("", &Language::Null).next().is_none());
+        assert!(
+            FormatEmailPos::new("Hello, %s world!", &Language::Null)
+                .next()
+                .is_none()
         );
         assert_eq!(
-            FormatEmailPos::new(s, &Language::Null)
-                .map(|m| (m.s, m.start, m.end))
-                .collect::<Vec<_>>(),
-            vec![("user@domain.com", 59, 74)]
+            FormatEmailPos::new(
+                "Contact us at user@domain.com for more info. Invalid: user@domain",
+                &Language::Null
+            )
+            .map(|m| (m.s, m.start, m.end))
+            .collect::<Vec<_>>(),
+            vec![("user@domain.com", 14, 29)]
         );
-        assert_eq!(strip_formats(s, &Language::Null), s);
     }
 }
