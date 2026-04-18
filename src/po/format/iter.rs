@@ -364,3 +364,87 @@ impl<'a> Iterator for FormatPathPos<'a> {
         }
     }
 }
+
+pub struct FormatHtmlTagPos<'a> {
+    s: &'a str,
+    len: usize,
+    pos: usize,
+    fmt: Box<dyn FormatParser>,
+}
+
+impl<'a> FormatHtmlTagPos<'a> {
+    pub fn new(s: &'a str, language: &Language) -> Self {
+        Self {
+            s,
+            len: s.len(),
+            pos: 0,
+            fmt: language.format_parser(),
+        }
+    }
+}
+
+/// Iterator returning HTML tags of a string, according to the given language, skipping
+/// format strings.
+///
+/// For example with the string `Hello <b>world</b>`, it will return
+/// `<b>` and `</b>` with their positions in the string.
+///
+/// Tags with attributes are also matched, e.g. `<a href="...">`.
+/// Quoted attribute values (double or single quotes) are handled so that
+/// a `>` inside quotes does not end the tag prematurely.
+impl<'a> Iterator for FormatHtmlTagPos<'a> {
+    type Item = MatchFmtPos<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some((c, new_pos, is_format)) = self.fmt.next_char(self.s, self.pos) {
+            if is_format {
+                self.pos = self.fmt.find_end_format(self.s, new_pos, self.len);
+                continue;
+            }
+            if c == '<' {
+                // Check the next character is a letter or '/' (tag start).
+                let tag_start = self.pos;
+                if let Some(next_ch) = self.s[new_pos..].chars().next()
+                    && (next_ch.is_ascii_alphabetic() || next_ch == '/')
+                    && let Some(tag_end) = self.find_tag_end(new_pos)
+                {
+                    self.pos = tag_end;
+                    return Some(MatchFmtPos {
+                        s: &self.s[tag_start..tag_end],
+                        start: tag_start,
+                        end: tag_end,
+                    });
+                }
+            }
+            self.pos = new_pos;
+        }
+        None
+    }
+}
+
+impl FormatHtmlTagPos<'_> {
+    /// Find the end of an HTML tag starting after `<`, handling quoted attribute values.
+    /// Returns the byte position after the closing `>`, or `None` if not found.
+    fn find_tag_end(&self, start: usize) -> Option<usize> {
+        let mut pos = start;
+        while pos < self.len {
+            let c = self.s.as_bytes()[pos];
+            match c {
+                b'>' => return Some(pos + 1),
+                b'"' | b'\'' => {
+                    // Skip quoted attribute value.
+                    pos += 1;
+                    while pos < self.len && self.s.as_bytes()[pos] != c {
+                        pos += 1;
+                    }
+                    if pos < self.len {
+                        // Skip closing quote.
+                        pos += 1;
+                    }
+                }
+                _ => pos += 1,
+            }
+        }
+        None
+    }
+}

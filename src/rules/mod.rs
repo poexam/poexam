@@ -16,6 +16,7 @@ pub mod encoding;
 pub mod escapes;
 pub mod formats;
 pub mod fuzzy;
+pub mod html_tags;
 pub mod long;
 pub mod newlines;
 pub mod noqa;

@@ -10,6 +10,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 ### Added
 
+- Add non-default rule "html-tags"
 - Add SARIF v2.1.0 output with `--output sarif`
 - Add description of rules in output of `poexam rules`
 

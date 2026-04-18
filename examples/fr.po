@@ -54,6 +54,10 @@ msgstr "Échappement : \\\\test"
 msgid "Name: %s, age: %d"
 msgstr "Âge : %2$d, nom : %1$f"
 
+# rule: html-tags
+msgid "Hello <b>world</b>"
+msgstr "Bonjour <b>monde</i>"
+
 # rule: long
 msgid "a"
 msgstr "une longue traduction"
@@ -68,9 +72,9 @@ msgstr "Chemin : /tmp/sortie.txt"
 
 # rule: pipes
 msgid ""
-"list || add <name> || rename <name> <new_name> || del <name>"
+"list || add || rename || del"
 msgstr ""
-"list || add <nom> || rename <nom> <nouveau_nom> del <nom>"
+"list || add || rename"
 
 # rule: plurals
 msgid "%d file"

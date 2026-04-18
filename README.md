@@ -124,6 +124,7 @@ You can enable them on-demand:
 | compilation    | error    | Compilation with `msgfmt`.                       |
 | double-words   | info     | Translation has consecutive repeated words.      |
 | fuzzy          | info     | Fuzzy entry.                                     |
+| html-tags      | info     | Missing/extra/different HTML tags.               |
 | noqa           | info     | Entry has `noqa` comment.                        |
 | obsolete       | info     | Obsolete entry.                                  |
 | paths          | info     | Missing/extra/different paths.                   |

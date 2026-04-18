@@ -120,7 +120,9 @@ pub fn fmt_strip_index(fmt: &str) -> String {
 mod tests {
     use super::*;
     use crate::po::format::{
-        iter::{FormatEmailPos, FormatPathPos, FormatPos, FormatUrlPos, FormatWordPos},
+        iter::{
+            FormatEmailPos, FormatHtmlTagPos, FormatPathPos, FormatPos, FormatUrlPos, FormatWordPos,
+        },
         language::Language,
         strip_formats,
     };
@@ -293,6 +295,33 @@ mod tests {
                 .map(|m| (m.s, m.start, m.end))
                 .collect::<Vec<_>>(),
             vec![("/home/%s/file.txt", 6, 23)]
+        );
+    }
+
+    #[test]
+    fn test_html_tags_pos() {
+        assert!(FormatHtmlTagPos::new("", &Language::C).next().is_none());
+        assert!(
+            FormatHtmlTagPos::new("Hello, %s world!", &Language::C)
+                .next()
+                .is_none()
+        );
+        assert_eq!(
+            FormatHtmlTagPos::new(
+                r#"Hello <b>%s</b>! 3 < 5 <br/>Click <a href="https://%s.example.com">here</a><span title="a > b"></span><br"#,
+                &Language::C
+            )
+            .map(|m| (m.s, m.start, m.end))
+            .collect::<Vec<_>>(),
+            vec![
+                ("<b>", 6, 9),
+                ("</b>", 11, 15),
+                ("<br/>", 23, 28),
+                (r#"<a href="https://%s.example.com">"#, 34, 67),
+                ("</a>", 71, 75),
+                (r#"<span title="a > b">"#, 75, 95),
+                ("</span>", 95, 102),
+            ]
         );
     }
 }

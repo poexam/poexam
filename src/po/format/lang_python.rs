@@ -118,7 +118,9 @@ impl FormatParser for FormatPythonBrace {
 #[cfg(test)]
 mod tests {
     use crate::po::format::{
-        iter::{FormatEmailPos, FormatPathPos, FormatPos, FormatUrlPos, FormatWordPos},
+        iter::{
+            FormatEmailPos, FormatHtmlTagPos, FormatPathPos, FormatPos, FormatUrlPos, FormatWordPos,
+        },
         language::Language,
         strip_formats,
     };
@@ -383,6 +385,64 @@ mod tests {
                 .map(|m| (m.s, m.start, m.end))
                 .collect::<Vec<_>>(),
             vec![("/home/{0}/file.txt", 6, 24)]
+        );
+    }
+
+    #[test]
+    fn test_html_tags_pos() {
+        assert!(
+            FormatHtmlTagPos::new("", &Language::Python)
+                .next()
+                .is_none()
+        );
+        assert!(
+            FormatHtmlTagPos::new("", &Language::PythonBrace)
+                .next()
+                .is_none()
+        );
+        assert!(
+            FormatHtmlTagPos::new("Hello, %s world!", &Language::Python)
+                .next()
+                .is_none()
+        );
+        assert!(
+            FormatHtmlTagPos::new("Hello, %s world!", &Language::PythonBrace)
+                .next()
+                .is_none()
+        );
+        assert_eq!(
+            FormatHtmlTagPos::new(
+                r#"Hello <b>%s</b>! 3 < 5 <br/>Click <a href="https://%s.example.com">here</a><span title="a > b"></span><br"#,
+                &Language::Python
+            )
+            .map(|m| (m.s, m.start, m.end))
+            .collect::<Vec<_>>(),
+            vec![
+                ("<b>", 6, 9),
+                ("</b>", 11, 15),
+                ("<br/>", 23, 28),
+                (r#"<a href="https://%s.example.com">"#, 34, 67),
+                ("</a>", 71, 75),
+                (r#"<span title="a > b">"#, 75, 95),
+                ("</span>", 95, 102),
+            ]
+        );
+        assert_eq!(
+            FormatHtmlTagPos::new(
+                r#"Hello <b>{0}</b>! 3 < 5 <br/>Click <a href="https://{1}.example.com">here</a><span title="a > b"></span><br"#,
+                &Language::PythonBrace
+            )
+            .map(|m| (m.s, m.start, m.end))
+            .collect::<Vec<_>>(),
+            vec![
+                ("<b>", 6, 9),
+                ("</b>", 12, 16),
+                ("<br/>", 24, 29),
+                (r#"<a href="https://{1}.example.com">"#, 35, 69),
+                ("</a>", 73, 77),
+                (r#"<span title="a > b">"#, 77, 97),
+                ("</span>", 97, 104),
+            ]
         );
     }
 }
