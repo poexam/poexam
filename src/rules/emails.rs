@@ -11,7 +11,7 @@ use crate::diagnostic::{Diagnostic, Severity};
 use crate::po::entry::Entry;
 use crate::po::format::iter::FormatEmailPos;
 use crate::po::message::Message;
-use crate::rules::double_quotes::DOUBLE_QUOTES;
+use crate::rules::double_quotes::trim_quotes;
 use crate::rules::rule::RuleChecker;
 
 pub struct EmailsRule;
@@ -135,19 +135,6 @@ impl RuleChecker for EmailsRule {
             }
         }
     }
-}
-
-/// Trim one pair of quotes from both sides of the email, if any.
-///
-/// The quote skipped at the beginning may be different from the quote at the end.
-fn trim_quotes(s: &str) -> &str {
-    if s.starts_with(DOUBLE_QUOTES) && s.ends_with(DOUBLE_QUOTES) {
-        // Return the string without the first and last UTF-8 char.
-        let start = s.chars().next().unwrap().len_utf8();
-        let end = s.char_indices().next_back().unwrap().0;
-        return &s[start..end];
-    }
-    s
 }
 
 #[cfg(test)]

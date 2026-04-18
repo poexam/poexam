@@ -10,7 +10,7 @@ use crate::po::entry::Entry;
 use crate::po::message::Message;
 use crate::rules::rule::RuleChecker;
 
-pub const DOUBLE_QUOTES: [char; 8] = [
+const DOUBLE_QUOTES: [char; 8] = [
     '"',  // U+0022: quotation mark
     '«',  // U+00AB: left pointing double angle quotation mark
     '»',  // U+00BB: right pointing double angle quotation mark
@@ -114,6 +114,19 @@ impl RuleChecker for DoubleQuotesRule {
             std::cmp::Ordering::Equal => vec![],
         }
     }
+}
+
+/// Trim one pair of quotes from both sides of the email, if any.
+///
+/// The quote skipped at the beginning may be different from the quote at the end.
+pub(crate) fn trim_quotes(s: &str) -> &str {
+    if s.starts_with(DOUBLE_QUOTES) && s.ends_with(DOUBLE_QUOTES) {
+        // Return the string without the first and last UTF-8 char.
+        let start = s.chars().next().unwrap().len_utf8();
+        let end = s.char_indices().next_back().unwrap().0;
+        return &s[start..end];
+    }
+    s
 }
 
 #[cfg(test)]
