@@ -45,7 +45,7 @@ impl std::fmt::Display for Language {
 }
 
 impl Language {
-    pub fn format_parser(&self) -> Box<dyn FormatParser> {
+    pub(crate) fn format_parser(&self) -> Box<dyn FormatParser> {
         match self {
             Self::C => Box::new(FormatC),
             Self::Python => Box::new(FormatPython),
