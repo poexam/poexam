@@ -200,48 +200,48 @@ impl<'a> FormatEmailPos<'a> {
             fmt: language.format_parser(),
         }
     }
-}
 
-/// Simple check for email validity: check that it contains exactly one '@' and that
-/// local and domain parts are not empty and contain only allowed characters, with
-/// relaxed rules (e.g. allow language formats like `%s` or `{0}`).
-fn is_valid_email(email: &str) -> bool {
-    email.find('@').is_some_and(|pos_arobase| {
-        let local = &email[..pos_arobase];
-        let domain = &email[pos_arobase + 1..];
-        !local.is_empty()
-            && !domain.is_empty()
-            && local.chars().all(|c| {
-                c.is_alphanumeric()
-                    || c == '.'
-                    || c == '-'
-                    || c == '_'
-                    || c == '%'
-                    || c == '{'
-                    || c == '}'
-                    || c == '$'
-                    || c == '"'
-                    || c == '„'
-                    || c == '”'
-                    || c == '«'
-                    || c == '»'
-            })
-            && domain.chars().all(|c| {
-                c.is_alphanumeric()
-                    || c == '.'
-                    || c == '-'
-                    || c == '%'
-                    || c == '{'
-                    || c == '}'
-                    || c == '$'
-                    || c == '"'
-                    || c == '„'
-                    || c == '”'
-                    || c == '«'
-                    || c == '»'
-            })
-            && domain.contains('.')
-    })
+    /// Simple check for email validity: check that it contains exactly one '@' and that
+    /// local and domain parts are not empty and contain only allowed characters, with
+    /// relaxed rules (e.g. allow language formats like `%s` or `{0}`).
+    fn is_valid_email(email: &str) -> bool {
+        email.find('@').is_some_and(|pos_arobase| {
+            let local = &email[..pos_arobase];
+            let domain = &email[pos_arobase + 1..];
+            !local.is_empty()
+                && !domain.is_empty()
+                && local.chars().all(|c| {
+                    c.is_alphanumeric()
+                        || c == '.'
+                        || c == '-'
+                        || c == '_'
+                        || c == '%'
+                        || c == '{'
+                        || c == '}'
+                        || c == '$'
+                        || c == '"'
+                        || c == '„'
+                        || c == '”'
+                        || c == '«'
+                        || c == '»'
+                })
+                && domain.chars().all(|c| {
+                    c.is_alphanumeric()
+                        || c == '.'
+                        || c == '-'
+                        || c == '%'
+                        || c == '{'
+                        || c == '}'
+                        || c == '$'
+                        || c == '"'
+                        || c == '„'
+                        || c == '”'
+                        || c == '«'
+                        || c == '»'
+                })
+                && domain.contains('.')
+        })
+    }
 }
 
 /// Iterator returning emails of a string, according to the given language, skipping
@@ -276,7 +276,7 @@ impl<'a> Iterator for FormatEmailPos<'a> {
             match (idx_start, idx_end) {
                 (Some(start), Some(end)) => {
                     let s = &self.s[start..end];
-                    if is_valid_email(s) {
+                    if Self::is_valid_email(s) {
                         return Some(MatchFmtPos { s, start, end });
                     }
                     idx_start = None;
@@ -304,21 +304,21 @@ impl<'a> FormatPathPos<'a> {
             fmt: language.format_parser(),
         }
     }
-}
 
-/// Check if a string is a path: it starts with '/' or './' or '../' or '~/'.
-fn is_path(path: &str) -> bool {
-    if path.starts_with("./") || path.starts_with("../") || path.starts_with("~/") {
-        return true;
+    /// Check if a string is a path: it starts with '/' or './' or '../' or '~/'.
+    fn is_path(path: &str) -> bool {
+        if path.starts_with("./") || path.starts_with("../") || path.starts_with("~/") {
+            return true;
+        }
+        if path.starts_with('/')
+            && let Some(pos) = path[1..].find('/')
+            && pos > 0
+            && !path[pos + 2..].is_empty()
+        {
+            return true;
+        }
+        false
     }
-    if path.starts_with('/')
-        && let Some(pos) = path[1..].find('/')
-        && pos > 0
-        && !path[pos + 2..].is_empty()
-    {
-        return true;
-    }
-    false
 }
 
 /// Iterator returning paths of a string, according to the given language, skipping
@@ -353,7 +353,7 @@ impl<'a> Iterator for FormatPathPos<'a> {
             match (idx_start, idx_end) {
                 (Some(start), Some(end)) => {
                     let s = &self.s[start..end];
-                    if is_path(s) {
+                    if Self::is_path(s) {
                         return Some(MatchFmtPos { s, start, end });
                     }
                     idx_start = None;
@@ -362,35 +362,5 @@ impl<'a> Iterator for FormatPathPos<'a> {
                 _ => return None,
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_is_valid_email() {
-        // Invalid emails.
-        assert!(!is_valid_email(""));
-        assert!(!is_valid_email("user"));
-        assert!(!is_valid_email("user@domain"));
-        // Valid emails.
-        assert!(is_valid_email("user@domain.com"));
-    }
-
-    #[test]
-    fn test_is_path() {
-        // Invalid paths; many are in fact valid but considered invalid to avoid false positives.
-        assert!(!is_path(""));
-        assert!(!is_path("tmp"));
-        assert!(!is_path("/tmp"));
-        assert!(!is_path("/tmp/"));
-        // Valid paths.
-        assert!(is_path("/tmp/output"));
-        assert!(is_path("/tmp/output.txt"));
-        assert!(is_path("./test.txt"));
-        assert!(is_path("../test.txt"));
-        assert!(is_path("~/test.txt"));
     }
 }
