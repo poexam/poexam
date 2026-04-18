@@ -12,6 +12,73 @@ use crate::rules::rule::RuleChecker;
 
 pub struct NewlinesRule;
 
+impl RuleChecker for NewlinesRule {
+    fn name(&self) -> &'static str {
+        "newlines"
+    }
+
+    fn description(&self) -> &'static str {
+        "Check for missing or extra newlines in translation."
+    }
+
+    fn is_default(&self) -> bool {
+        true
+    }
+
+    fn is_check(&self) -> bool {
+        true
+    }
+
+    fn severity(&self) -> Severity {
+        Severity::Error
+    }
+
+    /// Check for missing or extra newlines in the translation: carriage return (`\r`) or line feed (`\n`).
+    ///
+    /// Wrong entry:
+    /// ```text
+    /// msgid "this is a test\n"
+    /// "second line"
+    /// msgstr "ceci est un test"
+    /// "seconde ligne"
+    /// ```
+    ///
+    /// Correct entry:
+    /// ```text
+    /// msgid "this is a test\n"
+    /// "second line"
+    /// msgstr "ceci est un test\n"
+    /// "seconde ligne"
+    /// ```
+    ///
+    /// Diagnostics reported with severity [`error`](Severity::Error):
+    /// - `missing carriage returns '\r' (# / #)`
+    /// - `extra carriage returns '\r' (# / #)`
+    /// - `missing line feeds '\n' (# / #)`
+    /// - `extra line feeds '\n' (# / #)`
+    /// - `missing carriage return '\r' at the beginning`
+    /// - `extra carriage return '\r' at the beginning`
+    /// - `missing line feed '\n' at the beginning`
+    /// - `extra line feed '\n' at the beginning`
+    /// - `missing carriage return '\r' at the end`
+    /// - `extra carriage return '\r' at the end`
+    /// - `missing line feed '\n' at the end`
+    /// - `extra line feed '\n' at the end`
+    fn check_msg(
+        &self,
+        checker: &Checker,
+        _entry: &Entry,
+        msgid: &Message,
+        msgstr: &Message,
+    ) -> Vec<Diagnostic> {
+        let mut diags = vec![];
+        diags.extend(self.check_cr_lf_count(checker, msgid, msgstr));
+        diags.extend(self.check_cr_lf_beginning(checker, msgid, msgstr));
+        diags.extend(self.check_cr_lf_end(checker, msgid, msgstr));
+        diags
+    }
+}
+
 impl NewlinesRule {
     /// Check the number of CR ('\r') and LF ('\n') characters.
     fn check_cr_lf_count(
@@ -181,73 +248,6 @@ impl NewlinesRule {
             }
             std::cmp::Ordering::Equal => {}
         }
-        diags
-    }
-}
-
-impl RuleChecker for NewlinesRule {
-    fn name(&self) -> &'static str {
-        "newlines"
-    }
-
-    fn description(&self) -> &'static str {
-        "Check for missing or extra newlines in translation."
-    }
-
-    fn is_default(&self) -> bool {
-        true
-    }
-
-    fn is_check(&self) -> bool {
-        true
-    }
-
-    fn severity(&self) -> Severity {
-        Severity::Error
-    }
-
-    /// Check for missing or extra newlines in the translation: carriage return (`\r`) or line feed (`\n`).
-    ///
-    /// Wrong entry:
-    /// ```text
-    /// msgid "this is a test\n"
-    /// "second line"
-    /// msgstr "ceci est un test"
-    /// "seconde ligne"
-    /// ```
-    ///
-    /// Correct entry:
-    /// ```text
-    /// msgid "this is a test\n"
-    /// "second line"
-    /// msgstr "ceci est un test\n"
-    /// "seconde ligne"
-    /// ```
-    ///
-    /// Diagnostics reported with severity [`error`](Severity::Error):
-    /// - `missing carriage returns '\r' (# / #)`
-    /// - `extra carriage returns '\r' (# / #)`
-    /// - `missing line feeds '\n' (# / #)`
-    /// - `extra line feeds '\n' (# / #)`
-    /// - `missing carriage return '\r' at the beginning`
-    /// - `extra carriage return '\r' at the beginning`
-    /// - `missing line feed '\n' at the beginning`
-    /// - `extra line feed '\n' at the beginning`
-    /// - `missing carriage return '\r' at the end`
-    /// - `extra carriage return '\r' at the end`
-    /// - `missing line feed '\n' at the end`
-    /// - `extra line feed '\n' at the end`
-    fn check_msg(
-        &self,
-        checker: &Checker,
-        _entry: &Entry,
-        msgid: &Message,
-        msgstr: &Message,
-    ) -> Vec<Diagnostic> {
-        let mut diags = vec![];
-        diags.extend(self.check_cr_lf_count(checker, msgid, msgstr));
-        diags.extend(self.check_cr_lf_beginning(checker, msgid, msgstr));
-        diags.extend(self.check_cr_lf_end(checker, msgid, msgstr));
         diags
     }
 }
