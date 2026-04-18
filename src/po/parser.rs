@@ -24,13 +24,13 @@ enum Field {
 #[derive(Default)]
 pub struct Parser<'a> {
     // data and some general info parsed in the header
-    pub data: &'a [u8],
-    pub data_len: usize,
-    pub language: String,
-    pub language_code: String,
-    pub country: String,
-    pub encoding: Option<&'static Encoding>,
-    pub nplurals: u32,
+    data: &'a [u8],
+    data_len: usize,
+    language: String,
+    language_code: String,
+    country: String,
+    encoding: Option<&'static Encoding>,
+    nplurals: u32,
     // internal state of the parser
     iter_lines: Option<memchr::memmem::FindIter<'a, 'static>>,
     offset: usize,
@@ -56,6 +56,17 @@ impl<'d> Parser<'d> {
     pub fn encoding_name(&self) -> &'static str {
         self.encoding
             .map_or_else(|| encoding_rs::UTF_8.name(), |enc| enc.name())
+    }
+
+    pub fn language(&self) -> &str {
+        &self.language
+    }
+
+    pub fn language_code(&self) -> &str {
+        &self.language_code
+    }
+    pub fn country(&self) -> &str {
+        &self.country
     }
 
     /// Return the number of plurals defined in the header.

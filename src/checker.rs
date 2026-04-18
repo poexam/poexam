@@ -65,17 +65,17 @@ impl<'d> Checker<'d> {
 
     /// Get the language of the file being checked (e.g. `pt_BR`).
     pub fn language(&self) -> &str {
-        &self.parser.language
+        self.parser.language()
     }
 
     /// Get the language code of the file being checked (e.g. `pt`).
     pub fn language_code(&self) -> &str {
-        &self.parser.language_code
+        self.parser.language_code()
     }
 
     /// Get the country of the file being checked (e.g. `BR`).
     pub fn country(&self) -> &str {
-        &self.parser.country
+        self.parser.country()
     }
 
     /// Return the encoding name.
@@ -165,14 +165,15 @@ impl<'d> Checker<'d> {
                         }
                     }
                 }
+                let language = self.parser.language();
                 if (rules.spelling_str_rule && self.dict_str.is_none())
                     && (self.config.check.langs.is_empty()
-                        || self.config.check.langs.contains(&self.parser.language))
+                        || self.config.check.langs.iter().any(|s| s == language))
                 {
                     self.dict_str = match dict::get_dict(
                         self.config.check.path_dicts.as_path(),
                         self.config.check.path_words.as_ref(),
-                        &self.parser.language,
+                        language,
                     ) {
                         Ok(dict) => Some(dict),
                         Err(err) => {
