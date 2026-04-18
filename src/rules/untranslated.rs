@@ -17,6 +17,10 @@ impl RuleChecker for UntranslatedRule {
         "untranslated"
     }
 
+    fn description(&self) -> &'static str {
+        "Report untranslated entries."
+    }
+
     fn is_default(&self) -> bool {
         false
     }

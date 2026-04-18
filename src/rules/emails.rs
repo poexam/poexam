@@ -21,6 +21,10 @@ impl RuleChecker for EmailsRule {
         "emails"
     }
 
+    fn description(&self) -> &'static str {
+        "Check for missing, extra or different emails in translation."
+    }
+
     fn is_default(&self) -> bool {
         true
     }

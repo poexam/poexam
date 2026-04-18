@@ -26,6 +26,10 @@ impl RuleChecker for SpellingCtxtRule {
         "spelling-ctxt"
     }
 
+    fn description(&self) -> &'static str {
+        "Check spelling in context string."
+    }
+
     fn is_default(&self) -> bool {
         false
     }
@@ -79,6 +83,10 @@ pub struct SpellingIdRule;
 impl RuleChecker for SpellingIdRule {
     fn name(&self) -> &'static str {
         "spelling-id"
+    }
+
+    fn description(&self) -> &'static str {
+        "Check spelling in source string."
     }
 
     fn is_default(&self) -> bool {
@@ -138,6 +146,10 @@ pub struct SpellingStrRule;
 impl RuleChecker for SpellingStrRule {
     fn name(&self) -> &'static str {
         "spelling-str"
+    }
+
+    fn description(&self) -> &'static str {
+        "Check spelling in translation string."
     }
 
     fn is_default(&self) -> bool {

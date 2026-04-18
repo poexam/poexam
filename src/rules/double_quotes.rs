@@ -28,6 +28,10 @@ impl RuleChecker for DoubleQuotesRule {
         "double-quotes"
     }
 
+    fn description(&self) -> &'static str {
+        "Check for missing or extra double quotes in translation."
+    }
+
     fn is_default(&self) -> bool {
         true
     }

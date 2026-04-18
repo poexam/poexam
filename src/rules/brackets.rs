@@ -20,6 +20,10 @@ impl RuleChecker for BracketsRule {
         "brackets"
     }
 
+    fn description(&self) -> &'static str {
+        "Check for missing or extra round/square/curly/angle brackets in translation."
+    }
+
     fn is_default(&self) -> bool {
         true
     }

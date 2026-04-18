@@ -19,6 +19,10 @@ impl RuleChecker for PuncStartRule {
         "punc-start"
     }
 
+    fn description(&self) -> &'static str {
+        "Check for inconsistent leading punctuation between source and translation."
+    }
+
     fn is_default(&self) -> bool {
         true
     }
@@ -106,6 +110,10 @@ pub struct PuncEndRule;
 impl RuleChecker for PuncEndRule {
     fn name(&self) -> &'static str {
         "punc-end"
+    }
+
+    fn description(&self) -> &'static str {
+        "Check for inconsistent trailing punctuation between source and translation."
     }
 
     fn is_default(&self) -> bool {

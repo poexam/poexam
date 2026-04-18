@@ -19,6 +19,10 @@ impl RuleChecker for WhitespaceStartRule {
         "whitespace-start"
     }
 
+    fn description(&self) -> &'static str {
+        "Check for inconsistent leading whitespace between source and translation."
+    }
+
     fn is_default(&self) -> bool {
         true
     }
@@ -83,6 +87,10 @@ pub struct WhitespaceEndRule;
 impl RuleChecker for WhitespaceEndRule {
     fn name(&self) -> &'static str {
         "whitespace-end"
+    }
+
+    fn description(&self) -> &'static str {
+        "Check for inconsistent trailing whitespace between source and translation."
     }
 
     fn is_default(&self) -> bool {

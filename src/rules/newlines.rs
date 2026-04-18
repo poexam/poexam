@@ -190,6 +190,10 @@ impl RuleChecker for NewlinesRule {
         "newlines"
     }
 
+    fn description(&self) -> &'static str {
+        "Check for missing or extra newlines in translation."
+    }
+
     fn is_default(&self) -> bool {
         true
     }

@@ -17,6 +17,10 @@ impl RuleChecker for DoubleSpacesRule {
         "double-spaces"
     }
 
+    fn description(&self) -> &'static str {
+        "Check for missing or extra double spaces in translation."
+    }
+
     fn is_default(&self) -> bool {
         true
     }

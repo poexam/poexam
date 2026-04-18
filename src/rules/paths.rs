@@ -21,6 +21,10 @@ impl RuleChecker for PathsRule {
         "paths"
     }
 
+    fn description(&self) -> &'static str {
+        "Check for missing, extra or different paths in translation."
+    }
+
     fn is_default(&self) -> bool {
         false
     }

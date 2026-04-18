@@ -15,6 +15,10 @@ impl RuleChecker for CompilationRule {
         "compilation"
     }
 
+    fn description(&self) -> &'static str {
+        "Check PO file compilation using msgfmt."
+    }
+
     fn is_default(&self) -> bool {
         false
     }

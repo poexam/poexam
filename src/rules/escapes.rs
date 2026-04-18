@@ -17,6 +17,10 @@ impl RuleChecker for EscapesRule {
         "escapes"
     }
 
+    fn description(&self) -> &'static str {
+        "Check for missing or extra escape characters in translation."
+    }
+
     fn is_default(&self) -> bool {
         true
     }

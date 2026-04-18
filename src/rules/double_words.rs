@@ -18,6 +18,10 @@ impl RuleChecker for DoubleWordsRule {
         "double-words"
     }
 
+    fn description(&self) -> &'static str {
+        "Check for consecutive repeated words in translation."
+    }
+
     fn is_default(&self) -> bool {
         false
     }

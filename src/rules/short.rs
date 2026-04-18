@@ -17,6 +17,10 @@ impl RuleChecker for ShortRule {
         "short"
     }
 
+    fn description(&self) -> &'static str {
+        "Check if translation is too short compared to source."
+    }
+
     fn is_default(&self) -> bool {
         true
     }

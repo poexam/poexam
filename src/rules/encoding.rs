@@ -16,6 +16,10 @@ impl RuleChecker for EncodingRule {
         "encoding"
     }
 
+    fn description(&self) -> &'static str {
+        "Check for invalid characters based on declared encoding."
+    }
+
     fn is_default(&self) -> bool {
         true
     }

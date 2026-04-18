@@ -16,6 +16,10 @@ impl RuleChecker for FuzzyRule {
         "fuzzy"
     }
 
+    fn description(&self) -> &'static str {
+        "Report fuzzy entries."
+    }
+
     fn is_default(&self) -> bool {
         false
     }

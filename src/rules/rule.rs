@@ -71,6 +71,9 @@ pub trait RuleChecker {
     /// Get the name of the rule, used to select it with command line parameters.
     fn name(&self) -> &'static str;
 
+    /// Get a short description of what the rule checks.
+    fn description(&self) -> &'static str;
+
     /// Whether the rule is enabled by default (when no `--select` parameter is provided).
     fn is_default(&self) -> bool;
 

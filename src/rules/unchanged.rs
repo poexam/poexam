@@ -17,6 +17,10 @@ impl RuleChecker for UnchangedRule {
         "unchanged"
     }
 
+    fn description(&self) -> &'static str {
+        "Check for unchanged translations (identical to source)."
+    }
+
     fn is_default(&self) -> bool {
         false
     }

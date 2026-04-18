@@ -16,6 +16,10 @@ impl RuleChecker for NoqaRule {
         "noqa"
     }
 
+    fn description(&self) -> &'static str {
+        "Report entries with noqa comments."
+    }
+
     fn is_default(&self) -> bool {
         false
     }

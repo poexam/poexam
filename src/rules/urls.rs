@@ -21,6 +21,10 @@ impl RuleChecker for UrlsRule {
         "urls"
     }
 
+    fn description(&self) -> &'static str {
+        "Check for missing, extra or different URLs in translation."
+    }
+
     fn is_default(&self) -> bool {
         false
     }

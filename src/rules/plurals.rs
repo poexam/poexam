@@ -16,6 +16,10 @@ impl RuleChecker for PluralsRule {
         "plurals"
     }
 
+    fn description(&self) -> &'static str {
+        "Check for incorrect number of plural forms in translation."
+    }
+
     fn is_default(&self) -> bool {
         true
     }

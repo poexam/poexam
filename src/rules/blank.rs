@@ -17,6 +17,10 @@ impl RuleChecker for BlankRule {
         "blank"
     }
 
+    fn description(&self) -> &'static str {
+        "Check if translation is blank (contains only whitespace)."
+    }
+
     fn is_default(&self) -> bool {
         true
     }

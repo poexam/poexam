@@ -17,6 +17,10 @@ impl RuleChecker for PipesRule {
         "pipes"
     }
 
+    fn description(&self) -> &'static str {
+        "Check for missing or extra pipe characters in translation."
+    }
+
     fn is_default(&self) -> bool {
         true
     }

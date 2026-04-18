@@ -24,6 +24,10 @@ impl RuleChecker for FormatsRule {
         "formats"
     }
 
+    fn description(&self) -> &'static str {
+        "Check for inconsistent format strings between source and translation."
+    }
+
     fn is_default(&self) -> bool {
         true
     }

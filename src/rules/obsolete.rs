@@ -16,6 +16,10 @@ impl RuleChecker for ObsoleteRule {
         "obsolete"
     }
 
+    fn description(&self) -> &'static str {
+        "Report obsolete entries."
+    }
+
     fn is_default(&self) -> bool {
         false
     }

@@ -19,6 +19,10 @@ impl RuleChecker for PuncSpaceIdRule {
         "punc-space-id"
     }
 
+    fn description(&self) -> &'static str {
+        "Check for incorrect spaces around punctuation in source string."
+    }
+
     fn is_default(&self) -> bool {
         true
     }
@@ -87,6 +91,10 @@ pub struct PuncSpaceStrRule;
 impl RuleChecker for PuncSpaceStrRule {
     fn name(&self) -> &'static str {
         "punc-space-str"
+    }
+
+    fn description(&self) -> &'static str {
+        "Check for incorrect spaces around punctuation in translation."
     }
 
     fn is_default(&self) -> bool {

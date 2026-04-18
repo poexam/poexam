@@ -17,6 +17,10 @@ impl RuleChecker for LongRule {
         "long"
     }
 
+    fn description(&self) -> &'static str {
+        "Check if translation is too long compared to source."
+    }
+
     fn is_default(&self) -> bool {
         true
     }

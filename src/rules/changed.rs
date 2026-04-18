@@ -17,6 +17,10 @@ impl RuleChecker for ChangedRule {
         "changed"
     }
 
+    fn description(&self) -> &'static str {
+        "Check if translation differs from source string."
+    }
+
     fn is_default(&self) -> bool {
         false
     }

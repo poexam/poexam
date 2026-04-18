@@ -17,6 +17,10 @@ impl RuleChecker for TabsRule {
         "tabs"
     }
 
+    fn description(&self) -> &'static str {
+        "Check for missing or extra tab characters in translation."
+    }
+
     fn is_default(&self) -> bool {
         true
     }
