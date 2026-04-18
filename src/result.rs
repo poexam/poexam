@@ -15,7 +15,7 @@ use crate::{args, rules::rule::Rules};
 use crate::{checker::CheckFileResult, config::Config};
 
 /// Display the settings used to check a file.
-pub fn display_settings(path: &Path, config: &Config, rules: &Rules) {
+fn display_settings(path: &Path, config: &Config, rules: &Rules) {
     println!("Settings for file: {}", path.display());
     println!("  {config:?}");
     let rules_names = rules
