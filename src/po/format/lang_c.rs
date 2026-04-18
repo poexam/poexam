@@ -120,7 +120,7 @@ pub fn fmt_strip_index(fmt: &str) -> String {
 mod tests {
     use super::*;
     use crate::po::format::{
-        iter::{FormatEmailPos, FormatPos, FormatUrlPos, FormatWordPos},
+        iter::{FormatEmailPos, FormatPathPos, FormatPos, FormatUrlPos, FormatWordPos},
         language::Language,
         strip_formats,
     };
@@ -277,6 +277,22 @@ mod tests {
             .map(|m| (m.s, m.start, m.end))
             .collect::<Vec<_>>(),
             vec![("user@%s.domain.com", 41, 59)]
+        );
+    }
+
+    #[test]
+    fn test_path_pos() {
+        assert!(FormatPathPos::new("", &Language::C).next().is_none());
+        assert!(
+            FormatPathPos::new("Hello, %s world!", &Language::C)
+                .next()
+                .is_none()
+        );
+        assert_eq!(
+            FormatPathPos::new("Path: /home/%s/file.txt", &Language::C)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("/home/%s/file.txt", 6, 23)]
         );
     }
 }

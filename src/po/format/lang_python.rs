@@ -118,7 +118,7 @@ impl FormatParser for FormatPythonBrace {
 #[cfg(test)]
 mod tests {
     use crate::po::format::{
-        iter::{FormatEmailPos, FormatPos, FormatUrlPos, FormatWordPos},
+        iter::{FormatEmailPos, FormatPathPos, FormatPos, FormatUrlPos, FormatWordPos},
         language::Language,
         strip_formats,
     };
@@ -351,6 +351,38 @@ mod tests {
             .map(|m| (m.s, m.start, m.end))
             .collect::<Vec<_>>(),
             vec![("user@{0}.domain.com", 41, 60)]
+        );
+    }
+
+    #[test]
+    fn test_path_pos() {
+        assert!(FormatPathPos::new("", &Language::Python).next().is_none());
+        assert!(
+            FormatPathPos::new("", &Language::PythonBrace)
+                .next()
+                .is_none()
+        );
+        assert!(
+            FormatPathPos::new("Hello, world!", &Language::Python)
+                .next()
+                .is_none()
+        );
+        assert!(
+            FormatPathPos::new("Hello, world!", &Language::PythonBrace)
+                .next()
+                .is_none()
+        );
+        assert_eq!(
+            FormatPathPos::new("Path: /home/%s/file.txt", &Language::Python)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("/home/%s/file.txt", 6, 23)]
+        );
+        assert_eq!(
+            FormatPathPos::new("Path: /home/{0}/file.txt", &Language::PythonBrace)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("/home/{0}/file.txt", 6, 24)]
         );
     }
 }

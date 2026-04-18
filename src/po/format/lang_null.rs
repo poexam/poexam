@@ -26,7 +26,7 @@ impl FormatParser for FormatNull {
 #[cfg(test)]
 mod tests {
     use crate::po::format::{
-        iter::{FormatEmailPos, FormatPos, FormatUrlPos, FormatWordPos},
+        iter::{FormatEmailPos, FormatPathPos, FormatPos, FormatUrlPos, FormatWordPos},
         language::Language,
         strip_formats,
     };
@@ -93,6 +93,22 @@ mod tests {
             .map(|m| (m.s, m.start, m.end))
             .collect::<Vec<_>>(),
             vec![("user@domain.com", 14, 29)]
+        );
+    }
+
+    #[test]
+    fn test_path_pos() {
+        assert!(FormatPathPos::new("", &Language::Null).next().is_none());
+        assert!(
+            FormatPathPos::new("Hello, %s world!", &Language::Null)
+                .next()
+                .is_none()
+        );
+        assert_eq!(
+            FormatPathPos::new("Path: /home/%s/file.txt", &Language::Null)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("/home/%s/file.txt", 6, 23)]
         );
     }
 }
