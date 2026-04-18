@@ -366,7 +366,7 @@ impl StatsFile {
     }
 
     /// Return a formatted string with colors for all word/characters statistics.
-    pub fn to_string_words(&self) -> String {
+    fn to_string_words(&self) -> String {
         format!(
             "                    Entries          \
             Words (src / translated)     \
