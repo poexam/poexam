@@ -23,17 +23,17 @@ categories = [
 ]
 
 [dependencies]
-clap = { version = "4.5.53", features = ["derive"] }
-colored = "3.0.0"
+clap = { version = "4.6.1", features = ["derive"] }
+colored = "3.1.1"
 encoding_rs = "0.8.35"
 ignore = "0.4.25"
-memchr = "2.7.6"
+memchr = "2.8.0"
 path-absolutize = { version = "3.1.1", features = ["once_cell_cache"] }
-rayon = "1.11.0"
+rayon = "1.12.0"
 serde_json = "1.0.149"
 serde = { version = "1.0.228", features = ["derive"] }
 spellbook = "0.4.0"
-toml = "1.0.1"
+toml = "1.1.2"
 
 [profile.release]
 lto = true
