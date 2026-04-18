@@ -39,6 +39,7 @@ mod dir;
 mod po;
 mod result;
 mod rules;
+mod sarif;
 mod stats;
 
 use clap::Parser;

@@ -11,6 +11,7 @@ use std::{
 };
 
 use crate::diagnostic::{Diagnostic, Severity};
+use crate::sarif;
 use crate::{args, rules::rule::Rules};
 use crate::{checker::CheckFileResult, config::Config};
 
@@ -121,6 +122,12 @@ fn display_diagnostics_json(result: &[CheckFileResult], _args: &args::CheckArgs)
     println!("{}", serde_json::to_string(&diags).unwrap_or_default());
 }
 
+/// Display diagnostics in SARIF format.
+fn display_diagnostics_sarif(result: &[CheckFileResult]) {
+    let sarif_log = sarif::build_sarif(result);
+    println!("{}", serde_json::to_string(&sarif_log).unwrap_or_default());
+}
+
 /// Display misspelled words.
 fn display_misspelled_words(result: &[CheckFileResult], _args: &args::CheckArgs) {
     let hash_misspelled_words: HashSet<_> = result
@@ -200,6 +207,11 @@ pub fn display_result(
             args::CheckOutputFormat::Json => {
                 if !args.no_errors {
                     display_diagnostics_json(result, args);
+                }
+            }
+            args::CheckOutputFormat::Sarif => {
+                if !args.no_errors {
+                    display_diagnostics_sarif(result);
                 }
             }
             args::CheckOutputFormat::Misspelled => {

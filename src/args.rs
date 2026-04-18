@@ -178,6 +178,9 @@ pub enum CheckOutputFormat {
 
     /// List of all misspelled words (one per line)
     Misspelled,
+
+    /// SARIF (Static Analysis Results Interchange Format) v2.1.0
+    Sarif,
 }
 
 impl std::fmt::Display for CheckOutputFormat {
@@ -187,6 +190,7 @@ impl std::fmt::Display for CheckOutputFormat {
             Self::Human => write!(f, "human"),
             Self::Json => write!(f, "json"),
             Self::Misspelled => write!(f, "misspelled"),
+            Self::Sarif => write!(f, "sarif"),
         }
     }
 }

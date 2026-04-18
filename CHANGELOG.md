@@ -10,6 +10,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 ### Added
 
+- Add SARIF v2.1.0 output with `--output sarif`
 - Add description of rules in output of `poexam rules`
 
 ## Version 0.0.9 (2026-04-15)
