@@ -39,6 +39,8 @@ impl RuleChecker for UrlsRule {
 
     /// Check for missing, extra or different URLs in the translation.
     ///
+    /// This rule is not enabled by default.
+    ///
     /// Wrong entry:
     /// ```text
     /// msgid "Test URL: https://example.com"
