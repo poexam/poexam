@@ -38,7 +38,13 @@ pub struct Rules {
 
 impl std::fmt::Display for Rule {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} [{}]", self.name(), self.severity())
+        write!(
+            f,
+            "{} [{}]: {}",
+            self.name(),
+            self.severity(),
+            self.description()
+        )
     }
 }
 
