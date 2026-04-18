@@ -225,7 +225,7 @@ impl Diagnostic {
     }
 
     /// Build the diagnostic message (append misspelled words if any).
-    pub fn build_message(&self) -> Cow<'_, str> {
+    pub(crate) fn build_message(&self) -> Cow<'_, str> {
         if self.misspelled_words.is_empty() {
             Cow::Borrowed(&self.message)
         } else {
