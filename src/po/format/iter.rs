@@ -172,7 +172,7 @@ impl<'a> Iterator for FormatUrlPos<'a> {
             match (idx_start, idx_end) {
                 (Some(start), Some(end)) => {
                     let s = &self.s[start..end];
-                    if s.contains("://") {
+                    if s.contains("://") && s.contains('.') {
                         return Some(MatchFmtPos { s, start, end });
                     }
                     idx_start = None;

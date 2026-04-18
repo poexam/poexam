@@ -13,6 +13,10 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - Add SARIF v2.1.0 output with `--output sarif`
 - Add description of rules in output of `poexam rules`
 
+### Fixed
+
+- Use only URLs with at least one dot inside in rule "urls"
+
 ## Version 0.0.9 (2026-04-15)
 
 ### Added
