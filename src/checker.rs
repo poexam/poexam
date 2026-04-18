@@ -97,12 +97,7 @@ impl<'d> Checker<'d> {
     /// - [`check_msg`](crate::rules::rule::RuleChecker::check_msg): check the strings:
     ///   - `msgid` / `msgstr[0]`
     ///   - `msgid_plural` / `msgstr[n]` (for each n > 0)
-    pub fn check_entry(
-        &self,
-        entry: &Entry,
-        rule: &Rule,
-        untranslated_rule: bool,
-    ) -> Vec<Diagnostic> {
+    fn check_entry(&self, entry: &Entry, rule: &Rule, untranslated_rule: bool) -> Vec<Diagnostic> {
         let mut diags = vec![];
         let rule_is_untranslated = rule.name() == "untranslated";
         diags.extend(rule.check_entry(self, entry));
@@ -132,7 +127,7 @@ impl<'d> Checker<'d> {
     ///
     /// Then, for each entry, it calls the function [`check_entry`](crate::checker::Checker::check_entry)
     /// to check the entry with the given rule.
-    pub fn do_all_checks(&mut self, rules: &Rules) {
+    pub(crate) fn do_all_checks(&mut self, rules: &Rules) {
         // Run rules for the entire file (e.g. check compilation of the file with msgfmt command).
         for rule in &rules.enabled {
             self.diagnostics.extend(rule.check_file(self));
@@ -213,7 +208,7 @@ impl<'d> Checker<'d> {
 }
 
 /// Check a single PO file and return the list of diagnostics found.
-pub fn check_file(path: &PathBuf, args: &args::CheckArgs) -> CheckFileResult {
+fn check_file(path: &PathBuf, args: &args::CheckArgs) -> CheckFileResult {
     let path_config = if args.no_config {
         None
     } else {
