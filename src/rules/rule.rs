@@ -113,7 +113,7 @@ pub trait RuleChecker {
 }
 
 /// Get all available rules.
-pub fn get_all_rules() -> Vec<Rule> {
+fn get_all_rules() -> Vec<Rule> {
     vec![
         Box::new(blank::BlankRule {}),
         Box::new(brackets::BracketsRule {}),
@@ -152,7 +152,7 @@ pub fn get_all_rules() -> Vec<Rule> {
 }
 
 /// Get unknown rule names from a list of names compared to all available rules.
-pub fn get_unknown_rules<'a>(
+fn get_unknown_rules<'a>(
     names: &'a [String],
     all_rules_names: &HashSet<&'static str>,
 ) -> Vec<&'a str> {
