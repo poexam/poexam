@@ -21,17 +21,17 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 ## Version 0.0.9 (2026-04-15)
 
+### Changed
+
+- Report ellipsis differences by default in rules "punc-start" and "punc-end"
+- Do not display empty translation in diagnostics produced by the "untranslated" rule
+
 ### Added
 
 - Add default rules "emails", "punc-space-id" and "punc-space-str"
 - Add non-default rules "compilation", "double-words", "noqa", "paths" and "urls"
 - Add option `--punc-ignore-ellipsis` for rules "punc-start" and "punc-end"
 - Add option `--path-msgfmt` for rule "compilation"
-
-### Changed
-
-- Report ellipsis differences by default in rules "punc-start" and "punc-end"
-- Do not display empty translation in diagnostics produced by the "untranslated" rule
 
 ### Fixed
 
