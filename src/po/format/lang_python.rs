@@ -404,12 +404,12 @@ mod tests {
                 .is_none()
         );
         assert!(
-            FormatHtmlTagPos::new("Hello, %s world!", &Language::Python)
+            FormatHtmlTagPos::new("Hello, world!", &Language::Python)
                 .next()
                 .is_none()
         );
         assert!(
-            FormatHtmlTagPos::new("Hello, %s world!", &Language::PythonBrace)
+            FormatHtmlTagPos::new("Hello, world!", &Language::PythonBrace)
                 .next()
                 .is_none()
         );

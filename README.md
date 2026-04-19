@@ -110,6 +110,7 @@ It can perform a lot of checks via the default rules:
 For the rule `formats`, the following languages are supported:
 
 - C (`c-format`): printf format (e.g. `%s %12lld`)
+- Java (`java-format`): Java `MessageFormat` language (e.g. `{0}`, `{1,date,short}`)
 - Python (`python-format`): Python % format strings (e.g. `%s %(age)d`)
 - Python brace (`python-brace-format`): Python brace format strings (e.g. `{0!r:20} {1}`).
 
