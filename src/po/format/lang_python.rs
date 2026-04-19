@@ -3,6 +3,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Format strings: Python language.
+//!
+//! Two formats are supported for Python:
+//! - Python % format strings (e.g. `%s`, `%(age)d`)
+//! - Python brace format strings (e.g. `{0}`, `{1!r:20}`).
+//!
+//! See: <https://docs.python.org/3.15/library/stdtypes.html#printf-style-string-formatting>
+//! and <https://peps.python.org/pep-3101/>.
 
 use crate::po::format::FormatParser;
 
@@ -31,8 +38,6 @@ impl FormatParser for FormatPython {
     fn find_end_format(&self, s: &str, pos: usize, len: usize) -> usize {
         let bytes = s.as_bytes();
         let mut pos_end = pos;
-
-        // See: https://docs.python.org/3.15/library/stdtypes.html#printf-style-string-formatting
 
         if pos_end < len && bytes[pos_end] == b'(' {
             if let Some(pos_end_key) = bytes[pos_end..].iter().position(|&b| b == b')') {
@@ -93,8 +98,6 @@ impl FormatParser for FormatPythonBrace {
     fn find_end_format(&self, s: &str, pos: usize, len: usize) -> usize {
         let bytes = s.as_bytes();
         let mut pos_end = pos;
-
-        // See: https://peps.python.org/pep-3101/
 
         // Find the closing curly bracket, skipping any nested curly brackets.
         let mut level = 1;
