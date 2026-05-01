@@ -28,7 +28,7 @@ impl FormatParser for FormatJava {
                 // "''" is an escaped single quote.
                 let new_pos = pos + 1;
                 if new_pos < s.len() && s.as_bytes()[new_pos] == b'\'' {
-                    // Escaped single quote: "''" → literal "'"
+                    // Escaped single quote: "''" → literal "'".
                     Some(('\'', new_pos + 1, false))
                 } else {
                     // Skip until matching closing quote.

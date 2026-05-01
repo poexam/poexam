@@ -23,7 +23,7 @@ enum Field {
 
 #[derive(Default)]
 pub struct Parser<'a> {
-    // data and some general info parsed in the header
+    // Data and some general info parsed in the header.
     data: &'a [u8],
     data_len: usize,
     language: String,
@@ -31,7 +31,7 @@ pub struct Parser<'a> {
     country: String,
     encoding: Option<&'static Encoding>,
     nplurals: u32,
-    // internal state of the parser
+    // Internal state of the parser.
     iter_lines: Option<memchr::memmem::FindIter<'a, 'static>>,
     offset: usize,
     line_number: usize,

@@ -6,7 +6,7 @@
 //!
 //! Two formats are supported for Python:
 //! - Python % format strings (e.g. `%s`, `%(age)d`)
-//! - Python brace format strings (e.g. `{0}`, `{1!r:20}`).
+//! - Python brace format strings (e.g. `{0}`, `{1!r:20}`)
 //!
 //! See: <https://docs.python.org/3.15/library/stdtypes.html#printf-style-string-formatting>
 //! and <https://peps.python.org/pep-3101/>.

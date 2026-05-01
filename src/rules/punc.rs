@@ -306,12 +306,12 @@ mod tests {
 
     #[test]
     fn test_is_punc() {
-        // Characters that should be recognized as punctuation
+        // Characters that should be recognized as punctuation.
         let punc_chars = [':', ';', '.', ',', '!', '?'];
         for &c in &punc_chars {
             assert!(is_punc(c), "{c} should be punctuation");
         }
-        // Characters that should not be recognized as punctuation
+        // Characters that should not be recognized as punctuation.
         let non_punc_chars = [
             'a', 'Z', ' ', '-', '\'', '"', '0', 'é', '(', ')', '\r', '\n',
         ];

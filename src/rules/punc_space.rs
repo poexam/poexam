@@ -114,12 +114,12 @@ impl RuleChecker for PuncSpaceStrRule {
     /// Only French and Finnish are supported.
     ///
     /// In French:
-    /// - there must be a non-breaking space before `:`, `;`, `!`, `?` and `»`
-    /// - there must be a non-breaking space after `«`
-    /// - there must be a non-breaking space between a digit and `%`
+    /// - There must be a non-breaking space before `:`, `;`, `!`, `?` and `»`.
+    /// - There must be a non-breaking space after `«`.
+    /// - There must be a non-breaking space between a digit and `%`.
     ///
     /// In Finnish:
-    /// - there must be a space between a digit and `%`
+    /// - There must be a space between a digit and `%`.
     ///
     /// Wrong entry (French):
     /// ```text
