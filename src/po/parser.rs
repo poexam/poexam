@@ -100,8 +100,8 @@ impl<'d> Parser<'d> {
         }
         for line in msg.value.split('\n') {
             let (keyword, value) = line.split_once(':').unwrap_or(("", ""));
-            let kw_lower = keyword.trim().to_lowercase();
-            if kw_lower == "language" {
+            let keyword = keyword.trim();
+            if keyword.eq_ignore_ascii_case("language") {
                 self.language = value.trim().to_string();
                 if let Some(pos) = value.find('_') {
                     self.language_code = value[..pos].trim().to_string();
@@ -109,7 +109,7 @@ impl<'d> Parser<'d> {
                 } else {
                     self.language_code = self.language.clone();
                 }
-            } else if kw_lower == "content-type"
+            } else if keyword.eq_ignore_ascii_case("content-type")
                 && let Some(pos) = value.find("charset=")
             {
                 let value_charset = &value[pos + 8..];
@@ -123,7 +123,7 @@ impl<'d> Parser<'d> {
                 if encoding.is_some_and(|e| e != encoding_rs::UTF_8) {
                     self.encoding = encoding;
                 }
-            } else if kw_lower == "plural-forms"
+            } else if keyword.eq_ignore_ascii_case("plural-forms")
                 && let Some(pos) = value.find("nplurals=")
             {
                 let value_nplurals = &value[pos + 9..];
