@@ -78,45 +78,31 @@ impl RuleChecker for DoubleQuotesRule {
         msgid: &Message,
         msgstr: &Message,
     ) -> Vec<Diagnostic> {
-        let id_quotes: Vec<_> = msgid
-            .value
-            .match_indices(DOUBLE_QUOTES)
-            .map(|(idx, value)| (idx, idx + value.len()))
-            .collect();
-        let str_quotes: Vec<_> = msgstr
-            .value
-            .match_indices(DOUBLE_QUOTES)
-            .map(|(idx, value)| (idx, idx + value.len()))
-            .collect();
-        match id_quotes.len().cmp(&str_quotes.len()) {
+        let id_count = msgid.value.matches(DOUBLE_QUOTES).count();
+        let str_count = msgstr.value.matches(DOUBLE_QUOTES).count();
+        let msg = match id_count.cmp(&str_count) {
+            std::cmp::Ordering::Equal => return vec![],
             std::cmp::Ordering::Greater => {
-                vec![
-                    self.new_diag(
-                        checker,
-                        format!(
-                            "missing double quotes ({} / {})",
-                            id_quotes.len(),
-                            str_quotes.len()
-                        ),
-                    )
-                    .with_msgs_hl(msgid, id_quotes.iter().copied(), msgstr, str_quotes.iter().copied()),
-                ]
+                format!("missing double quotes ({id_count} / {str_count})")
             }
             std::cmp::Ordering::Less => {
-                vec![
-                    self.new_diag(
-                        checker,
-                        format!(
-                            "extra double quotes ({} / {})",
-                            id_quotes.len(),
-                            str_quotes.len()
-                        ),
-                    )
-                    .with_msgs_hl(msgid, id_quotes.iter().copied(), msgstr, str_quotes.iter().copied()),
-                ]
+                format!("extra double quotes ({id_count} / {str_count})")
             }
-            std::cmp::Ordering::Equal => vec![],
-        }
+        };
+        vec![
+            self.new_diag(checker, msg).with_msgs_hl(
+                msgid,
+                msgid
+                    .value
+                    .match_indices(DOUBLE_QUOTES)
+                    .map(|(idx, value)| (idx, idx + value.len())),
+                msgstr,
+                msgstr
+                    .value
+                    .match_indices(DOUBLE_QUOTES)
+                    .map(|(idx, value)| (idx, idx + value.len())),
+            ),
+        ]
     }
 }
 

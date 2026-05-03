@@ -57,41 +57,31 @@ impl RuleChecker for PipesRule {
         msgid: &Message,
         msgstr: &Message,
     ) -> Vec<Diagnostic> {
-        let id_pipes: Vec<_> = msgid
-            .value
-            .match_indices('|')
-            .map(|(idx, value)| (idx, idx + value.len()))
-            .collect();
-        let str_pipes: Vec<_> = msgstr
-            .value
-            .match_indices('|')
-            .map(|(idx, value)| (idx, idx + value.len()))
-            .collect();
-        match id_pipes.len().cmp(&str_pipes.len()) {
+        let id_count = msgid.value.matches('|').count();
+        let str_count = msgstr.value.matches('|').count();
+        let msg = match id_count.cmp(&str_count) {
+            std::cmp::Ordering::Equal => return vec![],
             std::cmp::Ordering::Greater => {
-                vec![
-                    self.new_diag(
-                        checker,
-                        format!(
-                            "missing pipes '|' ({} / {})",
-                            id_pipes.len(),
-                            str_pipes.len()
-                        ),
-                    )
-                    .with_msgs_hl(msgid, id_pipes.iter().copied(), msgstr, str_pipes.iter().copied()),
-                ]
+                format!("missing pipes '|' ({id_count} / {str_count})")
             }
             std::cmp::Ordering::Less => {
-                vec![
-                    self.new_diag(
-                        checker,
-                        format!("extra pipes '|' ({} / {})", id_pipes.len(), str_pipes.len()),
-                    )
-                    .with_msgs_hl(msgid, id_pipes.iter().copied(), msgstr, str_pipes.iter().copied()),
-                ]
+                format!("extra pipes '|' ({id_count} / {str_count})")
             }
-            std::cmp::Ordering::Equal => vec![],
-        }
+        };
+        vec![
+            self.new_diag(checker, msg).with_msgs_hl(
+                msgid,
+                msgid
+                    .value
+                    .match_indices('|')
+                    .map(|(idx, value)| (idx, idx + value.len())),
+                msgstr,
+                msgstr
+                    .value
+                    .match_indices('|')
+                    .map(|(idx, value)| (idx, idx + value.len())),
+            ),
+        ]
     }
 }
 

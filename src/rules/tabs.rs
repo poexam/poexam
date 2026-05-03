@@ -57,41 +57,31 @@ impl RuleChecker for TabsRule {
         msgid: &Message,
         msgstr: &Message,
     ) -> Vec<Diagnostic> {
-        let id_tabs: Vec<_> = msgid
-            .value
-            .match_indices('\t')
-            .map(|(idx, value)| (idx, idx + value.len()))
-            .collect();
-        let str_tabs: Vec<_> = msgstr
-            .value
-            .match_indices('\t')
-            .map(|(idx, value)| (idx, idx + value.len()))
-            .collect();
-        match id_tabs.len().cmp(&str_tabs.len()) {
+        let id_count = msgid.value.matches('\t').count();
+        let str_count = msgstr.value.matches('\t').count();
+        let msg = match id_count.cmp(&str_count) {
+            std::cmp::Ordering::Equal => return vec![],
             std::cmp::Ordering::Greater => {
-                vec![
-                    self.new_diag(
-                        checker,
-                        format!(
-                            "missing tabs '\\t' ({} / {})",
-                            id_tabs.len(),
-                            str_tabs.len()
-                        ),
-                    )
-                    .with_msgs_hl(msgid, id_tabs.iter().copied(), msgstr, str_tabs.iter().copied()),
-                ]
+                format!("missing tabs '\\t' ({id_count} / {str_count})")
             }
             std::cmp::Ordering::Less => {
-                vec![
-                    self.new_diag(
-                        checker,
-                        format!("extra tabs '\\t' ({} / {})", id_tabs.len(), str_tabs.len()),
-                    )
-                    .with_msgs_hl(msgid, id_tabs.iter().copied(), msgstr, str_tabs.iter().copied()),
-                ]
+                format!("extra tabs '\\t' ({id_count} / {str_count})")
             }
-            std::cmp::Ordering::Equal => vec![],
-        }
+        };
+        vec![
+            self.new_diag(checker, msg).with_msgs_hl(
+                msgid,
+                msgid
+                    .value
+                    .match_indices('\t')
+                    .map(|(idx, value)| (idx, idx + value.len())),
+                msgstr,
+                msgstr
+                    .value
+                    .match_indices('\t')
+                    .map(|(idx, value)| (idx, idx + value.len())),
+            ),
+        ]
     }
 }
 

@@ -59,85 +59,60 @@ impl RuleChecker for EscapesRule {
         msgid: &Message,
         msgstr: &Message,
     ) -> Vec<Diagnostic> {
-        let id_esc: Vec<_> = msgid
-            .value
-            .match_indices("\\\\")
-            .map(|(idx, value)| (idx, idx + value.len()))
-            .collect();
-        let str_esc: Vec<_> = msgstr
-            .value
-            .match_indices("\\\\")
-            .map(|(idx, value)| (idx, idx + value.len()))
-            .collect();
-        match id_esc.len().cmp(&str_esc.len()) {
+        // First check escaped escape characters: "\\".
+        let id_count = msgid.value.matches("\\\\").count();
+        let str_count = msgstr.value.matches("\\\\").count();
+        let msg = match id_count.cmp(&str_count) {
+            std::cmp::Ordering::Greater => Some(format!(
+                "missing escaped escape characters '\\\\' ({id_count} / {str_count})"
+            )),
+            std::cmp::Ordering::Less => Some(format!(
+                "extra escaped escape characters '\\\\' ({id_count} / {str_count})"
+            )),
+            std::cmp::Ordering::Equal => None,
+        };
+        if let Some(msg) = msg {
+            return vec![
+                self.new_diag(checker, msg).with_msgs_hl(
+                    msgid,
+                    msgid
+                        .value
+                        .match_indices("\\\\")
+                        .map(|(idx, value)| (idx, idx + value.len())),
+                    msgstr,
+                    msgstr
+                        .value
+                        .match_indices("\\\\")
+                        .map(|(idx, value)| (idx, idx + value.len())),
+                ),
+            ];
+        }
+        // Equal counts of "\\": now check single escape character: "\".
+        let id_count = msgid.value.matches('\\').count();
+        let str_count = msgstr.value.matches('\\').count();
+        let msg = match id_count.cmp(&str_count) {
+            std::cmp::Ordering::Equal => return vec![],
             std::cmp::Ordering::Greater => {
-                vec![
-                    self.new_diag(
-                        checker,
-                        format!(
-                            "missing escaped escape characters '\\\\' ({} / {})",
-                            id_esc.len(),
-                            str_esc.len()
-                        ),
-                    )
-                    .with_msgs_hl(msgid, id_esc.iter().copied(), msgstr, str_esc.iter().copied()),
-                ]
+                format!("missing escape characters '\\' ({id_count} / {str_count})")
             }
             std::cmp::Ordering::Less => {
-                vec![
-                    self.new_diag(
-                        checker,
-                        format!(
-                            "extra escaped escape characters '\\\\' ({} / {})",
-                            id_esc.len(),
-                            str_esc.len()
-                        ),
-                    )
-                    .with_msgs_hl(msgid, id_esc.iter().copied(), msgstr, str_esc.iter().copied()),
-                ]
+                format!("extra escape characters '\\' ({id_count} / {str_count})")
             }
-            std::cmp::Ordering::Equal => {
-                let id_esc: Vec<_> = msgid
+        };
+        vec![
+            self.new_diag(checker, msg).with_msgs_hl(
+                msgid,
+                msgid
                     .value
                     .match_indices('\\')
-                    .map(|(idx, value)| (idx, idx + value.len()))
-                    .collect();
-                let str_esc: Vec<_> = msgstr
+                    .map(|(idx, value)| (idx, idx + value.len())),
+                msgstr,
+                msgstr
                     .value
                     .match_indices('\\')
-                    .map(|(idx, value)| (idx, idx + value.len()))
-                    .collect();
-                match id_esc.len().cmp(&str_esc.len()) {
-                    std::cmp::Ordering::Greater => {
-                        vec![
-                            self.new_diag(
-                                checker,
-                                format!(
-                                    "missing escape characters '\\' ({} / {})",
-                                    id_esc.len(),
-                                    str_esc.len()
-                                ),
-                            )
-                            .with_msgs_hl(msgid, id_esc.iter().copied(), msgstr, str_esc.iter().copied()),
-                        ]
-                    }
-                    std::cmp::Ordering::Less => {
-                        vec![
-                            self.new_diag(
-                                checker,
-                                format!(
-                                    "extra escape characters '\\' ({} / {})",
-                                    id_esc.len(),
-                                    str_esc.len()
-                                ),
-                            )
-                            .with_msgs_hl(msgid, id_esc.iter().copied(), msgstr, str_esc.iter().copied()),
-                        ]
-                    }
-                    std::cmp::Ordering::Equal => vec![],
-                }
-            }
-        }
+                    .map(|(idx, value)| (idx, idx + value.len())),
+            ),
+        ]
     }
 }
 
