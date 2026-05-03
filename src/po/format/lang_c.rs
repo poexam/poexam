@@ -4,6 +4,8 @@
 
 //! Format strings: C language.
 
+use std::borrow::Cow;
+
 use crate::po::format::FormatParser;
 
 pub struct FormatC;
@@ -99,21 +101,25 @@ pub fn fmt_sort_index(fmt: &str) -> usize {
 /// Return the format string without index (reordering part).
 ///
 /// For example, for format `"%3$d"`, this function returns `"%d"`.
-pub fn fmt_strip_index(fmt: &str) -> String {
+///
+/// Returns `Cow::Borrowed` when no index is present (the common case),
+/// avoiding an allocation.
+pub fn fmt_strip_index(fmt: &str) -> Cow<'_, str> {
     let bytes = fmt.as_bytes();
     if bytes.is_empty() || bytes[0] != b'%' {
-        return fmt.to_string();
+        return Cow::Borrowed(fmt);
     }
     let mut pos = 1;
     while pos < bytes.len() && bytes[pos].is_ascii_digit() {
         pos += 1;
     }
     if pos == 1 || pos >= bytes.len() || bytes[pos] != b'$' {
-        return fmt.to_string();
+        return Cow::Borrowed(fmt);
     }
-    let mut result = String::from("%");
+    let mut result = String::with_capacity(1 + fmt.len() - pos - 1);
+    result.push('%');
     result.push_str(&fmt[pos + 1..]);
-    result
+    Cow::Owned(result)
 }
 
 #[cfg(test)]

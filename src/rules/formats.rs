@@ -93,14 +93,8 @@ impl RuleChecker for FormatsRule {
             // this branch (highlights below only use positions, which sort independently).
             id_fmt.sort_by_key(|m| (fmt_sort_index(m.s), m.start, m.end));
             str_fmt.sort_by_key(|m| (fmt_sort_index(m.s), m.start, m.end));
-            let id_fmt2 = id_fmt
-                .iter()
-                .map(|m| fmt_strip_index(m.s))
-                .collect::<Vec<String>>();
-            let str_fmt2 = str_fmt
-                .iter()
-                .map(|m| fmt_strip_index(m.s))
-                .collect::<Vec<String>>();
+            let id_fmt2: Vec<_> = id_fmt.iter().map(|m| fmt_strip_index(m.s)).collect();
+            let str_fmt2: Vec<_> = str_fmt.iter().map(|m| fmt_strip_index(m.s)).collect();
             id_fmt2 != str_fmt2
         } else {
             // Other languages: just check that format strings are the same, in any order.
