@@ -100,6 +100,13 @@ impl Entry {
         self.msgstr.iter()
     }
 
+    /// Iterator over plural translations only (`msgstr[n]` with `n > 0`).
+    ///
+    /// Skips `msgstr[0]` directly via `BTreeMap::range`, avoiding a `filter` pass.
+    pub fn iter_plural_strs(&self) -> impl Iterator<Item = (&u32, &Message)> + '_ {
+        self.msgstr.range(1..)
+    }
+
     /// Escapes all string fields in this entry using the provided escape function.
     pub fn escape_strings(&mut self) {
         if let Some(ref mut msg) = self.msgctxt {
@@ -248,6 +255,18 @@ mod tests {
         assert_eq!(iter.next(), Some((&0, &Message::new(4, "fichier\n"))));
         assert_eq!(iter.next(), Some((&1, &Message::new(5, "fichiers\n"))));
         assert!(iter.next().is_none());
+        // `iter_plural_strs` skips msgstr[0] and yields only msgstr[n] for n > 0.
+        let mut iter = entry.iter_plural_strs();
+        assert_eq!(iter.next(), Some((&1, &Message::new(5, "fichiers\n"))));
+        assert!(iter.next().is_none());
+    }
+
+    #[test]
+    fn test_iter_plural_strs_no_plurals() {
+        // Entry with only msgstr[0] yields nothing from `iter_plural_strs`.
+        let mut entry = Entry::new(1);
+        entry.msgstr.insert(0, Message::new(2, "only-one"));
+        assert!(entry.iter_plural_strs().next().is_none());
     }
 
     #[test]

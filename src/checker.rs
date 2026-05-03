@@ -110,7 +110,7 @@ impl<'d> Checker<'d> {
             diags.extend(rule.check_msg(self, entry, msgid, msgstr_0));
         }
         if let Some(msgid_plural) = &entry.msgid_plural {
-            for (_, msgstr_n) in entry.iter_strs().filter(|(k, _)| **k > 0) {
+            for (_, msgstr_n) in entry.iter_plural_strs() {
                 if !msgstr_n.value.is_empty() || (untranslated_rule && rule_is_untranslated) {
                     diags.extend(rule.check_msg(self, entry, msgid_plural, msgstr_n));
                 }
