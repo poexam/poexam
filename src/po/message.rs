@@ -30,6 +30,11 @@ impl Message {
 
     /// Unescape special character sequences in a the value read from PO file.
     pub fn unescape(&mut self) {
+        // Fast path: if there is no backslash in the value, there is nothing
+        // to unescape. Skip the allocation and the per-char walk.
+        if memchr::memchr(b'\\', self.value.as_bytes()).is_none() {
+            return;
+        }
         self.value = self.value.unescape_po();
     }
 }
