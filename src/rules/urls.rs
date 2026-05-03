@@ -64,8 +64,8 @@ impl RuleChecker for UrlsRule {
         msgid: &Message,
         msgstr: &Message,
     ) -> Vec<Diagnostic> {
-        let id_urls: Vec<_> = FormatUrlPos::new(&msgid.value, &entry.format_language).collect();
-        let str_urls: Vec<_> = FormatUrlPos::new(&msgstr.value, &entry.format_language).collect();
+        let id_urls: Vec<_> = FormatUrlPos::new(&msgid.value, entry.format_language).collect();
+        let str_urls: Vec<_> = FormatUrlPos::new(&msgstr.value, entry.format_language).collect();
         match id_urls.len().cmp(&str_urls.len()) {
             std::cmp::Ordering::Greater => {
                 vec![

@@ -155,15 +155,15 @@ mod tests {
 
     #[test]
     fn test_strip_formats() {
-        assert_eq!(strip_formats("", &Language::C), "");
+        assert_eq!(strip_formats("", Language::C), "");
         assert_eq!(
-            strip_formats("Hello, world!", &Language::C),
+            strip_formats("Hello, world!", Language::C),
             "Hello, world!"
         );
         assert_eq!(
             strip_formats(
                 "Hello/你好, %3$d %2$s %1$f %05.2f %ld %hhd %zd %% %é world! %",
-                &Language::C
+                Language::C
             ),
             "Hello/你好,        % é world! %"
         );
@@ -171,16 +171,16 @@ mod tests {
 
     #[test]
     fn test_format_pos() {
-        assert!(FormatPos::new("", &Language::C).next().is_none());
+        assert!(FormatPos::new("", Language::C).next().is_none());
         assert!(
-            FormatPos::new("Hello, world!", &Language::C)
+            FormatPos::new("Hello, world!", Language::C)
                 .next()
                 .is_none()
         );
         assert_eq!(
             FormatPos::new(
                 "Hello/你好, %3$d %2$s %1$f %05.2f %lld %hhd %zd %% %é world! %",
-                &Language::C
+                Language::C
             )
             .map(|m| (m.s, m.start, m.end))
             .collect::<Vec<_>>(),
@@ -199,9 +199,9 @@ mod tests {
 
     #[test]
     fn test_word_pos() {
-        assert!(FormatWordPos::new("", &Language::C).next().is_none());
+        assert!(FormatWordPos::new("", Language::C).next().is_none());
         assert_eq!(
-            FormatWordPos::new("Hello, world!", &Language::C)
+            FormatWordPos::new("Hello, world!", Language::C)
                 .map(|m| (m.s, m.start, m.end))
                 .collect::<Vec<_>>(),
             vec![("Hello", 0, 5), ("world", 7, 12)]
@@ -209,7 +209,7 @@ mod tests {
         assert_eq!(
             FormatWordPos::new(
                 "Hello/你好, %3$d %2$s %1$f %05.2f %lld %hhd %zd %% %é world! %",
-                &Language::C
+                Language::C
             )
             .map(|m| (m.s, m.start, m.end))
             .collect::<Vec<_>>(),
@@ -224,14 +224,14 @@ mod tests {
 
     #[test]
     fn test_url_pos() {
-        assert!(FormatUrlPos::new("", &Language::C).next().is_none());
+        assert!(FormatUrlPos::new("", Language::C).next().is_none());
         assert!(
-            FormatUrlPos::new("Hello, world!", &Language::C)
+            FormatUrlPos::new("Hello, world!", Language::C)
                 .next()
                 .is_none()
         );
         assert_eq!(
-            FormatUrlPos::new("Visit https://example.com for more info.", &Language::C)
+            FormatUrlPos::new("Visit https://example.com for more info.", Language::C)
                 .map(|m| (m.s, m.start, m.end))
                 .collect::<Vec<_>>(),
             vec![("https://example.com", 6, 25)]
@@ -239,7 +239,7 @@ mod tests {
         assert_eq!(
             FormatUrlPos::new(
                 "Invalid URL: https://example, valid URL: https://example.com",
-                &Language::C
+                Language::C
             )
             .map(|m| (m.s, m.start, m.end))
             .collect::<Vec<_>>(),
@@ -248,7 +248,7 @@ mod tests {
         assert_eq!(
             FormatUrlPos::new(
                 "Test https://%s.example.com https://example2.com %",
-                &Language::C
+                Language::C
             )
             .map(|m| (m.s, m.start, m.end))
             .collect::<Vec<_>>(),
@@ -261,11 +261,11 @@ mod tests {
 
     #[test]
     fn test_email_pos() {
-        assert!(FormatEmailPos::new("", &Language::C).next().is_none());
+        assert!(FormatEmailPos::new("", Language::C).next().is_none());
         assert_eq!(
             FormatEmailPos::new(
                 "Contact us at user@example.com for more info.",
-                &Language::C
+                Language::C
             )
             .map(|m| (m.s, m.start, m.end))
             .collect::<Vec<_>>(),
@@ -274,7 +274,7 @@ mod tests {
         assert_eq!(
             FormatEmailPos::new(
                 "Invalid email: user@domain, valid email: user@%s.domain.com %",
-                &Language::C
+                Language::C
             )
             .map(|m| (m.s, m.start, m.end))
             .collect::<Vec<_>>(),
@@ -284,14 +284,14 @@ mod tests {
 
     #[test]
     fn test_path_pos() {
-        assert!(FormatPathPos::new("", &Language::C).next().is_none());
+        assert!(FormatPathPos::new("", Language::C).next().is_none());
         assert!(
-            FormatPathPos::new("Hello, %s world!", &Language::C)
+            FormatPathPos::new("Hello, %s world!", Language::C)
                 .next()
                 .is_none()
         );
         assert_eq!(
-            FormatPathPos::new("Path: /home/%s/file.txt", &Language::C)
+            FormatPathPos::new("Path: /home/%s/file.txt", Language::C)
                 .map(|m| (m.s, m.start, m.end))
                 .collect::<Vec<_>>(),
             vec![("/home/%s/file.txt", 6, 23)]
@@ -300,16 +300,16 @@ mod tests {
 
     #[test]
     fn test_html_tags_pos() {
-        assert!(FormatHtmlTagPos::new("", &Language::C).next().is_none());
+        assert!(FormatHtmlTagPos::new("", Language::C).next().is_none());
         assert!(
-            FormatHtmlTagPos::new("Hello, %s world!", &Language::C)
+            FormatHtmlTagPos::new("Hello, %s world!", Language::C)
                 .next()
                 .is_none()
         );
         assert_eq!(
             FormatHtmlTagPos::new(
                 r#"Hello <b>%s</b>! 3 < 5 <br/>Click <a href="https://%s.example.com">here</a><span title="a > b"></span><br"#,
-                &Language::C
+                Language::C
             )
             .map(|m| (m.s, m.start, m.end))
             .collect::<Vec<_>>(),

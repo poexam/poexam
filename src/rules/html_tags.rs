@@ -63,9 +63,9 @@ impl RuleChecker for HtmlTagsRule {
         msgid: &Message,
         msgstr: &Message,
     ) -> Vec<Diagnostic> {
-        let id_tags: Vec<_> = FormatHtmlTagPos::new(&msgid.value, &entry.format_language).collect();
+        let id_tags: Vec<_> = FormatHtmlTagPos::new(&msgid.value, entry.format_language).collect();
         let str_tags: Vec<_> =
-            FormatHtmlTagPos::new(&msgstr.value, &entry.format_language).collect();
+            FormatHtmlTagPos::new(&msgstr.value, entry.format_language).collect();
         match id_tags.len().cmp(&str_tags.len()) {
             std::cmp::Ordering::Greater => {
                 vec![

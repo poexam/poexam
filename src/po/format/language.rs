@@ -14,7 +14,7 @@ use crate::po::format::{
     lang_python::{FormatPython, FormatPythonBrace},
 };
 
-#[derive(Debug, Default, PartialEq, Eq, Serialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize)]
 pub enum Language {
     #[default]
     Null,
@@ -48,14 +48,26 @@ impl std::fmt::Display for Language {
     }
 }
 
-impl Language {
-    pub(crate) fn format_parser(&self) -> Box<dyn FormatParser> {
+impl FormatParser for Language {
+    #[inline]
+    fn next_char(&self, s: &str, pos: usize) -> Option<(char, usize, bool)> {
         match self {
-            Self::C => Box::new(FormatC),
-            Self::Java => Box::new(FormatJava),
-            Self::Python => Box::new(FormatPython),
-            Self::PythonBrace => Box::new(FormatPythonBrace),
-            Self::Null => Box::new(FormatNull),
+            Self::C => FormatC.next_char(s, pos),
+            Self::Java => FormatJava.next_char(s, pos),
+            Self::Python => FormatPython.next_char(s, pos),
+            Self::PythonBrace => FormatPythonBrace.next_char(s, pos),
+            Self::Null => FormatNull.next_char(s, pos),
+        }
+    }
+
+    #[inline]
+    fn find_end_format(&self, s: &str, pos: usize, len: usize) -> usize {
+        match self {
+            Self::C => FormatC.find_end_format(s, pos, len),
+            Self::Java => FormatJava.find_end_format(s, pos, len),
+            Self::Python => FormatPython.find_end_format(s, pos, len),
+            Self::PythonBrace => FormatPythonBrace.find_end_format(s, pos, len),
+            Self::Null => FormatNull.find_end_format(s, pos, len),
         }
     }
 }

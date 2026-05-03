@@ -130,44 +130,44 @@ mod tests {
 
     #[test]
     fn test_strip_formats() {
-        assert_eq!(strip_formats("", &Language::Python), "");
-        assert_eq!(strip_formats("", &Language::PythonBrace), "");
+        assert_eq!(strip_formats("", Language::Python), "");
+        assert_eq!(strip_formats("", Language::PythonBrace), "");
         assert_eq!(
-            strip_formats("Hello, world!", &Language::Python),
+            strip_formats("Hello, world!", Language::Python),
             "Hello, world!"
         );
         assert_eq!(
-            strip_formats("Hello, world!", &Language::PythonBrace),
+            strip_formats("Hello, world!", Language::PythonBrace),
             "Hello, world!"
         );
         assert_eq!(
-            strip_formats("Hello, %s {0} world!", &Language::Python),
+            strip_formats("Hello, %s {0} world!", Language::Python),
             "Hello,  {0} world!"
         );
         assert_eq!(
-            strip_formats("Hello, %s {0} world!", &Language::PythonBrace),
+            strip_formats("Hello, %s {0} world!", Language::PythonBrace),
             "Hello, %s  world!"
         );
     }
 
     #[test]
     fn test_format_pos() {
-        assert!(FormatPos::new("", &Language::Python).next().is_none());
-        assert!(FormatPos::new("", &Language::PythonBrace).next().is_none());
+        assert!(FormatPos::new("", Language::Python).next().is_none());
+        assert!(FormatPos::new("", Language::PythonBrace).next().is_none());
         assert!(
-            FormatPos::new("Hello, world!", &Language::Python)
+            FormatPos::new("Hello, world!", Language::Python)
                 .next()
                 .is_none()
         );
         assert!(
-            FormatPos::new("Hello, world!", &Language::PythonBrace)
+            FormatPos::new("Hello, world!", Language::PythonBrace)
                 .next()
                 .is_none()
         );
         assert_eq!(
             FormatPos::new(
                 "Hello/你好, %05.2f %(name)s %ld %hd %% %é world! %",
-                &Language::Python
+                Language::Python
             )
             .map(|m| (m.s, m.start, m.end))
             .collect::<Vec<_>>(),
@@ -180,7 +180,7 @@ mod tests {
             ]
         );
         assert_eq!(
-            FormatPos::new("{é", &Language::PythonBrace)
+            FormatPos::new("{é", Language::PythonBrace)
                 .map(|m| (m.s, m.start, m.end))
                 .collect::<Vec<_>>(),
             vec![("{é", 0, 3)]
@@ -188,7 +188,7 @@ mod tests {
         assert_eq!(
             FormatPos::new(
                 "Hello/你好, {0!r:20}{1}{2} {{ }} world! {",
-                &Language::PythonBrace
+                Language::PythonBrace
             )
             .map(|m| (m.s, m.start, m.end))
             .collect::<Vec<_>>(),
@@ -198,20 +198,20 @@ mod tests {
 
     #[test]
     fn test_word_pos() {
-        assert!(FormatWordPos::new("", &Language::Python).next().is_none());
+        assert!(FormatWordPos::new("", Language::Python).next().is_none());
         assert!(
-            FormatWordPos::new("", &Language::PythonBrace)
+            FormatWordPos::new("", Language::PythonBrace)
                 .next()
                 .is_none()
         );
         assert_eq!(
-            FormatWordPos::new("Hello, world!", &Language::Python)
+            FormatWordPos::new("Hello, world!", Language::Python)
                 .map(|m| (m.s, m.start, m.end))
                 .collect::<Vec<_>>(),
             vec![("Hello", 0, 5), ("world", 7, 12)]
         );
         assert_eq!(
-            FormatWordPos::new("Hello, world!", &Language::PythonBrace)
+            FormatWordPos::new("Hello, world!", Language::PythonBrace)
                 .map(|m| (m.s, m.start, m.end))
                 .collect::<Vec<_>>(),
             vec![("Hello", 0, 5), ("world", 7, 12)]
@@ -219,7 +219,7 @@ mod tests {
         assert_eq!(
             FormatWordPos::new(
                 "Hello/你好, %05.2f %(name)s %ld %hd %% %é world! %",
-                &Language::Python
+                Language::Python
             )
             .map(|m| (m.s, m.start, m.end))
             .collect::<Vec<_>>(),
@@ -233,7 +233,7 @@ mod tests {
         assert_eq!(
             FormatWordPos::new(
                 "Hello/你好, {0!r:20}{1}{2} {{ }} world! {",
-                &Language::PythonBrace
+                Language::PythonBrace
             )
             .map(|m| (m.s, m.start, m.end))
             .collect::<Vec<_>>(),
@@ -243,26 +243,26 @@ mod tests {
 
     #[test]
     fn test_url_pos() {
-        assert!(FormatUrlPos::new("", &Language::Python).next().is_none());
+        assert!(FormatUrlPos::new("", Language::Python).next().is_none());
         assert!(
-            FormatUrlPos::new("", &Language::PythonBrace)
+            FormatUrlPos::new("", Language::PythonBrace)
                 .next()
                 .is_none()
         );
         assert!(
-            FormatUrlPos::new("Hello, world!", &Language::Python)
+            FormatUrlPos::new("Hello, world!", Language::Python)
                 .next()
                 .is_none()
         );
         assert!(
-            FormatUrlPos::new("Hello, world!", &Language::PythonBrace)
+            FormatUrlPos::new("Hello, world!", Language::PythonBrace)
                 .next()
                 .is_none()
         );
         assert_eq!(
             FormatUrlPos::new(
                 "Invalid URL: https://example, valid URL: https://example.com",
-                &Language::Python
+                Language::Python
             )
             .map(|m| (m.s, m.start, m.end))
             .collect::<Vec<_>>(),
@@ -271,7 +271,7 @@ mod tests {
         assert_eq!(
             FormatUrlPos::new(
                 "Invalid URL: https://example, valid URL: https://example.com",
-                &Language::PythonBrace
+                Language::PythonBrace
             )
             .map(|m| (m.s, m.start, m.end))
             .collect::<Vec<_>>(),
@@ -280,7 +280,7 @@ mod tests {
         assert_eq!(
             FormatUrlPos::new(
                 "Test https://%s.example.com https://example2.com",
-                &Language::Python
+                Language::Python
             )
             .map(|m| (m.s, m.start, m.end))
             .collect::<Vec<_>>(),
@@ -292,7 +292,7 @@ mod tests {
         assert_eq!(
             FormatUrlPos::new(
                 "Test https://{0}.example.com https://example2.com",
-                &Language::PythonBrace
+                Language::PythonBrace
             )
             .map(|m| (m.s, m.start, m.end))
             .collect::<Vec<_>>(),
@@ -305,26 +305,26 @@ mod tests {
 
     #[test]
     fn test_email_pos() {
-        assert!(FormatEmailPos::new("", &Language::Python).next().is_none());
+        assert!(FormatEmailPos::new("", Language::Python).next().is_none());
         assert!(
-            FormatEmailPos::new("", &Language::PythonBrace)
+            FormatEmailPos::new("", Language::PythonBrace)
                 .next()
                 .is_none()
         );
         assert!(
-            FormatEmailPos::new("Hello, world!", &Language::Python)
+            FormatEmailPos::new("Hello, world!", Language::Python)
                 .next()
                 .is_none()
         );
         assert!(
-            FormatEmailPos::new("Hello, world!", &Language::PythonBrace)
+            FormatEmailPos::new("Hello, world!", Language::PythonBrace)
                 .next()
                 .is_none()
         );
         assert_eq!(
             FormatEmailPos::new(
                 "Contact us at user@example.com for more info.",
-                &Language::Python
+                Language::Python
             )
             .map(|m| (m.s, m.start, m.end))
             .collect::<Vec<_>>(),
@@ -333,7 +333,7 @@ mod tests {
         assert_eq!(
             FormatEmailPos::new(
                 "Contact us at user@%s.example.com for more info.",
-                &Language::PythonBrace
+                Language::PythonBrace
             )
             .map(|m| (m.s, m.start, m.end))
             .collect::<Vec<_>>(),
@@ -342,7 +342,7 @@ mod tests {
         assert_eq!(
             FormatEmailPos::new(
                 "Invalid email: user@domain, valid email: user@%s.domain.com",
-                &Language::Python
+                Language::Python
             )
             .map(|m| (m.s, m.start, m.end))
             .collect::<Vec<_>>(),
@@ -351,7 +351,7 @@ mod tests {
         assert_eq!(
             FormatEmailPos::new(
                 "Invalid email: user@domain, valid email: user@{0}.domain.com",
-                &Language::PythonBrace
+                Language::PythonBrace
             )
             .map(|m| (m.s, m.start, m.end))
             .collect::<Vec<_>>(),
@@ -361,30 +361,30 @@ mod tests {
 
     #[test]
     fn test_path_pos() {
-        assert!(FormatPathPos::new("", &Language::Python).next().is_none());
+        assert!(FormatPathPos::new("", Language::Python).next().is_none());
         assert!(
-            FormatPathPos::new("", &Language::PythonBrace)
+            FormatPathPos::new("", Language::PythonBrace)
                 .next()
                 .is_none()
         );
         assert!(
-            FormatPathPos::new("Hello, world!", &Language::Python)
+            FormatPathPos::new("Hello, world!", Language::Python)
                 .next()
                 .is_none()
         );
         assert!(
-            FormatPathPos::new("Hello, world!", &Language::PythonBrace)
+            FormatPathPos::new("Hello, world!", Language::PythonBrace)
                 .next()
                 .is_none()
         );
         assert_eq!(
-            FormatPathPos::new("Path: /home/%s/file.txt", &Language::Python)
+            FormatPathPos::new("Path: /home/%s/file.txt", Language::Python)
                 .map(|m| (m.s, m.start, m.end))
                 .collect::<Vec<_>>(),
             vec![("/home/%s/file.txt", 6, 23)]
         );
         assert_eq!(
-            FormatPathPos::new("Path: /home/{0}/file.txt", &Language::PythonBrace)
+            FormatPathPos::new("Path: /home/{0}/file.txt", Language::PythonBrace)
                 .map(|m| (m.s, m.start, m.end))
                 .collect::<Vec<_>>(),
             vec![("/home/{0}/file.txt", 6, 24)]
@@ -394,29 +394,29 @@ mod tests {
     #[test]
     fn test_html_tags_pos() {
         assert!(
-            FormatHtmlTagPos::new("", &Language::Python)
+            FormatHtmlTagPos::new("", Language::Python)
                 .next()
                 .is_none()
         );
         assert!(
-            FormatHtmlTagPos::new("", &Language::PythonBrace)
+            FormatHtmlTagPos::new("", Language::PythonBrace)
                 .next()
                 .is_none()
         );
         assert!(
-            FormatHtmlTagPos::new("Hello, world!", &Language::Python)
+            FormatHtmlTagPos::new("Hello, world!", Language::Python)
                 .next()
                 .is_none()
         );
         assert!(
-            FormatHtmlTagPos::new("Hello, world!", &Language::PythonBrace)
+            FormatHtmlTagPos::new("Hello, world!", Language::PythonBrace)
                 .next()
                 .is_none()
         );
         assert_eq!(
             FormatHtmlTagPos::new(
                 r#"Hello <b>%s</b>! 3 < 5 <br/>Click <a href="https://%s.example.com">here</a><span title="a > b"></span><br"#,
-                &Language::Python
+                Language::Python
             )
             .map(|m| (m.s, m.start, m.end))
             .collect::<Vec<_>>(),
@@ -433,7 +433,7 @@ mod tests {
         assert_eq!(
             FormatHtmlTagPos::new(
                 r#"Hello <b>{0}</b>! 3 < 5 <br/>Click <a href="https://{1}.example.com">here</a><span title="a > b"></span><br"#,
-                &Language::PythonBrace
+                Language::PythonBrace
             )
             .map(|m| (m.s, m.start, m.end))
             .collect::<Vec<_>>(),

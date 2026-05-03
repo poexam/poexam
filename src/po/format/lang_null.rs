@@ -35,18 +35,18 @@ mod tests {
 
     #[test]
     fn test_strip_formats() {
-        assert_eq!(strip_formats("", &Language::Null), "");
+        assert_eq!(strip_formats("", Language::Null), "");
         assert_eq!(
-            strip_formats("Hello, %s world!", &Language::Null),
+            strip_formats("Hello, %s world!", Language::Null),
             "Hello, %s world!"
         );
     }
 
     #[test]
     fn test_format_pos() {
-        assert!(FormatPos::new("", &Language::Null).next().is_none());
+        assert!(FormatPos::new("", Language::Null).next().is_none());
         assert!(
-            FormatPos::new("Hello, %s world!", &Language::Null)
+            FormatPos::new("Hello, %s world!", Language::Null)
                 .next()
                 .is_none()
         );
@@ -54,9 +54,9 @@ mod tests {
 
     #[test]
     fn test_word_pos() {
-        assert!(FormatWordPos::new("", &Language::Null).next().is_none());
+        assert!(FormatWordPos::new("", Language::Null).next().is_none());
         assert_eq!(
-            FormatWordPos::new("Hello, %s world!", &Language::Null)
+            FormatWordPos::new("Hello, %s world!", Language::Null)
                 .map(|m| (m.s, m.start, m.end))
                 .collect::<Vec<_>>(),
             vec![("Hello", 0, 5), ("s", 8, 9), ("world", 10, 15)]
@@ -65,14 +65,14 @@ mod tests {
 
     #[test]
     fn test_url_pos() {
-        assert!(FormatUrlPos::new("", &Language::Null).next().is_none());
+        assert!(FormatUrlPos::new("", Language::Null).next().is_none());
         assert!(
-            FormatUrlPos::new("Hello, %s world!", &Language::Null)
+            FormatUrlPos::new("Hello, %s world!", Language::Null)
                 .next()
                 .is_none()
         );
         assert_eq!(
-            FormatUrlPos::new("Visit https://example.com for more info.", &Language::Null)
+            FormatUrlPos::new("Visit https://example.com for more info.", Language::Null)
                 .map(|m| (m.s, m.start, m.end))
                 .collect::<Vec<_>>(),
             vec![("https://example.com", 6, 25)]
@@ -81,16 +81,16 @@ mod tests {
 
     #[test]
     fn test_email_pos() {
-        assert!(FormatEmailPos::new("", &Language::Null).next().is_none());
+        assert!(FormatEmailPos::new("", Language::Null).next().is_none());
         assert!(
-            FormatEmailPos::new("Hello, %s world!", &Language::Null)
+            FormatEmailPos::new("Hello, %s world!", Language::Null)
                 .next()
                 .is_none()
         );
         assert_eq!(
             FormatEmailPos::new(
                 "Contact us at user@domain.com for more info. Invalid: user@domain",
-                &Language::Null
+                Language::Null
             )
             .map(|m| (m.s, m.start, m.end))
             .collect::<Vec<_>>(),
@@ -100,14 +100,14 @@ mod tests {
 
     #[test]
     fn test_path_pos() {
-        assert!(FormatPathPos::new("", &Language::Null).next().is_none());
+        assert!(FormatPathPos::new("", Language::Null).next().is_none());
         assert!(
-            FormatPathPos::new("Hello, %s world!", &Language::Null)
+            FormatPathPos::new("Hello, %s world!", Language::Null)
                 .next()
                 .is_none()
         );
         assert_eq!(
-            FormatPathPos::new("Path: /home/%s/file.txt", &Language::Null)
+            FormatPathPos::new("Path: /home/%s/file.txt", Language::Null)
                 .map(|m| (m.s, m.start, m.end))
                 .collect::<Vec<_>>(),
             vec![("/home/%s/file.txt", 6, 23)]
@@ -116,16 +116,16 @@ mod tests {
 
     #[test]
     fn test_html_tags_pos() {
-        assert!(FormatHtmlTagPos::new("", &Language::Null).next().is_none());
+        assert!(FormatHtmlTagPos::new("", Language::Null).next().is_none());
         assert!(
-            FormatHtmlTagPos::new("Hello, %s world!", &Language::Null)
+            FormatHtmlTagPos::new("Hello, %s world!", Language::Null)
                 .next()
                 .is_none()
         );
         assert_eq!(
             FormatHtmlTagPos::new(
                 r#"Hello <b>%s</b>! 3 < 5 <br/>Click <a href="https://example.com">here</a><span title="a > b"></span><br"#,
-                &Language::Null
+                Language::Null
             )
             .map(|m| (m.s, m.start, m.end))
             .collect::<Vec<_>>(),

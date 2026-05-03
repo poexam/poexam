@@ -64,8 +64,8 @@ impl RuleChecker for PathsRule {
         msgid: &Message,
         msgstr: &Message,
     ) -> Vec<Diagnostic> {
-        let id_paths: Vec<_> = FormatPathPos::new(&msgid.value, &entry.format_language).collect();
-        let str_paths: Vec<_> = FormatPathPos::new(&msgstr.value, &entry.format_language).collect();
+        let id_paths: Vec<_> = FormatPathPos::new(&msgid.value, entry.format_language).collect();
+        let str_paths: Vec<_> = FormatPathPos::new(&msgstr.value, entry.format_language).collect();
         match id_paths.len().cmp(&str_paths.len()) {
             std::cmp::Ordering::Greater => {
                 vec![

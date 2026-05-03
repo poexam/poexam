@@ -103,19 +103,19 @@ mod tests {
 
     #[test]
     fn test_strip_formats() {
-        assert_eq!(strip_formats("", &Language::Java), "");
+        assert_eq!(strip_formats("", Language::Java), "");
         assert_eq!(
-            strip_formats("Hello, world!", &Language::Java),
+            strip_formats("Hello, world!", Language::Java),
             "Hello, world!"
         );
         assert_eq!(
-            strip_formats("Hello {0}, you have {1,number} items.", &Language::Java),
+            strip_formats("Hello {0}, you have {1,number} items.", Language::Java),
             "Hello , you have  items."
         );
         assert_eq!(
             strip_formats(
                 "{0,choice,0#no files|1#one file|1<{0,number,integer} files}",
-                &Language::Java
+                Language::Java
             ),
             ""
         );
@@ -123,21 +123,21 @@ mod tests {
 
     #[test]
     fn test_format_pos() {
-        assert!(FormatPos::new("", &Language::Java).next().is_none());
+        assert!(FormatPos::new("", Language::Java).next().is_none());
         assert!(
-            FormatPos::new("Hello, world!", &Language::Java)
+            FormatPos::new("Hello, world!", Language::Java)
                 .next()
                 .is_none()
         );
         assert_eq!(
-            FormatPos::new("Name: {0}, age: {1}", &Language::Java)
+            FormatPos::new("Name: {0}, age: {1}", Language::Java)
                 .map(|m| (m.s, m.start, m.end))
                 .collect::<Vec<_>>(),
             vec![("{0}", 6, 9), ("{1}", 16, 19)]
         );
         // Formats with type.
         assert_eq!(
-            FormatPos::new("{0,number} and {1,date,short}", &Language::Java)
+            FormatPos::new("{0,number} and {1,date,short}", Language::Java)
                 .map(|m| (m.s, m.start, m.end))
                 .collect::<Vec<_>>(),
             vec![("{0,number}", 0, 10), ("{1,date,short}", 15, 29)]
@@ -146,7 +146,7 @@ mod tests {
         assert_eq!(
             FormatPos::new(
                 "{0,choice,0#no files|1#one file|1<{0,number,integer} files}",
-                &Language::Java
+                Language::Java
             )
             .map(|m| (m.s, m.start, m.end))
             .collect::<Vec<_>>(),
@@ -158,27 +158,27 @@ mod tests {
         );
         // Quoted section: '{0}' inside quotes is not a format.
         assert_eq!(
-            FormatPos::new("literal '{0}' and {1}", &Language::Java)
+            FormatPos::new("literal '{0}' and {1}", Language::Java)
                 .map(|m| (m.s, m.start, m.end))
                 .collect::<Vec<_>>(),
             vec![("{1}", 18, 21)]
         );
         // "''" is an escaped single quote, not a quoting block.
         assert_eq!(
-            FormatPos::new("it''s {0} o''clock", &Language::Java)
+            FormatPos::new("it''s {0} o''clock", Language::Java)
                 .map(|m| (m.s, m.start, m.end))
                 .collect::<Vec<_>>(),
             vec![("{0}", 6, 9)]
         );
         // '{' not followed by a digit is literal.
         assert!(
-            FormatPos::new("{name} and {}", &Language::Java)
+            FormatPos::new("{name} and {}", Language::Java)
                 .next()
                 .is_none()
         );
         // Quoted literal inside a format element.
         assert_eq!(
-            FormatPos::new("{0,number,'#'#}", &Language::Java)
+            FormatPos::new("{0,number,'#'#}", Language::Java)
                 .map(|m| (m.s, m.start, m.end))
                 .collect::<Vec<_>>(),
             vec![("{0,number,'#'#}", 0, 15)]
@@ -187,15 +187,15 @@ mod tests {
 
     #[test]
     fn test_word_pos() {
-        assert!(FormatWordPos::new("", &Language::Java).next().is_none());
+        assert!(FormatWordPos::new("", Language::Java).next().is_none());
         assert_eq!(
-            FormatWordPos::new("Hello, world!", &Language::Java)
+            FormatWordPos::new("Hello, world!", Language::Java)
                 .map(|m| (m.s, m.start, m.end))
                 .collect::<Vec<_>>(),
             vec![("Hello", 0, 5), ("world", 7, 12)]
         );
         assert_eq!(
-            FormatWordPos::new("Name: {0}, age: {1,number}", &Language::Java)
+            FormatWordPos::new("Name: {0}, age: {1,number}", Language::Java)
                 .map(|m| (m.s, m.start, m.end))
                 .collect::<Vec<_>>(),
             vec![("Name", 0, 4), ("age", 11, 14)]
@@ -204,16 +204,16 @@ mod tests {
 
     #[test]
     fn test_url_pos() {
-        assert!(FormatUrlPos::new("", &Language::Java).next().is_none());
+        assert!(FormatUrlPos::new("", Language::Java).next().is_none());
         assert!(
-            FormatUrlPos::new("Hello, world!", &Language::Java)
+            FormatUrlPos::new("Hello, world!", Language::Java)
                 .next()
                 .is_none()
         );
         assert_eq!(
             FormatUrlPos::new(
                 "Invalid URL: https://example, valid URL: https://example.com",
-                &Language::Java
+                Language::Java
             )
             .map(|m| (m.s, m.start, m.end))
             .collect::<Vec<_>>(),
@@ -222,7 +222,7 @@ mod tests {
         assert_eq!(
             FormatUrlPos::new(
                 "Test https://{0}.example.com https://example2.com",
-                &Language::Java
+                Language::Java
             )
             .map(|m| (m.s, m.start, m.end))
             .collect::<Vec<_>>(),
@@ -235,16 +235,16 @@ mod tests {
 
     #[test]
     fn test_email_pos() {
-        assert!(FormatEmailPos::new("", &Language::Java).next().is_none());
+        assert!(FormatEmailPos::new("", Language::Java).next().is_none());
         assert!(
-            FormatEmailPos::new("Hello, world!", &Language::Java)
+            FormatEmailPos::new("Hello, world!", Language::Java)
                 .next()
                 .is_none()
         );
         assert_eq!(
             FormatEmailPos::new(
                 "Contact us at user@example.com for more info.",
-                &Language::Java
+                Language::Java
             )
             .map(|m| (m.s, m.start, m.end))
             .collect::<Vec<_>>(),
@@ -253,7 +253,7 @@ mod tests {
         assert_eq!(
             FormatEmailPos::new(
                 "Invalid email: user@domain, valid email: user@{0}.domain.com",
-                &Language::Java
+                Language::Java
             )
             .map(|m| (m.s, m.start, m.end))
             .collect::<Vec<_>>(),
@@ -263,14 +263,14 @@ mod tests {
 
     #[test]
     fn test_path_pos() {
-        assert!(FormatPathPos::new("", &Language::Java).next().is_none());
+        assert!(FormatPathPos::new("", Language::Java).next().is_none());
         assert!(
-            FormatPathPos::new("Hello, world!", &Language::Java)
+            FormatPathPos::new("Hello, world!", Language::Java)
                 .next()
                 .is_none()
         );
         assert_eq!(
-            FormatPathPos::new("File: /home/{0}/data.txt", &Language::Java)
+            FormatPathPos::new("File: /home/{0}/data.txt", Language::Java)
                 .map(|m| (m.s, m.start, m.end))
                 .collect::<Vec<_>>(),
             vec![("/home/{0}/data.txt", 6, 24)]
@@ -279,14 +279,14 @@ mod tests {
 
     #[test]
     fn test_html_tags_pos() {
-        assert!(FormatHtmlTagPos::new("", &Language::Java).next().is_none());
+        assert!(FormatHtmlTagPos::new("", Language::Java).next().is_none());
         assert!(
-            FormatHtmlTagPos::new("Hello, world!", &Language::Java)
+            FormatHtmlTagPos::new("Hello, world!", Language::Java)
                 .next()
                 .is_none()
         );
         assert_eq!(
-            FormatHtmlTagPos::new("Hello <b>{0}</b>!", &Language::Java)
+            FormatHtmlTagPos::new("Hello <b>{0}</b>!", Language::Java)
                 .map(|m| (m.s, m.start, m.end))
                 .collect::<Vec<_>>(),
             vec![("<b>", 6, 9), ("</b>", 12, 16)]

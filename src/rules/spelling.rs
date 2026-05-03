@@ -65,7 +65,7 @@ impl RuleChecker for SpellingCtxtRule {
     fn check_ctxt(&self, checker: &Checker, entry: &Entry, msgctxt: &Message) -> Vec<Diagnostic> {
         if let Some(dict) = &checker.dict_id {
             let (misspelled_words, pos_words) =
-                check_words(&msgctxt.value, &entry.format_language, dict);
+                check_words(&msgctxt.value, entry.format_language, dict);
             if !misspelled_words.is_empty() {
                 return vec![
                     self.new_diag(checker, "misspelled words in context".to_string())
@@ -128,7 +128,7 @@ impl RuleChecker for SpellingIdRule {
     ) -> Vec<Diagnostic> {
         if let Some(dict) = &checker.dict_id {
             let (misspelled_words, pos_words) =
-                check_words(&msgid.value, &entry.format_language, dict);
+                check_words(&msgid.value, entry.format_language, dict);
             if !misspelled_words.is_empty() {
                 return vec![
                     self.new_diag(checker, "misspelled words in source".to_string())
@@ -191,7 +191,7 @@ impl RuleChecker for SpellingStrRule {
     ) -> Vec<Diagnostic> {
         if let Some(dict) = &checker.dict_str {
             let (misspelled_words, pos_words) =
-                check_words(&msgstr.value, &entry.format_language, dict);
+                check_words(&msgstr.value, entry.format_language, dict);
             if !misspelled_words.is_empty() {
                 return vec![
                     self.new_diag(checker, "misspelled words in translation".to_string())
@@ -209,7 +209,7 @@ impl RuleChecker for SpellingStrRule {
 /// Return list of misspelled words (can be empty) and their positions in the string (start, end).
 fn check_words<'s>(
     s: &'s str,
-    format_language: &Language,
+    format_language: Language,
     dict: &Dictionary,
 ) -> (HashSet<&'s str>, Vec<(usize, usize)>) {
     let mut misspelled_words: HashSet<&str> = HashSet::new();

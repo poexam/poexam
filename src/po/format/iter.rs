@@ -10,16 +10,16 @@ pub struct FormatPos<'a> {
     s: &'a str,
     len: usize,
     pos: usize,
-    fmt: Box<dyn FormatParser>,
+    fmt: Language,
 }
 
 impl<'a> FormatPos<'a> {
-    pub fn new(s: &'a str, language: &Language) -> Self {
+    pub fn new(s: &'a str, language: Language) -> Self {
         Self {
             s,
             len: s.len(),
             pos: 0,
-            fmt: language.format_parser(),
+            fmt: language,
         }
     }
 }
@@ -52,16 +52,16 @@ pub struct FormatWordPos<'a> {
     s: &'a str,
     len: usize,
     pos: usize,
-    fmt: Box<dyn FormatParser>,
+    fmt: Language,
 }
 
 impl<'a> FormatWordPos<'a> {
-    pub fn new(s: &'a str, language: &Language) -> Self {
+    pub fn new(s: &'a str, language: Language) -> Self {
         Self {
             s,
             len: s.len(),
             pos: 0,
-            fmt: language.format_parser(),
+            fmt: language,
         }
     }
 }
@@ -126,16 +126,16 @@ pub struct FormatUrlPos<'a> {
     s: &'a str,
     len: usize,
     pos: usize,
-    fmt: Box<dyn FormatParser>,
+    fmt: Language,
 }
 
 impl<'a> FormatUrlPos<'a> {
-    pub fn new(s: &'a str, language: &Language) -> Self {
+    pub fn new(s: &'a str, language: Language) -> Self {
         Self {
             s,
             len: s.len(),
             pos: 0,
-            fmt: language.format_parser(),
+            fmt: language,
         }
     }
 }
@@ -188,16 +188,16 @@ pub struct FormatEmailPos<'a> {
     s: &'a str,
     len: usize,
     pos: usize,
-    fmt: Box<dyn FormatParser>,
+    fmt: Language,
 }
 
 impl<'a> FormatEmailPos<'a> {
-    pub fn new(s: &'a str, language: &Language) -> Self {
+    pub fn new(s: &'a str, language: Language) -> Self {
         Self {
             s,
             len: s.len(),
             pos: 0,
-            fmt: language.format_parser(),
+            fmt: language,
         }
     }
 
@@ -292,16 +292,16 @@ pub struct FormatPathPos<'a> {
     s: &'a str,
     len: usize,
     pos: usize,
-    fmt: Box<dyn FormatParser>,
+    fmt: Language,
 }
 
 impl<'a> FormatPathPos<'a> {
-    pub fn new(s: &'a str, language: &Language) -> Self {
+    pub fn new(s: &'a str, language: Language) -> Self {
         Self {
             s,
             len: s.len(),
             pos: 0,
-            fmt: language.format_parser(),
+            fmt: language,
         }
     }
 
@@ -369,16 +369,16 @@ pub struct FormatHtmlTagPos<'a> {
     s: &'a str,
     len: usize,
     pos: usize,
-    fmt: Box<dyn FormatParser>,
+    fmt: Language,
 }
 
 impl<'a> FormatHtmlTagPos<'a> {
-    pub fn new(s: &'a str, language: &Language) -> Self {
+    pub fn new(s: &'a str, language: Language) -> Self {
         Self {
             s,
             len: s.len(),
             pos: 0,
-            fmt: language.format_parser(),
+            fmt: language,
         }
     }
 }

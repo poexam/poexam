@@ -62,9 +62,9 @@ impl RuleChecker for EmailsRule {
         msgid: &Message,
         msgstr: &Message,
     ) -> Vec<Diagnostic> {
-        let id_emails: Vec<_> = FormatEmailPos::new(&msgid.value, &entry.format_language).collect();
+        let id_emails: Vec<_> = FormatEmailPos::new(&msgid.value, entry.format_language).collect();
         let str_emails: Vec<_> =
-            FormatEmailPos::new(&msgstr.value, &entry.format_language).collect();
+            FormatEmailPos::new(&msgstr.value, entry.format_language).collect();
         match id_emails.len().cmp(&str_emails.len()) {
             std::cmp::Ordering::Greater => {
                 vec![

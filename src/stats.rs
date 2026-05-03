@@ -383,7 +383,7 @@ impl StatsFile {
 
 /// Count words in a given string.
 fn count_words(s: &str) -> u64 {
-    FormatWordPos::new(s, &Language::Null).count() as u64
+    FormatWordPos::new(s, Language::Null).count() as u64
 }
 
 /// Count characters (non-whitespace or punctuation) in a given string.
@@ -409,7 +409,7 @@ fn stats_file(path: &PathBuf, args: &args::StatsArgs) -> Result<StatsFile, std::
         let (words_id, chars_id) = if args.words
             && let Some(msgid) = &entry.msgid
         {
-            let stripped = strip_formats(&msgid.value, &entry.format_language);
+            let stripped = strip_formats(&msgid.value, entry.format_language);
             (count_words(&stripped), count_chars(&stripped))
         } else {
             (0, 0)
@@ -417,7 +417,7 @@ fn stats_file(path: &PathBuf, args: &args::StatsArgs) -> Result<StatsFile, std::
         let (words_str, chars_str) = if args.words
             && let Some(msgstr) = entry.msgstr.get(&0)
         {
-            let stripped = strip_formats(&msgstr.value, &entry.format_language);
+            let stripped = strip_formats(&msgstr.value, entry.format_language);
             (count_words(&stripped), count_chars(&stripped))
         } else {
             (0, 0)

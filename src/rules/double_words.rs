@@ -60,7 +60,7 @@ impl RuleChecker for DoubleWordsRule {
         msgstr: &Message,
     ) -> Vec<Diagnostic> {
         let mut diags = vec![];
-        let mut words_iter = FormatWordPos::new(&msgstr.value, &entry.format_language).peekable();
+        let mut words_iter = FormatWordPos::new(&msgstr.value, entry.format_language).peekable();
         while let Some(word) = words_iter.next()
             && let Some(next_word) = words_iter.peek()
         {
