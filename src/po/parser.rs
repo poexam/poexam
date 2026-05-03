@@ -139,26 +139,27 @@ impl<'d> Parser<'d> {
 
     /// Parse and add keywords from a comment line, updating flags and format as needed.
     fn parse_keywords(line: &[u8], entry: &mut Entry) {
-        entry.keywords.extend(
-            line.split(|&b| b == b',')
-                .map(|kw| {
-                    let kw = String::from_utf8_lossy(kw).trim().to_string();
-                    if kw == "fuzzy" {
-                        entry.fuzzy = true;
-                    } else if kw == "noqa" {
-                        entry.noqa = true;
-                    } else if let Some(rules) = kw.strip_prefix("noqa:") {
-                        entry.noqa_rules =
-                            rules.split(';').map(str::trim).map(String::from).collect();
-                    } else if kw == "no-wrap" {
-                        entry.nowrap = true;
-                    } else if let Some(stripped) = kw.strip_suffix("-format") {
-                        entry.format_language = Language::from(stripped);
+        for kw in line.split(|&b| b == b',') {
+            let kw = kw.trim_ascii();
+            match kw {
+                b"fuzzy" => entry.fuzzy = true,
+                b"noqa" => entry.noqa = true,
+                b"no-wrap" => entry.nowrap = true,
+                _ => {
+                    if let Some(rules) = kw.strip_prefix(b"noqa:") {
+                        entry.noqa_rules = rules
+                            .split(|&b| b == b';')
+                            .map(|r| String::from_utf8_lossy(r.trim_ascii()).into_owned())
+                            .collect();
+                    } else if let Some(stripped) = kw.strip_suffix(b"-format")
+                        && let Ok(s) = str::from_utf8(stripped)
+                    {
+                        entry.format_language = Language::from(s);
                     }
-                    kw
-                })
-                .collect::<Vec<String>>(),
-        );
+                }
+            }
+            entry.keywords.push(String::from_utf8_lossy(kw).into_owned());
+        }
     }
 
     /// Extract a string value from a line, and decode if necessary (not UTF-8).
