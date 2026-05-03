@@ -38,11 +38,14 @@ fn display_settings(path: &Path, config: &Config, rules: &Rules) {
 /// Display diagnostics in human format.
 fn display_diagnostics_human(result: &[CheckFileResult], args: &args::CheckArgs) {
     let mut diags: Vec<&Diagnostic> = result.iter().flat_map(|x| &x.diagnostics).collect();
+    // Use `sort_by_cached_key`: build the sort key once per element instead of
+    // once per comparison (the latter would re-allocate a `Vec<usize>` of line
+    // numbers `O(N log N)` times during the sort).
     match args.sort {
         args::CheckSort::Line => {
-            diags.sort_by_key(|diag| {
+            diags.sort_by_cached_key(|diag| {
                 (
-                    diag.path.as_path(),
+                    diag.path.clone(),
                     diag.lines
                         .iter()
                         .map(|l| l.line_number)
@@ -51,10 +54,12 @@ fn display_diagnostics_human(result: &[CheckFileResult], args: &args::CheckArgs)
             });
         }
         args::CheckSort::Message => {
-            diags.sort_by_key(|diag| {
+            diags.sort_by_cached_key(|diag| {
                 (
-                    diag.lines.first().map_or("", |line| &line.message),
-                    diag.path.as_path(),
+                    diag.lines
+                        .first()
+                        .map_or_else(String::new, |line| line.message.clone()),
+                    diag.path.clone(),
                     diag.lines
                         .iter()
                         .map(|l| l.line_number)
@@ -63,10 +68,10 @@ fn display_diagnostics_human(result: &[CheckFileResult], args: &args::CheckArgs)
             });
         }
         args::CheckSort::Rule => {
-            diags.sort_by_key(|diag| {
+            diags.sort_by_cached_key(|diag| {
                 (
                     diag.rule,
-                    diag.path.as_path(),
+                    diag.path.clone(),
                     diag.lines
                         .iter()
                         .map(|l| l.line_number)
