@@ -84,20 +84,20 @@ impl RuleChecker for FormatsRule {
         if entry.format_language == Language::Null {
             return vec![];
         }
-        let id_fmt: Vec<_> = FormatPos::new(&msgid.value, entry.format_language).collect();
-        let str_fmt: Vec<_> = FormatPos::new(&msgstr.value, entry.format_language).collect();
+        let mut id_fmt: Vec<_> = FormatPos::new(&msgid.value, entry.format_language).collect();
+        let mut str_fmt: Vec<_> =
+            FormatPos::new(&msgstr.value, entry.format_language).collect();
         let error = if entry.format_language == Language::C {
             // C format strings can include reordering position, so we need to sort them
-            // and strip index before comparing.
-            let mut id_fmt_sorted = id_fmt.clone();
-            let mut str_fmt_sorted = str_fmt.clone();
-            id_fmt_sorted.sort_by_key(|m| (fmt_sort_index(m.s), m.start, m.end));
-            str_fmt_sorted.sort_by_key(|m| (fmt_sort_index(m.s), m.start, m.end));
-            let id_fmt2 = id_fmt_sorted
+            // and strip index before comparing. The original order is not needed after
+            // this branch (highlights below only use positions, which sort independently).
+            id_fmt.sort_by_key(|m| (fmt_sort_index(m.s), m.start, m.end));
+            str_fmt.sort_by_key(|m| (fmt_sort_index(m.s), m.start, m.end));
+            let id_fmt2 = id_fmt
                 .iter()
                 .map(|m| fmt_strip_index(m.s))
                 .collect::<Vec<String>>();
-            let str_fmt2 = str_fmt_sorted
+            let str_fmt2 = str_fmt
                 .iter()
                 .map(|m| fmt_strip_index(m.s))
                 .collect::<Vec<String>>();
