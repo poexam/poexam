@@ -19,9 +19,7 @@ pub fn find_po_files(paths: &[PathBuf]) -> HashSet<PathBuf> {
         vec![PathBuf::from(".")]
     } else {
         paths.to_vec()
-    }
-    .into_iter()
-    .collect();
+    };
 
     let mut builder = WalkBuilder::new(all_paths[0].clone());
     for root in all_paths.iter().skip(1) {
