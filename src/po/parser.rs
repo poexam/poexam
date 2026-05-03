@@ -196,39 +196,46 @@ impl<'d> Parser<'d> {
     ///
     /// The line can be a `msgctxt`, `msgid`, `msgid_plural`, `msgstr`, or a continued string.
     fn parse_message(&mut self, line: &'d [u8], entry: &mut Entry) {
-        if line.starts_with(b"msgctxt") {
-            self.field = Field::Ctxt;
-            entry.msgctxt = Some(Message::new(self.line_number, self.extract_string(line)));
-        } else if line.starts_with(b"msgid_plural") {
-            self.field = Field::IdPlural;
-            entry.msgid_plural = Some(Message::new(self.line_number, self.extract_string(line)));
-        } else if line.starts_with(b"msgid") {
-            self.field = Field::Id;
-            entry.msgid = Some(Message::new(self.line_number, self.extract_string(line)));
-        } else if line.starts_with(b"msgstr[") {
-            if let Some(idx_end) = line.iter().position(|&b| b == b']')
-                && let Ok(str_idx) = str::from_utf8(&line[7..idx_end])
-                && let Some(idx) = str_idx.parse::<u32>().ok()
-            {
-                self.field = Field::Str(idx);
-                entry.msgstr.insert(
-                    idx,
-                    Message::new(self.line_number, self.extract_string(line)),
-                );
-            }
-        } else if line.starts_with(b"msgstr") {
-            self.field = Field::Str(0);
-            entry
-                .msgstr
-                .insert(0, Message::new(self.line_number, self.extract_string(line)));
-        } else if line.starts_with(b"\"") {
-            match self.field {
+        match line {
+            [b'"', ..] => match self.field {
                 Field::Comment => {}
                 Field::Ctxt => entry.append_msgctxt(self.extract_string(line)),
                 Field::Id => entry.append_msgid(self.extract_string(line)),
                 Field::IdPlural => entry.append_msgid_plural(self.extract_string(line)),
                 Field::Str(idx) => entry.append_msgstr(idx, self.extract_string(line)),
+            },
+            [b'm', b's', b'g', b'c', b't', b'x', b't', ..] => {
+                self.field = Field::Ctxt;
+                entry.msgctxt = Some(Message::new(self.line_number, self.extract_string(line)));
             }
+            [b'm', b's', b'g', b'i', b'd', b'_', b'p', b'l', b'u', b'r', b'a', b'l', ..] => {
+                self.field = Field::IdPlural;
+                entry.msgid_plural =
+                    Some(Message::new(self.line_number, self.extract_string(line)));
+            }
+            [b'm', b's', b'g', b'i', b'd', ..] => {
+                self.field = Field::Id;
+                entry.msgid = Some(Message::new(self.line_number, self.extract_string(line)));
+            }
+            [b'm', b's', b'g', b's', b't', b'r', b'[', ..] => {
+                if let Some(idx_end) = memchr::memchr(b']', line)
+                    && let Ok(str_idx) = str::from_utf8(&line[7..idx_end])
+                    && let Ok(idx) = str_idx.parse::<u32>()
+                {
+                    self.field = Field::Str(idx);
+                    entry.msgstr.insert(
+                        idx,
+                        Message::new(self.line_number, self.extract_string(line)),
+                    );
+                }
+            }
+            [b'm', b's', b'g', b's', b't', b'r', ..] => {
+                self.field = Field::Str(0);
+                entry
+                    .msgstr
+                    .insert(0, Message::new(self.line_number, self.extract_string(line)));
+            }
+            _ => {}
         }
     }
 }
@@ -257,28 +264,32 @@ impl Iterator for Parser<'_> {
                 continue;
             }
             started = true;
-            if let Some(keywords) = line.strip_prefix(b"#,") {
+            match line {
                 // Workflow and sticky flags.
-                Parser::parse_keywords(keywords, &mut entry);
-            } else if let Some(keywords) = line.strip_prefix(b"#=") {
-                // Workflow and sticky flags.
-                Parser::parse_keywords(keywords, &mut entry);
-            } else if let Some(msg) = line.strip_prefix(b"#~ ") {
+                [b'#', b',' | b'=', keywords @ ..] => {
+                    Parser::parse_keywords(keywords, &mut entry);
+                }
                 // Obsolete entry with a message (start or continued).
-                entry.obsolete = true;
-                self.parse_message(msg, &mut entry);
-            } else if let Some(rules) = line.strip_prefix(b"# noqa:") {
+                [b'#', b'~', b' ', msg @ ..] => {
+                    entry.obsolete = true;
+                    self.parse_message(msg, &mut entry);
+                }
                 // Flag "noqa:xxx" in a comment (with rules).
-                entry.noqa_rules = rules
-                    .split(|&b| b == b';')
-                    .map(|b| String::from_utf8_lossy(b).trim().into())
-                    .collect();
-            } else if line.starts_with(b"# noqa") {
+                [b'#', b' ', b'n', b'o', b'q', b'a', b':', rules @ ..] => {
+                    entry.noqa_rules = rules
+                        .split(|&b| b == b';')
+                        .map(|b| String::from_utf8_lossy(b).trim().into())
+                        .collect();
+                }
                 // Flag "noqa" in a comment.
-                entry.noqa = true;
-            } else if line.starts_with(b"msg") || line.starts_with(b"\"") {
+                [b'#', b' ', b'n', b'o', b'q', b'a', ..] => {
+                    entry.noqa = true;
+                }
                 // Message line (start or continued).
-                self.parse_message(line, &mut entry);
+                [b'm' | b'"', ..] => {
+                    self.parse_message(line, &mut entry);
+                }
+                _ => {}
             }
             self.line_number = self.next_line_number;
         }
