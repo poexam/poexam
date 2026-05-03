@@ -78,7 +78,7 @@ impl RuleChecker for DoubleSpacesRule {
                             str_quotes.len()
                         ),
                     )
-                    .with_msgs_hl(msgid, &id_quotes, msgstr, &str_quotes),
+                    .with_msgs_hl(msgid, id_quotes.iter().copied(), msgstr, str_quotes.iter().copied()),
                 ]
             }
             std::cmp::Ordering::Less => {
@@ -91,7 +91,7 @@ impl RuleChecker for DoubleSpacesRule {
                             str_quotes.len()
                         ),
                     )
-                    .with_msgs_hl(msgid, &id_quotes, msgstr, &str_quotes),
+                    .with_msgs_hl(msgid, id_quotes.iter().copied(), msgstr, str_quotes.iter().copied()),
                 ]
             }
             std::cmp::Ordering::Equal => vec![],

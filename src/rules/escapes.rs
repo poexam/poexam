@@ -80,7 +80,7 @@ impl RuleChecker for EscapesRule {
                             str_esc.len()
                         ),
                     )
-                    .with_msgs_hl(msgid, &id_esc, msgstr, &str_esc),
+                    .with_msgs_hl(msgid, id_esc.iter().copied(), msgstr, str_esc.iter().copied()),
                 ]
             }
             std::cmp::Ordering::Less => {
@@ -93,7 +93,7 @@ impl RuleChecker for EscapesRule {
                             str_esc.len()
                         ),
                     )
-                    .with_msgs_hl(msgid, &id_esc, msgstr, &str_esc),
+                    .with_msgs_hl(msgid, id_esc.iter().copied(), msgstr, str_esc.iter().copied()),
                 ]
             }
             std::cmp::Ordering::Equal => {
@@ -118,7 +118,7 @@ impl RuleChecker for EscapesRule {
                                     str_esc.len()
                                 ),
                             )
-                            .with_msgs_hl(msgid, &id_esc, msgstr, &str_esc),
+                            .with_msgs_hl(msgid, id_esc.iter().copied(), msgstr, str_esc.iter().copied()),
                         ]
                     }
                     std::cmp::Ordering::Less => {
@@ -131,7 +131,7 @@ impl RuleChecker for EscapesRule {
                                     str_esc.len()
                                 ),
                             )
-                            .with_msgs_hl(msgid, &id_esc, msgstr, &str_esc),
+                            .with_msgs_hl(msgid, id_esc.iter().copied(), msgstr, str_esc.iter().copied()),
                         ]
                     }
                     std::cmp::Ordering::Equal => vec![],

@@ -98,9 +98,9 @@ impl RuleChecker for PuncStartRule {
                 )
                 .with_msgs_hl(
                     msgid,
-                    &[(0, id_punc.len())],
+                    [(0, id_punc.len())],
                     msgstr,
-                    &[(0, str_punc.len())],
+                    [(0, str_punc.len())],
                 ),
             ]
         }
@@ -181,9 +181,9 @@ impl RuleChecker for PuncEndRule {
                 )
                 .with_msgs_hl(
                     msgid,
-                    &[(msgid.value.len() - id_punc.len(), msgid.value.len())],
+                    [(msgid.value.len() - id_punc.len(), msgid.value.len())],
                     msgstr,
-                    &[(msgstr.value.len() - str_punc.len(), msgstr.value.len())],
+                    [(msgstr.value.len() - str_punc.len(), msgstr.value.len())],
                 ),
             ]
         }

@@ -65,7 +65,7 @@ impl RuleChecker for BlankRule {
         {
             vec![
                 self.new_diag(checker, "blank translation".to_string())
-                    .with_msgs_hl(msgid, &[], msgstr, &[(0, msgstr.value.len())]),
+                    .with_msgs_hl(msgid, [], msgstr, [(0, msgstr.value.len())]),
             ]
         } else {
             vec![]

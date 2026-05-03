@@ -147,7 +147,7 @@ impl Diagnostic {
     /// Add keywords of a PO entry to the diagnostic.
     pub fn with_keywords(mut self, entry: &Entry) -> Self {
         for line in entry.keywords_to_po_lines() {
-            self.add_line(0, &line, &[]);
+            self.add_line(0, &line, []);
         }
         self
     }
@@ -155,41 +155,48 @@ impl Diagnostic {
     /// Add messages of a PO entry to the diagnostic.
     pub fn with_entry(mut self, entry: &Entry) -> Self {
         for (line_no, line) in entry.msg_to_po_lines() {
-            self.add_line(line_no, &line, &[]);
+            self.add_line(line_no, &line, []);
         }
         self
     }
 
     /// Add one message to the diagnostic.
     pub fn with_msg(mut self, msg: &Message) -> Self {
-        self.add_line(msg.line_number, &msg.value, &[]);
+        self.add_line(msg.line_number, &msg.value, []);
         self
     }
 
     /// Add one message to the diagnostic with the given highlights.
-    pub fn with_msg_hl(mut self, msg: &Message, hl: &[(usize, usize)]) -> Self {
+    pub fn with_msg_hl<I>(mut self, msg: &Message, hl: I) -> Self
+    where
+        I: IntoIterator<Item = (usize, usize)>,
+    {
         self.add_line(msg.line_number, &msg.value, hl);
         self
     }
 
     /// Add two messages (typically msgid and msgstr) to the diagnostic.
     pub fn with_msgs(mut self, msgid: &Message, msgstr: &Message) -> Self {
-        self.add_line(msgid.line_number, &msgid.value, &[]);
-        self.add_line(0, "", &[]);
-        self.add_line(msgstr.line_number, &msgstr.value, &[]);
+        self.add_line(msgid.line_number, &msgid.value, []);
+        self.add_line(0, "", []);
+        self.add_line(msgstr.line_number, &msgstr.value, []);
         self
     }
 
     /// Add two messages (typically msgid and msgstr) to the diagnostic with the given highlights.
-    pub fn with_msgs_hl(
+    pub fn with_msgs_hl<A, B>(
         mut self,
         msgid: &Message,
-        hl_id: &[(usize, usize)],
+        hl_id: A,
         msgstr: &Message,
-        hl_str: &[(usize, usize)],
-    ) -> Self {
+        hl_str: B,
+    ) -> Self
+    where
+        A: IntoIterator<Item = (usize, usize)>,
+        B: IntoIterator<Item = (usize, usize)>,
+    {
         self.add_line(msgid.line_number, &msgid.value, hl_id);
-        self.add_line(0, "", &[]);
+        self.add_line(0, "", []);
         self.add_line(msgstr.line_number, &msgstr.value, hl_str);
         self
     }
@@ -198,7 +205,7 @@ impl Diagnostic {
     pub fn with_multiline(mut self, lines: &str) -> Self {
         if !lines.trim().is_empty() {
             for line in lines.lines() {
-                self.add_line(0, line, &[]);
+                self.add_line(0, line, []);
             }
         }
         self
@@ -211,16 +218,14 @@ impl Diagnostic {
     }
 
     /// Add a line message to the diagnostic with the given line number and highlights.
-    pub fn add_line(
-        &mut self,
-        line: usize,
-        message: impl Into<String>,
-        highlights: &[(usize, usize)],
-    ) {
+    pub fn add_line<I>(&mut self, line: usize, message: impl Into<String>, highlights: I)
+    where
+        I: IntoIterator<Item = (usize, usize)>,
+    {
         self.lines.push(DiagnosticLine {
             line_number: line,
             message: message.into(),
-            highlights: highlights.to_vec(),
+            highlights: highlights.into_iter().collect(),
         });
     }
 
@@ -360,7 +365,7 @@ mod tests {
             Severity::Info,
             String::new(),
         );
-        diag.add_line(42, "msgstr \"\"", &[(8, 9)]);
+        diag.add_line(42, "msgstr \"\"", [(8, 9)]);
         assert_eq!(diag.lines.len(), 1);
         assert_eq!(diag.lines[0].line_number, 42);
         assert_eq!(diag.lines[0].message, "msgstr \"\"");
@@ -382,7 +387,7 @@ mod tests {
     fn test_with_msg_hl() {
         let msg = Message::new(10, "hello");
         let diag = Diagnostic::new(Path::new("a.po"), "r", Severity::Info, String::new())
-            .with_msg_hl(&msg, &[(0, 5)]);
+            .with_msg_hl(&msg, [(0, 5)]);
         assert_eq!(diag.lines[0].highlights, vec![(0, 5)]);
     }
 
@@ -406,7 +411,7 @@ mod tests {
         let msgid = Message::new(10, "hello");
         let msgstr = Message::new(11, "bonjour");
         let diag = Diagnostic::new(Path::new("a.po"), "r", Severity::Info, String::new())
-            .with_msgs_hl(&msgid, &[(0, 1)], &msgstr, &[(2, 4)]);
+            .with_msgs_hl(&msgid, [(0, 1)], &msgstr, [(2, 4)]);
         assert_eq!(diag.lines[0].highlights, vec![(0, 1)]);
         assert!(diag.lines[1].highlights.is_empty());
         assert_eq!(diag.lines[2].highlights, vec![(2, 4)]);

@@ -78,7 +78,7 @@ impl RuleChecker for PipesRule {
                             str_pipes.len()
                         ),
                     )
-                    .with_msgs_hl(msgid, &id_pipes, msgstr, &str_pipes),
+                    .with_msgs_hl(msgid, id_pipes.iter().copied(), msgstr, str_pipes.iter().copied()),
                 ]
             }
             std::cmp::Ordering::Less => {
@@ -87,7 +87,7 @@ impl RuleChecker for PipesRule {
                         checker,
                         format!("extra pipes '|' ({} / {})", id_pipes.len(), str_pipes.len()),
                     )
-                    .with_msgs_hl(msgid, &id_pipes, msgstr, &str_pipes),
+                    .with_msgs_hl(msgid, id_pipes.iter().copied(), msgstr, str_pipes.iter().copied()),
                 ]
             }
             std::cmp::Ordering::Equal => vec![],

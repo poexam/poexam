@@ -78,7 +78,7 @@ impl RuleChecker for TabsRule {
                             str_tabs.len()
                         ),
                     )
-                    .with_msgs_hl(msgid, &id_tabs, msgstr, &str_tabs),
+                    .with_msgs_hl(msgid, id_tabs.iter().copied(), msgstr, str_tabs.iter().copied()),
                 ]
             }
             std::cmp::Ordering::Less => {
@@ -87,7 +87,7 @@ impl RuleChecker for TabsRule {
                         checker,
                         format!("extra tabs '\\t' ({} / {})", id_tabs.len(), str_tabs.len()),
                     )
-                    .with_msgs_hl(msgid, &id_tabs, msgstr, &str_tabs),
+                    .with_msgs_hl(msgid, id_tabs.iter().copied(), msgstr, str_tabs.iter().copied()),
                 ]
             }
             std::cmp::Ordering::Equal => vec![],

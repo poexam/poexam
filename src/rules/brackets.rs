@@ -109,7 +109,7 @@ impl RuleChecker for BracketsRule {
                 );
                 diags.push(
                     self.new_diag(checker, msg)
-                        .with_msgs_hl(msgid, &id_open, msgstr, &str_open),
+                        .with_msgs_hl(msgid, id_open.iter().copied(), msgstr, str_open.iter().copied()),
                 );
                 continue;
             }
@@ -120,7 +120,7 @@ impl RuleChecker for BracketsRule {
                 );
                 diags.push(
                     self.new_diag(checker, msg)
-                        .with_msgs_hl(msgid, &id_open, msgstr, &str_open),
+                        .with_msgs_hl(msgid, id_open.iter().copied(), msgstr, str_open.iter().copied()),
                 );
             }
             if id_count_open < str_count_open {
@@ -130,7 +130,7 @@ impl RuleChecker for BracketsRule {
                 );
                 diags.push(
                     self.new_diag(checker, msg)
-                        .with_msgs_hl(msgid, &id_open, msgstr, &str_open),
+                        .with_msgs_hl(msgid, id_open.iter().copied(), msgstr, str_open.iter().copied()),
                 );
             }
             if id_count_close > str_count_close {
@@ -140,7 +140,7 @@ impl RuleChecker for BracketsRule {
                 );
                 diags.push(
                     self.new_diag(checker, msg)
-                        .with_msgs_hl(msgid, &id_close, msgstr, &str_close),
+                        .with_msgs_hl(msgid, id_close.iter().copied(), msgstr, str_close.iter().copied()),
                 );
             }
             if id_count_close < str_count_close {
@@ -150,7 +150,7 @@ impl RuleChecker for BracketsRule {
                 );
                 diags.push(
                     self.new_diag(checker, msg)
-                        .with_msgs_hl(msgid, &id_close, msgstr, &str_close),
+                        .with_msgs_hl(msgid, id_close.iter().copied(), msgstr, str_close.iter().copied()),
                 );
             }
         }

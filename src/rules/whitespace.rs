@@ -73,9 +73,9 @@ impl RuleChecker for WhitespaceStartRule {
                 )
                 .with_msgs_hl(
                     msgid,
-                    &[(0, id_ws.len())],
+                    [(0, id_ws.len())],
                     msgstr,
-                    &[(0, str_ws.len())],
+                    [(0, str_ws.len())],
                 ),
             ]
         }
@@ -143,9 +143,9 @@ impl RuleChecker for WhitespaceEndRule {
                 )
                 .with_msgs_hl(
                     msgid,
-                    &[(msgid.value.len() - id_ws.len(), msgid.value.len())],
+                    [(msgid.value.len() - id_ws.len(), msgid.value.len())],
                     msgstr,
-                    &[(msgstr.value.len() - str_ws.len(), msgstr.value.len())],
+                    [(msgstr.value.len() - str_ws.len(), msgstr.value.len())],
                 ),
             ]
         }

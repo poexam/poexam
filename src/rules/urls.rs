@@ -75,12 +75,9 @@ impl RuleChecker for UrlsRule {
                     )
                     .with_msgs_hl(
                         msgid,
-                        &id_urls.iter().map(|m| (m.start, m.end)).collect::<Vec<_>>(),
+                        id_urls.iter().map(|m| (m.start, m.end)),
                         msgstr,
-                        &str_urls
-                            .iter()
-                            .map(|m| (m.start, m.end))
-                            .collect::<Vec<_>>(),
+                        str_urls.iter().map(|m| (m.start, m.end)),
                     ),
                 ]
             }
@@ -92,12 +89,9 @@ impl RuleChecker for UrlsRule {
                     )
                     .with_msgs_hl(
                         msgid,
-                        &id_urls.iter().map(|m| (m.start, m.end)).collect::<Vec<_>>(),
+                        id_urls.iter().map(|m| (m.start, m.end)),
                         msgstr,
-                        &str_urls
-                            .iter()
-                            .map(|m| (m.start, m.end))
-                            .collect::<Vec<_>>(),
+                        str_urls.iter().map(|m| (m.start, m.end)),
                     ),
                 ]
             }
@@ -113,12 +107,9 @@ impl RuleChecker for UrlsRule {
                         self.new_diag(checker, "different URLs".to_string())
                             .with_msgs_hl(
                                 msgid,
-                                &id_urls.iter().map(|m| (m.start, m.end)).collect::<Vec<_>>(),
+                                id_urls.iter().map(|m| (m.start, m.end)),
                                 msgstr,
-                                &str_urls
-                                    .iter()
-                                    .map(|m| (m.start, m.end))
-                                    .collect::<Vec<_>>(),
+                                str_urls.iter().map(|m| (m.start, m.end)),
                             ),
                     ]
                 }

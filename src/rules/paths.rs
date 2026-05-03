@@ -75,15 +75,9 @@ impl RuleChecker for PathsRule {
                     )
                     .with_msgs_hl(
                         msgid,
-                        &id_paths
-                            .iter()
-                            .map(|m| (m.start, m.end))
-                            .collect::<Vec<_>>(),
+                        id_paths.iter().map(|m| (m.start, m.end)),
                         msgstr,
-                        &str_paths
-                            .iter()
-                            .map(|m| (m.start, m.end))
-                            .collect::<Vec<_>>(),
+                        str_paths.iter().map(|m| (m.start, m.end)),
                     ),
                 ]
             }
@@ -95,15 +89,9 @@ impl RuleChecker for PathsRule {
                     )
                     .with_msgs_hl(
                         msgid,
-                        &id_paths
-                            .iter()
-                            .map(|m| (m.start, m.end))
-                            .collect::<Vec<_>>(),
+                        id_paths.iter().map(|m| (m.start, m.end)),
                         msgstr,
-                        &str_paths
-                            .iter()
-                            .map(|m| (m.start, m.end))
-                            .collect::<Vec<_>>(),
+                        str_paths.iter().map(|m| (m.start, m.end)),
                     ),
                 ]
             }
@@ -120,15 +108,9 @@ impl RuleChecker for PathsRule {
                         self.new_diag(checker, "different paths".to_string())
                             .with_msgs_hl(
                                 msgid,
-                                &id_paths
-                                    .iter()
-                                    .map(|m| (m.start, m.end))
-                                    .collect::<Vec<_>>(),
+                                id_paths.iter().map(|m| (m.start, m.end)),
                                 msgstr,
-                                &str_paths
-                                    .iter()
-                                    .map(|m| (m.start, m.end))
-                                    .collect::<Vec<_>>(),
+                                str_paths.iter().map(|m| (m.start, m.end)),
                             ),
                     ]
                 }

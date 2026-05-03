@@ -75,12 +75,9 @@ impl RuleChecker for HtmlTagsRule {
                     )
                     .with_msgs_hl(
                         msgid,
-                        &id_tags.iter().map(|m| (m.start, m.end)).collect::<Vec<_>>(),
+                        id_tags.iter().map(|m| (m.start, m.end)),
                         msgstr,
-                        &str_tags
-                            .iter()
-                            .map(|m| (m.start, m.end))
-                            .collect::<Vec<_>>(),
+                        str_tags.iter().map(|m| (m.start, m.end)),
                     ),
                 ]
             }
@@ -92,12 +89,9 @@ impl RuleChecker for HtmlTagsRule {
                     )
                     .with_msgs_hl(
                         msgid,
-                        &id_tags.iter().map(|m| (m.start, m.end)).collect::<Vec<_>>(),
+                        id_tags.iter().map(|m| (m.start, m.end)),
                         msgstr,
-                        &str_tags
-                            .iter()
-                            .map(|m| (m.start, m.end))
-                            .collect::<Vec<_>>(),
+                        str_tags.iter().map(|m| (m.start, m.end)),
                     ),
                 ]
             }
@@ -112,12 +106,9 @@ impl RuleChecker for HtmlTagsRule {
                         self.new_diag(checker, "different HTML tags".to_string())
                             .with_msgs_hl(
                                 msgid,
-                                &id_tags.iter().map(|m| (m.start, m.end)).collect::<Vec<_>>(),
+                                id_tags.iter().map(|m| (m.start, m.end)),
                                 msgstr,
-                                &str_tags
-                                    .iter()
-                                    .map(|m| (m.start, m.end))
-                                    .collect::<Vec<_>>(),
+                                str_tags.iter().map(|m| (m.start, m.end)),
                             ),
                     ]
                 }

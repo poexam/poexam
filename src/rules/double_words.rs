@@ -73,7 +73,7 @@ impl RuleChecker for DoubleWordsRule {
             {
                 diags.push(
                     self.new_diag(checker, format!("word '{}' is repeated", word.s))
-                        .with_msgs_hl(msgid, &[], msgstr, &[(word.start, next_word.end)]),
+                        .with_msgs_hl(msgid, [], msgstr, [(word.start, next_word.end)]),
                 );
             }
         }

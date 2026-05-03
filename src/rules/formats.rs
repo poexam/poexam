@@ -103,14 +103,17 @@ impl RuleChecker for FormatsRule {
             id_fmt_hash != str_fmt_hash
         };
         if error {
-            let pos_id: Vec<_> = id_fmt.iter().map(|m| (m.start, m.end)).collect();
-            let pos_str: Vec<_> = str_fmt.iter().map(|m| (m.start, m.end)).collect();
             vec![
                 self.new_diag(
                     checker,
                     format!("inconsistent format strings ({})", entry.format_language),
                 )
-                .with_msgs_hl(msgid, &pos_id, msgstr, &pos_str),
+                .with_msgs_hl(
+                    msgid,
+                    id_fmt.iter().map(|m| (m.start, m.end)),
+                    msgstr,
+                    str_fmt.iter().map(|m| (m.start, m.end)),
+                ),
             ]
         } else {
             vec![]

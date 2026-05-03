@@ -78,15 +78,9 @@ impl RuleChecker for EmailsRule {
                     )
                     .with_msgs_hl(
                         msgid,
-                        &id_emails
-                            .iter()
-                            .map(|m| (m.start, m.end))
-                            .collect::<Vec<_>>(),
+                        id_emails.iter().map(|m| (m.start, m.end)),
                         msgstr,
-                        &str_emails
-                            .iter()
-                            .map(|m| (m.start, m.end))
-                            .collect::<Vec<_>>(),
+                        str_emails.iter().map(|m| (m.start, m.end)),
                     ),
                 ]
             }
@@ -98,15 +92,9 @@ impl RuleChecker for EmailsRule {
                     )
                     .with_msgs_hl(
                         msgid,
-                        &id_emails
-                            .iter()
-                            .map(|m| (m.start, m.end))
-                            .collect::<Vec<_>>(),
+                        id_emails.iter().map(|m| (m.start, m.end)),
                         msgstr,
-                        &str_emails
-                            .iter()
-                            .map(|m| (m.start, m.end))
-                            .collect::<Vec<_>>(),
+                        str_emails.iter().map(|m| (m.start, m.end)),
                     ),
                 ]
             }
@@ -124,15 +112,9 @@ impl RuleChecker for EmailsRule {
                         self.new_diag(checker, "different emails".to_string())
                             .with_msgs_hl(
                                 msgid,
-                                &id_emails
-                                    .iter()
-                                    .map(|m| (m.start, m.end))
-                                    .collect::<Vec<_>>(),
+                                id_emails.iter().map(|m| (m.start, m.end)),
                                 msgstr,
-                                &str_emails
-                                    .iter()
-                                    .map(|m| (m.start, m.end))
-                                    .collect::<Vec<_>>(),
+                                str_emails.iter().map(|m| (m.start, m.end)),
                             ),
                     ]
                 }

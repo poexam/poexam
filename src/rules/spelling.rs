@@ -69,7 +69,7 @@ impl RuleChecker for SpellingCtxtRule {
             if !misspelled_words.is_empty() {
                 return vec![
                     self.new_diag(checker, "misspelled words in context".to_string())
-                        .with_msg_hl(msgctxt, &pos_words)
+                        .with_msg_hl(msgctxt, pos_words)
                         .with_misspelled_words(misspelled_words),
                 ];
             }
@@ -132,7 +132,7 @@ impl RuleChecker for SpellingIdRule {
             if !misspelled_words.is_empty() {
                 return vec![
                     self.new_diag(checker, "misspelled words in source".to_string())
-                        .with_msgs_hl(msgid, &pos_words, msgstr, &[])
+                        .with_msgs_hl(msgid, pos_words, msgstr, [])
                         .with_misspelled_words(misspelled_words),
                 ];
             }
@@ -195,7 +195,7 @@ impl RuleChecker for SpellingStrRule {
             if !misspelled_words.is_empty() {
                 return vec![
                     self.new_diag(checker, "misspelled words in translation".to_string())
-                        .with_msgs_hl(msgid, &[], msgstr, &pos_words)
+                        .with_msgs_hl(msgid, [], msgstr, pos_words)
                         .with_misspelled_words(misspelled_words),
                 ];
             }

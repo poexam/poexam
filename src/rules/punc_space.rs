@@ -78,7 +78,7 @@ impl RuleChecker for PuncSpaceIdRule {
             {
                 diags.push(
                     self.new_diag(checker, format!("extra space before '{next_c}' in source"))
-                        .with_msgs_hl(msgid, &[(idx, *next_idx + next_c.len_utf8())], msgstr, &[]),
+                        .with_msgs_hl(msgid, [(idx, *next_idx + next_c.len_utf8())], msgstr, []),
                 );
             }
         }
@@ -175,9 +175,9 @@ impl RuleChecker for PuncSpaceStrRule {
                         )
                         .with_msgs_hl(
                             msgid,
-                            &[],
+                            [],
                             msgstr,
-                            &[(idx, *next_idx + next_c.len_utf8())],
+                            [(idx, *next_idx + next_c.len_utf8())],
                         ),
                     );
                 } else if !matches!(*next_c, '\u{00A0}' | '\u{202F}') {
@@ -188,9 +188,9 @@ impl RuleChecker for PuncSpaceStrRule {
                         )
                         .with_msgs_hl(
                             msgid,
-                            &[],
+                            [],
                             msgstr,
-                            &[(idx, *next_idx + next_c.len_utf8())],
+                            [(idx, *next_idx + next_c.len_utf8())],
                         ),
                     );
                 }
@@ -204,9 +204,9 @@ impl RuleChecker for PuncSpaceStrRule {
                             )
                         ).with_msgs_hl(
                             msgid,
-                            &[],
+                            [],
                             msgstr,
-                            &[(idx, *next_idx + next_c.len_utf8())]));
+                            [(idx, *next_idx + next_c.len_utf8())]));
                 } else if !matches!(c, '\u{00A0}' | '\u{202F}') {
                     diags.push(
                         self.new_diag(
@@ -215,9 +215,9 @@ impl RuleChecker for PuncSpaceStrRule {
                         )
                         .with_msgs_hl(
                             msgid,
-                            &[],
+                            [],
                             msgstr,
-                            &[(idx, *next_idx + next_c.len_utf8())],
+                            [(idx, *next_idx + next_c.len_utf8())],
                         ),
                     );
                 }
@@ -230,9 +230,9 @@ impl RuleChecker for PuncSpaceStrRule {
                         )
                         .with_msgs_hl(
                             msgid,
-                            &[],
+                            [],
                             msgstr,
-                            &[(idx, *next_idx + next_c.len_utf8())],
+                            [(idx, *next_idx + next_c.len_utf8())],
                         ),
                     );
                 } else if is_finnish {
@@ -243,9 +243,9 @@ impl RuleChecker for PuncSpaceStrRule {
                         )
                         .with_msgs_hl(
                             msgid,
-                            &[],
+                            [],
                             msgstr,
-                            &[(idx, *next_idx + next_c.len_utf8())],
+                            [(idx, *next_idx + next_c.len_utf8())],
                         ),
                     );
                 }
@@ -263,9 +263,9 @@ impl RuleChecker for PuncSpaceStrRule {
                     )
                     .with_msgs_hl(
                         msgid,
-                        &[],
+                        [],
                         msgstr,
-                        &[(idx, *next_idx + next_c.len_utf8())],
+                        [(idx, *next_idx + next_c.len_utf8())],
                     ),
                 );
             }
