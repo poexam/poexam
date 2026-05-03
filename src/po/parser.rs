@@ -6,8 +6,6 @@
 
 use std::borrow::Cow;
 
-use memchr::memmem;
-
 use crate::{po::entry::Entry, po::format::language::Language, po::message::Message};
 use encoding_rs::Encoding;
 
@@ -32,7 +30,6 @@ pub struct Parser<'a> {
     encoding: Option<&'static Encoding>,
     nplurals: u32,
     // Internal state of the parser.
-    iter_lines: Option<memchr::memmem::FindIter<'a, 'static>>,
     offset: usize,
     line_number: usize,
     next_line_number: usize,
@@ -79,19 +76,12 @@ impl<'d> Parser<'d> {
         if self.offset >= self.data_len {
             return None;
         }
-        if self.iter_lines.is_none() {
-            self.iter_lines = Some(memmem::find_iter(self.data, "\n"));
-        }
-        match &mut self.iter_lines {
-            Some(iter) => {
-                let start = self.offset;
-                let end = iter.next().unwrap_or(self.data_len);
-                self.offset = end + 1;
-                self.next_line_number += 1;
-                Some(&self.data[start..end])
-            }
-            None => None,
-        }
+        let start = self.offset;
+        let end = memchr::memchr(b'\n', &self.data[start..])
+            .map_or(self.data_len, |pos| start + pos);
+        self.offset = end + 1;
+        self.next_line_number += 1;
+        Some(&self.data[start..end])
     }
 
     /// Parse the header of a PO entry to extract encoding information if present.
