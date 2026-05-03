@@ -250,8 +250,8 @@ impl Diagnostic {
         }
     }
 
-    /// Format the diagnostic line (number + message) with colors for display.
-    fn format_line(line: &DiagnosticLine) -> String {
+    /// Append the formatted diagnostic line (number + message) with colors to `out`.
+    fn format_line_into(out: &mut String, line: &DiagnosticLine) {
         let prefix_lf_empty = "        | ".cyan().to_string();
         let prefix_line = if line.line_number > 0 {
             format!("{:7} | ", line.line_number).cyan().to_string()
@@ -259,36 +259,37 @@ impl Diagnostic {
             prefix_lf_empty.clone()
         };
         if line.message.is_empty() {
-            return prefix_line;
+            out.push_str(&prefix_line);
+            return;
         }
-        let mut out = String::new();
-        for (idx, line) in line.message_hl_color().lines().enumerate() {
+        for (idx, l) in line.message_hl_color().lines().enumerate() {
             if idx == 0 {
                 out.push_str(&prefix_line);
             } else {
                 out.push('\n');
                 out.push_str(&prefix_lf_empty);
             }
-            out.push_str(line);
+            out.push_str(l);
         }
-        out
     }
 
     /// Format the diagnostic lines with colors for display.
     fn format_lines(&self) -> String {
         if self.lines.is_empty() {
-            "\n".to_string()
-        } else {
-            let mut list_lines = Vec::with_capacity(self.lines.len() + 2);
-            list_lines.push(String::new());
-            list_lines.push("        |".cyan().to_string());
-            for line in &self.lines {
-                list_lines.push(Self::format_line(line));
-            }
-            list_lines.push("        |".cyan().to_string());
-            list_lines.push(String::new());
-            list_lines.join("\n")
+            return "\n".to_string();
         }
+        let bar = "        |".cyan().to_string();
+        let mut out = String::new();
+        out.push('\n');
+        out.push_str(&bar);
+        for line in &self.lines {
+            out.push('\n');
+            Self::format_line_into(&mut out, line);
+        }
+        out.push('\n');
+        out.push_str(&bar);
+        out.push('\n');
+        out
     }
 }
 
