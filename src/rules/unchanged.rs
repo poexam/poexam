@@ -63,18 +63,12 @@ impl RuleChecker for UnchangedRule {
         if !msgid.value.trim().is_empty()
             && !msgstr.value.trim().is_empty()
             && msgid.value == msgstr.value
+            && msgid.value.chars().any(char::is_lowercase)
         {
-            let all_upper = msgid
-                .value
-                .chars()
-                .filter(|c| c.is_alphabetic())
-                .all(char::is_uppercase);
-            if !all_upper && msgid.value.to_uppercase() != msgid.value {
-                return vec![
-                    self.new_diag(checker, "unchanged translation".to_string())
-                        .with_msgs(msgid, msgstr),
-                ];
-            }
+            return vec![
+                self.new_diag(checker, "unchanged translation".to_string())
+                    .with_msgs(msgid, msgstr),
+            ];
         }
         vec![]
     }
