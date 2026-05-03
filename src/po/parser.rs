@@ -278,7 +278,7 @@ impl Iterator for Parser<'_> {
                 [b'#', b' ', b'n', b'o', b'q', b'a', b':', rules @ ..] => {
                     entry.noqa_rules = rules
                         .split(|&b| b == b';')
-                        .map(|b| String::from_utf8_lossy(b).trim().into())
+                        .map(|r| String::from_utf8_lossy(r.trim_ascii()).into_owned())
                         .collect();
                 }
                 // Flag "noqa" in a comment.
