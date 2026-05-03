@@ -6,6 +6,8 @@
 //! - `punc-start`: punctuation at the beginning of the string
 //! - `punc-end`: punctuation at the end of the string
 
+use std::borrow::Cow;
+
 use crate::checker::Checker;
 use crate::diagnostic::{Diagnostic, Severity};
 use crate::po::entry::Entry;
@@ -253,8 +255,21 @@ fn get_punc_end(s: &str) -> &str {
 
 /// Normalize punctuation to English symbols: full-width to half-width and take care
 /// about specific cases in some languages.
-fn punc_normalize(s: &str, language: &str, ignore_ellipsis: bool) -> String {
-    let value = s
+///
+/// Returns `Cow::Borrowed` when the input is already normalized (the common case
+/// for ASCII English-style punctuation), avoiding an allocation.
+fn punc_normalize<'a>(s: &'a str, language: &str, ignore_ellipsis: bool) -> Cow<'a, str> {
+    let needs_substitution = s.chars().any(|c| {
+        matches!(
+            c,
+            '：' | '；' | '\u{061B}' | '。' | '，' | '،' | '！' | '？' | '\u{061F}'
+        ) || (c == '?' && language == "el")
+    });
+    let needs_ellipsis = ignore_ellipsis && s.contains("...");
+    if !needs_substitution && !needs_ellipsis {
+        return Cow::Borrowed(s);
+    }
+    let value: String = s
         .chars()
         .map(|c| match c {
             // Special case for Greek question mark.
@@ -268,11 +283,11 @@ fn punc_normalize(s: &str, language: &str, ignore_ellipsis: bool) -> String {
             '？' | '\u{061F}' => '?',
             _ => c,
         })
-        .collect::<String>();
+        .collect();
     if ignore_ellipsis {
-        value.replace("...", "…")
+        Cow::Owned(value.replace("...", "…"))
     } else {
-        value
+        Cow::Owned(value)
     }
 }
 
