@@ -249,3 +249,181 @@ pub fn display_result(
         1
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::diagnostic::Diagnostic;
+
+    fn default_check_args() -> args::CheckArgs {
+        args::CheckArgs {
+            files: vec![],
+            show_settings: false,
+            config: None,
+            no_config: false,
+            fuzzy: false,
+            noqa: false,
+            obsolete: false,
+            select: None,
+            ignore: None,
+            path_msgfmt: None,
+            path_dicts: None,
+            path_words: None,
+            lang_id: None,
+            langs: None,
+            severity: vec![],
+            punc_ignore_ellipsis: false,
+            no_errors: false,
+            sort: args::CheckSort::default(),
+            rule_stats: false,
+            file_stats: false,
+            output: args::CheckOutputFormat::default(),
+            quiet: false,
+        }
+    }
+
+    fn diag(rule: &'static str, severity: Severity) -> Diagnostic {
+        Diagnostic::new(Path::new("test.po"), rule, severity, "msg".to_string())
+    }
+
+    fn file_result(path: &str, diagnostics: Vec<Diagnostic>) -> CheckFileResult {
+        CheckFileResult {
+            path: PathBuf::from(path),
+            diagnostics,
+            ..CheckFileResult::default()
+        }
+    }
+
+    #[test]
+    fn test_display_result_no_files_returns_zero() {
+        let args = default_check_args();
+        let code = display_result(&[], &args, &Duration::from_millis(0));
+        assert_eq!(code, 0);
+    }
+
+    #[test]
+    fn test_display_result_all_clean_returns_zero() {
+        let args = default_check_args();
+        let result = vec![
+            file_result("a.po", vec![]),
+            file_result("b.po", vec![]),
+        ];
+        let code = display_result(&result, &args, &Duration::from_millis(0));
+        assert_eq!(code, 0);
+    }
+
+    #[test]
+    fn test_display_result_info_diagnostic_returns_one() {
+        let args = default_check_args();
+        let result = vec![file_result("a.po", vec![diag("brackets", Severity::Info)])];
+        let code = display_result(&result, &args, &Duration::from_millis(0));
+        assert_eq!(code, 1);
+    }
+
+    #[test]
+    fn test_display_result_warning_diagnostic_returns_one() {
+        let args = default_check_args();
+        let result = vec![file_result("a.po", vec![diag("blank", Severity::Warning)])];
+        let code = display_result(&result, &args, &Duration::from_millis(0));
+        assert_eq!(code, 1);
+    }
+
+    #[test]
+    fn test_display_result_error_diagnostic_returns_one() {
+        let args = default_check_args();
+        let result = vec![file_result("a.po", vec![diag("escapes", Severity::Error)])];
+        let code = display_result(&result, &args, &Duration::from_millis(0));
+        assert_eq!(code, 1);
+    }
+
+    #[test]
+    fn test_display_result_misspelled_mode_returns_zero_even_with_diags() {
+        // Misspelled output mode is considered a "list, not a verdict" — exit 0 always.
+        let mut args = default_check_args();
+        args.output = args::CheckOutputFormat::Misspelled;
+        let result = vec![file_result("a.po", vec![diag("spelling-str", Severity::Info)])];
+        let code = display_result(&result, &args, &Duration::from_millis(0));
+        assert_eq!(code, 0);
+    }
+
+    #[test]
+    fn test_display_result_misspelled_mode_no_diags_returns_zero() {
+        let mut args = default_check_args();
+        args.output = args::CheckOutputFormat::Misspelled;
+        let result = vec![file_result("a.po", vec![])];
+        let code = display_result(&result, &args, &Duration::from_millis(0));
+        assert_eq!(code, 0);
+    }
+
+    #[test]
+    fn test_display_result_quiet_with_errors_still_returns_one() {
+        let mut args = default_check_args();
+        args.quiet = true;
+        let result = vec![file_result("a.po", vec![diag("escapes", Severity::Error)])];
+        let code = display_result(&result, &args, &Duration::from_millis(0));
+        assert_eq!(code, 1);
+    }
+
+    #[test]
+    fn test_display_result_no_errors_flag_does_not_change_exit_code() {
+        let mut args = default_check_args();
+        args.no_errors = true;
+        let result = vec![file_result("a.po", vec![diag("blank", Severity::Warning)])];
+        let code = display_result(&result, &args, &Duration::from_millis(0));
+        assert_eq!(code, 1);
+    }
+
+    #[test]
+    fn test_display_result_json_output_returns_one_on_errors() {
+        let mut args = default_check_args();
+        args.output = args::CheckOutputFormat::Json;
+        let result = vec![file_result("a.po", vec![diag("escapes", Severity::Error)])];
+        let code = display_result(&result, &args, &Duration::from_millis(0));
+        assert_eq!(code, 1);
+    }
+
+    #[test]
+    fn test_display_result_sarif_output_returns_one_on_errors() {
+        let mut args = default_check_args();
+        args.output = args::CheckOutputFormat::Sarif;
+        let result = vec![file_result("a.po", vec![diag("escapes", Severity::Error)])];
+        let code = display_result(&result, &args, &Duration::from_millis(0));
+        assert_eq!(code, 1);
+    }
+
+    #[test]
+    fn test_display_result_with_rule_and_file_stats_flags() {
+        // Just verifying that turning the stats-printing flags on doesn't change the
+        // exit-code logic and doesn't panic on multi-severity input.
+        let mut args = default_check_args();
+        args.rule_stats = true;
+        args.file_stats = true;
+        let result = vec![
+            file_result(
+                "a.po",
+                vec![
+                    diag("blank", Severity::Warning),
+                    diag("escapes", Severity::Error),
+                ],
+            ),
+            file_result("b.po", vec![diag("brackets", Severity::Info)]),
+        ];
+        let code = display_result(&result, &args, &Duration::from_millis(0));
+        assert_eq!(code, 1);
+    }
+
+    #[test]
+    fn test_display_result_mixed_severities_returns_one() {
+        let args = default_check_args();
+        let result = vec![file_result(
+            "a.po",
+            vec![
+                diag("brackets", Severity::Info),
+                diag("blank", Severity::Warning),
+                diag("escapes", Severity::Error),
+            ],
+        )];
+        let code = display_result(&result, &args, &Duration::from_millis(0));
+        assert_eq!(code, 1);
+    }
+}

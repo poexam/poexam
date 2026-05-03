@@ -302,3 +302,207 @@ pub fn run_check(args: &args::CheckArgs) -> i32 {
     let elapsed = start.elapsed();
     display_result(&result, args, &elapsed)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn tmp_dir(label: &str) -> tempfile::TempDir {
+        tempfile::TempDir::with_prefix(format!("poexam-checker-{label}-")).expect("create temp dir")
+    }
+
+    fn default_check_args() -> args::CheckArgs {
+        args::CheckArgs {
+            files: vec![],
+            show_settings: false,
+            config: None,
+            no_config: false,
+            fuzzy: false,
+            noqa: false,
+            obsolete: false,
+            select: None,
+            ignore: None,
+            path_msgfmt: None,
+            path_dicts: None,
+            path_words: None,
+            lang_id: None,
+            langs: None,
+            severity: vec![],
+            punc_ignore_ellipsis: false,
+            no_errors: false,
+            sort: args::CheckSort::default(),
+            rule_stats: false,
+            file_stats: false,
+            output: args::CheckOutputFormat::default(),
+            quiet: true,
+        }
+    }
+
+    /// Minimal valid PO content with a `pt_BR` header and one translated entry.
+    const PO_PT_BR: &str = "msgid \"\"
+msgstr \"\"
+\"Language: pt_BR\\n\"
+\"Content-Type: text/plain; charset=UTF-8\\n\"
+
+msgid \"hello\"
+msgstr \"olá\"
+";
+
+    fn write_po(dir: &Path, name: &str, content: &str) -> PathBuf {
+        let path = dir.join(name);
+        std::fs::write(&path, content).expect("write po file");
+        path
+    }
+
+    #[test]
+    fn test_new_returns_default_path_and_no_diagnostics() {
+        let checker = Checker::new(b"");
+        assert_eq!(checker.path, PathBuf::new());
+        assert!(checker.diagnostics.is_empty());
+        assert!(checker.dict_id.is_none());
+        assert!(checker.dict_str.is_none());
+    }
+
+    #[test]
+    fn test_with_path_sets_path() {
+        let checker = Checker::new(b"").with_path(Path::new("foo/bar.po"));
+        assert_eq!(checker.path, PathBuf::from("foo/bar.po"));
+    }
+
+    #[test]
+    fn test_with_config_sets_config() {
+        let mut config = Config::default();
+        config.check.lang_id = "fr".to_string();
+        let checker = Checker::new(b"").with_config(config);
+        assert_eq!(checker.config.check.lang_id, "fr");
+    }
+
+    #[test]
+    fn test_unparsed_state_has_default_metadata() {
+        let checker = Checker::new(b"");
+        assert_eq!(checker.language(), "");
+        assert_eq!(checker.language_code(), "");
+        assert_eq!(checker.country(), "");
+        // No `Content-Type` header parsed yet → encoding defaults to UTF-8.
+        assert_eq!(checker.encoding_name(), "UTF-8");
+        assert_eq!(checker.nplurals(), 0);
+    }
+
+    #[test]
+    fn test_language_extracted_from_header_after_parsing() {
+        let mut checker = Checker::new(PO_PT_BR.as_bytes());
+        // Empty rule set: parser walks all entries, populates header metadata,
+        // and produces no diagnostics.
+        checker.do_all_checks(&Rules::default());
+        assert_eq!(checker.language(), "pt_BR");
+        assert_eq!(checker.language_code(), "pt");
+        assert_eq!(checker.country(), "BR");
+        assert_eq!(checker.encoding_name(), "UTF-8");
+        assert!(checker.diagnostics.is_empty());
+    }
+
+    #[test]
+    fn test_do_all_checks_on_empty_input_does_nothing() {
+        let mut checker = Checker::new(b"");
+        checker.do_all_checks(&Rules::default());
+        assert!(checker.diagnostics.is_empty());
+    }
+
+    #[test]
+    fn test_check_file_missing_path_returns_read_error() {
+        let missing = PathBuf::from("/this/path/should/not/exist/file.po");
+        let mut args = default_check_args();
+        args.no_config = true;
+        let result = check_file(&missing, &args);
+        assert_eq!(result.path, missing);
+        assert_eq!(result.diagnostics.len(), 1);
+        assert_eq!(result.diagnostics[0].rule, "read-error");
+        assert_eq!(result.diagnostics[0].severity, Severity::Error);
+    }
+
+    #[test]
+    fn test_check_file_invalid_config_returns_config_error() {
+        let tmp = tmp_dir("bad-config");
+        let cfg_path = tmp.path().join("poexam.toml");
+        std::fs::write(&cfg_path, "this = is = not toml").expect("write bad config");
+        let po_path = write_po(tmp.path(), "fr.po", PO_PT_BR);
+
+        let mut args = default_check_args();
+        args.config = Some(cfg_path);
+        let result = check_file(&po_path, &args);
+        assert_eq!(result.diagnostics.len(), 1);
+        assert_eq!(result.diagnostics[0].rule, "config-error");
+        assert_eq!(result.diagnostics[0].severity, Severity::Error);
+    }
+
+    #[test]
+    fn test_check_file_invalid_rule_selector_returns_rules_error() {
+        let tmp = tmp_dir("bad-rule");
+        let po_path = write_po(tmp.path(), "fr.po", PO_PT_BR);
+
+        let mut args = default_check_args();
+        args.no_config = true;
+        args.select = Some("does-not-exist-rule".to_string());
+        let result = check_file(&po_path, &args);
+        assert_eq!(result.diagnostics.len(), 1);
+        assert_eq!(result.diagnostics[0].rule, "rules-error");
+        assert_eq!(result.diagnostics[0].severity, Severity::Error);
+    }
+
+    #[test]
+    fn test_check_file_no_config_runs_with_default_rules() {
+        let tmp = tmp_dir("no-config");
+        let po_path = write_po(tmp.path(), "fr.po", PO_PT_BR);
+
+        let mut args = default_check_args();
+        args.no_config = true;
+        // Pick a non-default rule that won't fire on a non-fuzzy, non-obsolete entry.
+        args.select = Some("fuzzy".to_string());
+        let result = check_file(&po_path, &args);
+        assert_eq!(result.path, po_path);
+        assert!(
+            result.diagnostics.is_empty(),
+            "expected no diagnostics, got {:?}",
+            result.diagnostics
+        );
+    }
+
+    #[test]
+    fn test_check_file_uses_args_config_when_provided() {
+        // A `--config` path that doesn't exist must surface as a config error
+        // (canonicalize fails → raw path passed to Config::new → read fails).
+        let tmp = tmp_dir("missing-config");
+        let po_path = write_po(tmp.path(), "fr.po", PO_PT_BR);
+        let mut args = default_check_args();
+        args.config = Some(PathBuf::from("/no/such/poexam.toml"));
+        let result = check_file(&po_path, &args);
+        assert_eq!(result.diagnostics.len(), 1);
+        assert_eq!(result.diagnostics[0].rule, "config-error");
+    }
+
+    #[test]
+    fn test_run_check_clean_file_returns_zero() {
+        let tmp = tmp_dir("run-clean");
+        let po_path = write_po(tmp.path(), "fr.po", PO_PT_BR);
+
+        let mut args = default_check_args();
+        args.no_config = true;
+        args.select = Some("fuzzy".to_string());
+        args.files = vec![po_path];
+        let code = run_check(&args);
+        assert_eq!(code, 0);
+    }
+
+    #[test]
+    fn test_run_check_invalid_rule_returns_one() {
+        let tmp = tmp_dir("run-bad-rule");
+        let po_path = write_po(tmp.path(), "fr.po", PO_PT_BR);
+
+        let mut args = default_check_args();
+        args.no_config = true;
+        args.select = Some("does-not-exist-rule".to_string());
+        args.files = vec![po_path];
+        let code = run_check(&args);
+        assert_eq!(code, 1);
+    }
+}

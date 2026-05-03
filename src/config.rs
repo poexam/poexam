@@ -198,3 +198,312 @@ pub fn find_config_path(po_path: &Path) -> Option<PathBuf> {
     }
     None
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Create a temp directory and return its handle plus the canonical path.
+    /// `find_config_path` canonicalizes its input, so tests that compare against
+    /// its output must use the canonical form (matters on macOS where the
+    /// system temp dir is symlinked).
+    fn tmp_dir(label: &str) -> (tempfile::TempDir, PathBuf) {
+        let tmp = tempfile::TempDir::with_prefix(format!("poexam-cfg-{label}-"))
+            .expect("create temp dir");
+        let canonical = tmp.path().canonicalize().expect("canonicalize temp dir");
+        (tmp, canonical)
+    }
+
+    fn default_check_args() -> args::CheckArgs {
+        args::CheckArgs {
+            files: vec![],
+            show_settings: false,
+            config: None,
+            no_config: false,
+            fuzzy: false,
+            noqa: false,
+            obsolete: false,
+            select: None,
+            ignore: None,
+            path_msgfmt: None,
+            path_dicts: None,
+            path_words: None,
+            lang_id: None,
+            langs: None,
+            severity: vec![],
+            punc_ignore_ellipsis: false,
+            no_errors: false,
+            sort: args::CheckSort::default(),
+            rule_stats: false,
+            file_stats: false,
+            output: args::CheckOutputFormat::default(),
+            quiet: false,
+        }
+    }
+
+    #[test]
+    fn test_default_helpers() {
+        assert_eq!(default_check_select(), vec!["default".to_string()]);
+        assert_eq!(
+            default_check_path_msgfmt(),
+            PathBuf::from(DEFAULT_PATH_MSGFMT)
+        );
+        assert_eq!(
+            default_check_path_dicts(),
+            PathBuf::from(dict::DEFAULT_PATH_DICTS),
+        );
+        assert_eq!(default_check_lang_id(), dict::DEFAULT_LANG_ID);
+    }
+
+    #[test]
+    fn test_check_config_default() {
+        let c = CheckConfig::default();
+        assert!(!c.fuzzy);
+        assert!(!c.noqa);
+        assert!(!c.obsolete);
+        assert_eq!(c.select, vec!["default".to_string()]);
+        assert!(c.ignore.is_empty());
+        assert_eq!(c.path_msgfmt, PathBuf::from(DEFAULT_PATH_MSGFMT));
+        assert_eq!(c.path_dicts, PathBuf::from(dict::DEFAULT_PATH_DICTS));
+        assert!(c.path_words.is_none());
+        assert_eq!(c.lang_id, dict::DEFAULT_LANG_ID);
+        assert!(c.langs.is_empty());
+        assert!(c.severity.is_empty());
+        assert!(!c.punc_ignore_ellipsis);
+    }
+
+    #[test]
+    fn test_config_default() {
+        let c = Config::default();
+        assert!(c.path.is_none());
+        // Default `check` should match `CheckConfig::default()`.
+        assert_eq!(c.check.select, vec!["default".to_string()]);
+    }
+
+    #[test]
+    fn test_config_new_no_path_yields_defaults() {
+        let c = Config::new(None).expect("config builds without a path");
+        assert!(c.path.is_none());
+        assert_eq!(c.check.select, vec!["default".to_string()]);
+        assert_eq!(c.check.lang_id, dict::DEFAULT_LANG_ID);
+        assert!(!c.check.fuzzy);
+    }
+
+    #[test]
+    fn test_config_new_reads_toml_and_keeps_path() {
+        let (_tmp, root) = tmp_dir("cfg-read");
+        let cfg_path = root.join("poexam.toml");
+        std::fs::write(
+            &cfg_path,
+            r#"
+[check]
+fuzzy = true
+select = ["spelling", "html-tags"]
+ignore = ["urls"]
+lang_id = "fr"
+punc_ignore_ellipsis = true
+"#,
+        )
+        .expect("write config file");
+        let c = Config::new(Some(&cfg_path)).expect("parse config");
+        assert_eq!(c.path.as_deref(), Some(cfg_path.as_path()));
+        assert!(c.check.fuzzy);
+        assert_eq!(
+            c.check.select,
+            vec!["spelling".to_string(), "html-tags".to_string()],
+        );
+        assert_eq!(c.check.ignore, vec!["urls".to_string()]);
+        assert_eq!(c.check.lang_id, "fr");
+        assert!(c.check.punc_ignore_ellipsis);
+        // Unspecified fields fall back to defaults.
+        assert!(!c.check.noqa);
+        assert_eq!(c.check.path_msgfmt, PathBuf::from(DEFAULT_PATH_MSGFMT));
+    }
+
+    #[test]
+    fn test_config_new_missing_file_returns_err() {
+        let missing = PathBuf::from("/this/path/should/not/exist/poexam.toml");
+        let err = Config::new(Some(&missing)).expect_err("missing file is an error");
+        assert!(err.to_string().contains("could not read config"));
+    }
+
+    #[test]
+    fn test_config_new_invalid_toml_returns_err() {
+        let (_tmp, root) = tmp_dir("cfg-bad");
+        let cfg_path = root.join("poexam.toml");
+        std::fs::write(&cfg_path, "not = valid = toml").expect("write file");
+        assert!(Config::new(Some(&cfg_path)).is_err());
+    }
+
+    #[test]
+    fn test_with_args_check_no_overrides_keeps_defaults() {
+        let cfg = Config::default().with_args_check(&default_check_args());
+        assert!(!cfg.check.fuzzy);
+        assert_eq!(cfg.check.select, vec!["default".to_string()]);
+        assert!(cfg.check.ignore.is_empty());
+        assert_eq!(cfg.check.path_msgfmt, PathBuf::from(DEFAULT_PATH_MSGFMT));
+        assert!(cfg.check.path_words.is_none());
+        assert_eq!(cfg.check.lang_id, dict::DEFAULT_LANG_ID);
+        assert!(cfg.check.severity.is_empty());
+    }
+
+    #[test]
+    fn test_with_args_check_booleans() {
+        let mut args = default_check_args();
+        args.fuzzy = true;
+        args.noqa = true;
+        args.obsolete = true;
+        args.punc_ignore_ellipsis = true;
+        let cfg = Config::default().with_args_check(&args);
+        assert!(cfg.check.fuzzy);
+        assert!(cfg.check.noqa);
+        assert!(cfg.check.obsolete);
+        assert!(cfg.check.punc_ignore_ellipsis);
+    }
+
+    #[test]
+    fn test_with_args_check_booleans_do_not_unset_existing() {
+        // Args are additive: a `false` flag must not turn off a config-set `true`.
+        let cfg = Config {
+            check: CheckConfig {
+                fuzzy: true,
+                noqa: true,
+                ..CheckConfig::default()
+            },
+            ..Config::default()
+        };
+        let cfg = cfg.with_args_check(&default_check_args());
+        assert!(cfg.check.fuzzy);
+        assert!(cfg.check.noqa);
+    }
+
+    #[test]
+    fn test_with_args_check_comma_lists_split_and_trim() {
+        let mut args = default_check_args();
+        args.select = Some(" spelling , html-tags ".to_string());
+        args.ignore = Some("urls,paths".to_string());
+        args.langs = Some("en_US, fr ,de".to_string());
+        let cfg = Config::default().with_args_check(&args);
+        assert_eq!(
+            cfg.check.select,
+            vec!["spelling".to_string(), "html-tags".to_string()],
+        );
+        assert_eq!(
+            cfg.check.ignore,
+            vec!["urls".to_string(), "paths".to_string()],
+        );
+        assert_eq!(
+            cfg.check.langs,
+            vec!["en_US".to_string(), "fr".to_string(), "de".to_string()],
+        );
+    }
+
+    #[test]
+    fn test_with_args_check_paths_and_lang_id() {
+        let mut args = default_check_args();
+        args.path_msgfmt = Some(PathBuf::from("/opt/bin/msgfmt"));
+        args.path_dicts = Some(PathBuf::from("/opt/share/hunspell"));
+        args.path_words = Some(PathBuf::from("/opt/words"));
+        args.lang_id = Some("de".to_string());
+        let cfg = Config::default().with_args_check(&args);
+        assert_eq!(cfg.check.path_msgfmt, PathBuf::from("/opt/bin/msgfmt"));
+        assert_eq!(cfg.check.path_dicts, PathBuf::from("/opt/share/hunspell"));
+        assert_eq!(cfg.check.path_words, Some(PathBuf::from("/opt/words")));
+        assert_eq!(cfg.check.lang_id, "de");
+    }
+
+    #[test]
+    fn test_with_args_check_severity_replaces_when_non_empty() {
+        let mut args = default_check_args();
+        args.severity = vec![Severity::Warning, Severity::Error];
+        let cfg = Config::default().with_args_check(&args);
+        assert_eq!(cfg.check.severity, vec![Severity::Warning, Severity::Error]);
+    }
+
+    #[test]
+    fn test_with_args_check_resolves_relative_path_words_against_config_dir() {
+        // When args.path_words is None and config has a relative path_words plus a known
+        // config file path, the path should be resolved against the config's directory.
+        let (_tmp, root) = tmp_dir("path-words");
+        let words_dir = root.join("words");
+        std::fs::create_dir_all(&words_dir).expect("create words dir");
+        let cfg_path = root.join("poexam.toml");
+        std::fs::write(&cfg_path, "").expect("write empty config");
+
+        let cfg = Config {
+            path: Some(cfg_path),
+            check: CheckConfig {
+                path_words: Some(PathBuf::from("words")),
+                ..CheckConfig::default()
+            },
+        };
+        let cfg = cfg.with_args_check(&default_check_args());
+
+        let resolved = cfg.check.path_words.expect("path_words resolved");
+        let expected = words_dir.canonicalize().expect("canonicalize words dir");
+        assert_eq!(resolved, expected);
+    }
+
+    #[test]
+    fn test_find_config_path_priority_dot_poexam_dir_first() {
+        // All three candidate paths exist in the same directory; the `.poexam/poexam.toml`
+        // form must win the priority race.
+        let (_tmp, root) = tmp_dir("cfg-priority");
+        let hidden_dir = root.join(".poexam");
+        std::fs::create_dir_all(&hidden_dir).expect("create .poexam dir");
+        let winner = hidden_dir.join("poexam.toml");
+        std::fs::write(&winner, "").expect("write winner");
+        std::fs::write(root.join("poexam.toml"), "").expect("write poexam.toml");
+        std::fs::write(root.join(".poexam.toml"), "").expect("write .poexam.toml");
+        let po = root.join("fr.po");
+        std::fs::write(&po, "").expect("write po file");
+
+        let found = find_config_path(&po).expect("config found");
+        assert_eq!(found, winner);
+    }
+
+    #[test]
+    fn test_find_config_path_finds_poexam_toml_when_only_one() {
+        let (_tmp, root) = tmp_dir("cfg-plain");
+        let cfg_path = root.join("poexam.toml");
+        std::fs::write(&cfg_path, "").expect("write config");
+        let po = root.join("fr.po");
+        std::fs::write(&po, "").expect("write po file");
+
+        let found = find_config_path(&po).expect("config found");
+        assert_eq!(found, cfg_path);
+    }
+
+    #[test]
+    fn test_find_config_path_finds_dot_poexam_toml_when_only_one() {
+        let (_tmp, root) = tmp_dir("cfg-dot");
+        let cfg_path = root.join(".poexam.toml");
+        std::fs::write(&cfg_path, "").expect("write config");
+        let po = root.join("fr.po");
+        std::fs::write(&po, "").expect("write po file");
+
+        let found = find_config_path(&po).expect("config found");
+        assert_eq!(found, cfg_path);
+    }
+
+    #[test]
+    fn test_find_config_path_walks_ancestors() {
+        // Config in a parent directory, PO file two levels deeper.
+        let (_tmp, root) = tmp_dir("cfg-ancestors");
+        let cfg_path = root.join("poexam.toml");
+        std::fs::write(&cfg_path, "").expect("write config");
+        let sub = root.join("a/b");
+        std::fs::create_dir_all(&sub).expect("create nested dirs");
+        let po = sub.join("fr.po");
+        std::fs::write(&po, "").expect("write po file");
+
+        let found = find_config_path(&po).expect("config found by walking up");
+        assert_eq!(found, cfg_path);
+    }
+
+    #[test]
+    fn test_find_config_path_returns_none_for_nonexistent_input() {
+        let missing = PathBuf::from("/this/path/should/not/exist/file.po");
+        assert!(find_config_path(&missing).is_none());
+    }
+}

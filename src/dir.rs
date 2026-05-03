@@ -58,3 +58,97 @@ pub fn find_po_files(paths: &[PathBuf]) -> HashSet<PathBuf> {
     });
     files.lock().unwrap().clone()
 }
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    use super::*;
+
+    fn tmp_dir(label: &str) -> tempfile::TempDir {
+        tempfile::TempDir::with_prefix(format!("poexam-dir-{label}-")).expect("create temp dir")
+    }
+
+    fn touch(path: &Path) {
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent).expect("create parent");
+        }
+        std::fs::write(path, "").expect("write file");
+    }
+
+    #[test]
+    fn test_empty_dir_returns_empty_set() {
+        let tmp = tmp_dir("empty");
+        let found = find_po_files(&[tmp.path().to_path_buf()]);
+        assert!(found.is_empty());
+    }
+
+    #[test]
+    fn test_finds_single_po_file() {
+        let tmp = tmp_dir("single");
+        let po = tmp.path().join("fr.po");
+        touch(&po);
+        let found = find_po_files(&[tmp.path().to_path_buf()]);
+        assert_eq!(found.len(), 1);
+        assert!(found.contains(&po));
+    }
+
+    #[test]
+    fn test_only_po_extension_returned() {
+        let tmp = tmp_dir("ext-filter");
+        let po = tmp.path().join("a.po");
+        touch(&po);
+        touch(&tmp.path().join("a.pot"));
+        touch(&tmp.path().join("a.txt"));
+        touch(&tmp.path().join("notes.md"));
+        let found = find_po_files(&[tmp.path().to_path_buf()]);
+        assert_eq!(found, std::iter::once(po).collect::<HashSet<_>>());
+    }
+
+    #[test]
+    fn test_recursive_search() {
+        let tmp = tmp_dir("recursive");
+        let a = tmp.path().join("a.po");
+        let nested = tmp.path().join("sub/deep/nested.po");
+        touch(&a);
+        touch(&nested);
+        let found = find_po_files(&[tmp.path().to_path_buf()]);
+        assert!(found.contains(&a));
+        assert!(found.contains(&nested));
+        assert_eq!(found.len(), 2);
+    }
+
+    #[test]
+    fn test_multiple_root_paths_are_combined() {
+        let tmp_a = tmp_dir("multi-a");
+        let tmp_b = tmp_dir("multi-b");
+        let a = tmp_a.path().join("a.po");
+        let b = tmp_b.path().join("b.po");
+        touch(&a);
+        touch(&b);
+        let found = find_po_files(&[tmp_a.path().to_path_buf(), tmp_b.path().to_path_buf()]);
+        assert!(found.contains(&a));
+        assert!(found.contains(&b));
+        assert_eq!(found.len(), 2);
+    }
+
+    #[test]
+    fn test_gitignore_skips_listed_files() {
+        let tmp = tmp_dir("gitignore");
+        // The `ignore` crate only honors `.gitignore` inside a git repo by default,
+        // so mark the temp dir as one (a `.git` directory is enough).
+        std::fs::create_dir_all(tmp.path().join(".git")).expect("create .git marker");
+        // Excluded subtree.
+        let ignored = tmp.path().join("ignored/skip.po");
+        touch(&ignored);
+        // Visible file.
+        let visible = tmp.path().join("keep.po");
+        touch(&visible);
+        // .gitignore in the walk root excludes the subtree.
+        std::fs::write(tmp.path().join(".gitignore"), "ignored/\n").expect("write .gitignore");
+
+        let found = find_po_files(&[tmp.path().to_path_buf()]);
+        assert!(found.contains(&visible));
+        assert!(!found.contains(&ignored));
+    }
+}

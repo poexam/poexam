@@ -301,3 +301,247 @@ impl std::fmt::Display for Diagnostic {
         )
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeMap;
+
+    use super::*;
+
+    fn entry_with_msg(line: usize, msgid: &str, msgstr: &str) -> Entry {
+        let mut entry = Entry::new(line);
+        entry.msgid = Some(Message::new(line + 1, msgid));
+        let mut msgstr_map = BTreeMap::new();
+        msgstr_map.insert(0_u32, Message::new(line + 2, msgstr));
+        entry.msgstr = msgstr_map;
+        entry
+    }
+
+    #[test]
+    fn test_severity_default() {
+        assert_eq!(Severity::default(), Severity::Info);
+    }
+
+    #[test]
+    fn test_severity_ordering() {
+        assert!(Severity::Info < Severity::Warning);
+        assert!(Severity::Warning < Severity::Error);
+    }
+
+    #[test]
+    fn test_severity_display() {
+        colored::control::set_override(false);
+        assert_eq!(Severity::Info.to_string(), "info");
+        assert_eq!(Severity::Warning.to_string(), "warning");
+        assert_eq!(Severity::Error.to_string(), "error");
+    }
+
+    #[test]
+    fn test_diagnostic_new() {
+        let diag = Diagnostic::new(
+            Path::new("test.po"),
+            "blank",
+            Severity::Warning,
+            "blank translation".to_string(),
+        );
+        assert_eq!(diag.path, PathBuf::from("test.po"));
+        assert_eq!(diag.rule, "blank");
+        assert_eq!(diag.severity, Severity::Warning);
+        assert_eq!(diag.message, "blank translation");
+        assert!(diag.lines.is_empty());
+        assert!(diag.misspelled_words.is_empty());
+    }
+
+    #[test]
+    fn test_add_line() {
+        let mut diag = Diagnostic::new(
+            Path::new("test.po"),
+            "blank",
+            Severity::Info,
+            String::new(),
+        );
+        diag.add_line(42, "msgstr \"\"", &[(8, 9)]);
+        assert_eq!(diag.lines.len(), 1);
+        assert_eq!(diag.lines[0].line_number, 42);
+        assert_eq!(diag.lines[0].message, "msgstr \"\"");
+        assert_eq!(diag.lines[0].highlights, vec![(8, 9)]);
+    }
+
+    #[test]
+    fn test_with_msg() {
+        let msg = Message::new(10, "hello");
+        let diag = Diagnostic::new(Path::new("a.po"), "r", Severity::Info, String::new())
+            .with_msg(&msg);
+        assert_eq!(diag.lines.len(), 1);
+        assert_eq!(diag.lines[0].line_number, 10);
+        assert_eq!(diag.lines[0].message, "hello");
+        assert!(diag.lines[0].highlights.is_empty());
+    }
+
+    #[test]
+    fn test_with_msg_hl() {
+        let msg = Message::new(10, "hello");
+        let diag = Diagnostic::new(Path::new("a.po"), "r", Severity::Info, String::new())
+            .with_msg_hl(&msg, &[(0, 5)]);
+        assert_eq!(diag.lines[0].highlights, vec![(0, 5)]);
+    }
+
+    #[test]
+    fn test_with_msgs_inserts_separator() {
+        let msgid = Message::new(10, "hello");
+        let msgstr = Message::new(11, "bonjour");
+        let diag = Diagnostic::new(Path::new("a.po"), "r", Severity::Info, String::new())
+            .with_msgs(&msgid, &msgstr);
+        assert_eq!(diag.lines.len(), 3);
+        assert_eq!(diag.lines[0].line_number, 10);
+        assert_eq!(diag.lines[0].message, "hello");
+        assert_eq!(diag.lines[1].line_number, 0);
+        assert_eq!(diag.lines[1].message, "");
+        assert_eq!(diag.lines[2].line_number, 11);
+        assert_eq!(diag.lines[2].message, "bonjour");
+    }
+
+    #[test]
+    fn test_with_msgs_hl() {
+        let msgid = Message::new(10, "hello");
+        let msgstr = Message::new(11, "bonjour");
+        let diag = Diagnostic::new(Path::new("a.po"), "r", Severity::Info, String::new())
+            .with_msgs_hl(&msgid, &[(0, 1)], &msgstr, &[(2, 4)]);
+        assert_eq!(diag.lines[0].highlights, vec![(0, 1)]);
+        assert!(diag.lines[1].highlights.is_empty());
+        assert_eq!(diag.lines[2].highlights, vec![(2, 4)]);
+    }
+
+    #[test]
+    fn test_with_keywords_and_entry() {
+        let mut entry = entry_with_msg(5, "hello", "bonjour");
+        entry.keywords = vec!["fuzzy".to_string(), "c-format".to_string()];
+        let diag = Diagnostic::new(Path::new("a.po"), "r", Severity::Info, String::new())
+            .with_keywords(&entry)
+            .with_entry(&entry);
+        // 2 keyword lines + 2 entry lines (msgid, msgstr).
+        assert_eq!(diag.lines.len(), 4);
+        assert_eq!(diag.lines[0].line_number, 0);
+        assert_eq!(diag.lines[0].message, "#, fuzzy");
+        assert_eq!(diag.lines[1].message, "#, c-format");
+        assert_eq!(diag.lines[2].message, "msgid \"hello\"");
+        assert_eq!(diag.lines[2].line_number, 6);
+        assert_eq!(diag.lines[3].message, "msgstr \"bonjour\"");
+        assert_eq!(diag.lines[3].line_number, 7);
+    }
+
+    #[test]
+    fn test_with_multiline() {
+        let diag = Diagnostic::new(Path::new("a.po"), "r", Severity::Info, String::new())
+            .with_multiline("a\nb\nc");
+        assert_eq!(diag.lines.len(), 3);
+        assert_eq!(diag.lines[0].message, "a");
+        assert_eq!(diag.lines[1].message, "b");
+        assert_eq!(diag.lines[2].message, "c");
+        for line in &diag.lines {
+            assert_eq!(line.line_number, 0);
+        }
+    }
+
+    #[test]
+    fn test_with_multiline_empty_or_blank_is_skipped() {
+        let d_empty = Diagnostic::new(Path::new("a.po"), "r", Severity::Info, String::new())
+            .with_multiline("");
+        assert!(d_empty.lines.is_empty());
+        let d_blank = Diagnostic::new(Path::new("a.po"), "r", Severity::Info, String::new())
+            .with_multiline("   \n\t\n");
+        assert!(d_blank.lines.is_empty());
+    }
+
+    #[test]
+    fn test_with_misspelled_words() {
+        let mut set = HashSet::new();
+        set.insert("xxa");
+        set.insert("xxb");
+        let diag = Diagnostic::new(Path::new("a.po"), "r", Severity::Info, "msg".to_string())
+            .with_misspelled_words(set);
+        assert_eq!(diag.misspelled_words.len(), 2);
+        assert!(diag.misspelled_words.contains("xxa"));
+        assert!(diag.misspelled_words.contains("xxb"));
+    }
+
+    #[test]
+    fn test_build_message_no_misspelled() {
+        let diag = Diagnostic::new(Path::new("a.po"), "r", Severity::Info, "msg".to_string());
+        assert_eq!(diag.build_message(), "msg");
+    }
+
+    #[test]
+    fn test_build_message_misspelled_sorted_and_joined() {
+        let mut set = HashSet::new();
+        set.insert("xxc");
+        set.insert("xxb");
+        set.insert("xxa");
+        let diag = Diagnostic::new(
+            Path::new("a.po"),
+            "spelling-str",
+            Severity::Info,
+            "misspelled words".to_string(),
+        )
+        .with_misspelled_words(set);
+        assert_eq!(diag.build_message(), "misspelled words: xxa, xxb, xxc");
+    }
+
+    #[test]
+    fn test_diagnostic_line_serialize_byte_to_char_positions() {
+        // "café" = 'c'(1B) 'a'(1B) 'f'(1B) 'é'(2B): 5 bytes, 4 chars.
+        // Highlight bytes (2, 5) cover "fé"; chars (2, 4) — "ca"=2 and "café"=4.
+        let line = DiagnosticLine {
+            line_number: 7,
+            message: "café".to_string(),
+            highlights: vec![(2, 5)],
+        };
+        let v = serde_json::to_value(&line).expect("DiagnosticLine should serialize");
+        assert_eq!(v["line_number"], 7);
+        assert_eq!(v["message"], "café");
+        assert_eq!(v["highlights"], serde_json::json!([[2, 4]]));
+    }
+
+    #[test]
+    fn test_diagnostic_line_serialize_no_highlights() {
+        let line = DiagnosticLine {
+            line_number: 3,
+            message: "hello".to_string(),
+            highlights: vec![],
+        };
+        let v = serde_json::to_value(&line).expect("DiagnosticLine should serialize");
+        assert_eq!(v["highlights"], serde_json::json!([]));
+    }
+
+    #[test]
+    fn test_diagnostic_display_with_lines() {
+        colored::control::set_override(false);
+        let msgid = Message::new(10, "hello");
+        let msgstr = Message::new(11, "");
+        let diag = Diagnostic::new(
+            Path::new("fr.po"),
+            "blank",
+            Severity::Warning,
+            "blank translation".to_string(),
+        )
+        .with_msgs(&msgid, &msgstr);
+        let s = diag.to_string();
+        assert!(s.starts_with("fr.po:10: [warning:blank] blank translation"));
+        assert!(s.contains("     10 | hello"));
+        assert!(s.contains("     11 | "));
+    }
+
+    #[test]
+    fn test_diagnostic_display_no_lines() {
+        colored::control::set_override(false);
+        let diag = Diagnostic::new(
+            Path::new("a.po"),
+            "encoding",
+            Severity::Info,
+            "bad encoding".to_string(),
+        );
+        let s = diag.to_string();
+        // No lines → no ":line" suffix on the path.
+        assert!(s.starts_with("a.po: [info:encoding] bad encoding"));
+    }
+}
