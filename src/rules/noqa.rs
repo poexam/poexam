@@ -54,7 +54,7 @@ impl RuleChecker for NoqaRule {
     fn check_entry(&self, checker: &Checker, entry: &Entry) -> Vec<Diagnostic> {
         if entry.noqa || !entry.noqa_rules.is_empty() {
             vec![
-                self.new_diag(checker, "entry with noqa".to_string())
+                self.new_diag(checker, "entry with noqa")
                     .with_keywords(entry)
                     .with_entry(entry),
             ]

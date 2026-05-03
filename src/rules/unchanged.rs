@@ -66,7 +66,7 @@ impl RuleChecker for UnchangedRule {
             && msgid.value.chars().any(char::is_lowercase)
         {
             return vec![
-                self.new_diag(checker, "unchanged translation".to_string())
+                self.new_diag(checker, "unchanged translation")
                     .with_msgs(msgid, msgstr),
             ];
         }

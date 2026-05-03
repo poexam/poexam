@@ -105,7 +105,7 @@ impl RuleChecker for PathsRule {
                     vec![]
                 } else {
                     vec![
-                        self.new_diag(checker, "different paths".to_string())
+                        self.new_diag(checker, "different paths")
                             .with_msgs_hl(
                                 msgid,
                                 id_paths.iter().map(|m| (m.start, m.end)),

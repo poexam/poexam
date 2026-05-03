@@ -104,7 +104,7 @@ impl RuleChecker for UrlsRule {
                     vec![]
                 } else {
                     vec![
-                        self.new_diag(checker, "different URLs".to_string())
+                        self.new_diag(checker, "different URLs")
                             .with_msgs_hl(
                                 msgid,
                                 id_urls.iter().map(|m| (m.start, m.end)),

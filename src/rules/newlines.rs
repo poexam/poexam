@@ -236,13 +236,13 @@ impl NewlinesRule {
         match id_ends_with_lf.cmp(&str_ends_with_lf) {
             std::cmp::Ordering::Greater => {
                 diags.push(
-                    self.new_diag(checker, "missing line feed '\\n' at the end".to_string())
+                    self.new_diag(checker, "missing line feed '\\n' at the end")
                         .with_msgs(msgid, msgstr),
                 );
             }
             std::cmp::Ordering::Less => {
                 diags.push(
-                    self.new_diag(checker, "extra line feed '\\n' at the end".to_string())
+                    self.new_diag(checker, "extra line feed '\\n' at the end")
                         .with_msgs(msgid, msgstr),
                 );
             }

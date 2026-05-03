@@ -103,7 +103,7 @@ impl RuleChecker for HtmlTagsRule {
                     vec![]
                 } else {
                     vec![
-                        self.new_diag(checker, "different HTML tags".to_string())
+                        self.new_diag(checker, "different HTML tags")
                             .with_msgs_hl(
                                 msgid,
                                 id_tags.iter().map(|m| (m.start, m.end)),

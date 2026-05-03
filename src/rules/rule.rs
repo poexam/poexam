@@ -117,7 +117,14 @@ pub trait RuleChecker {
     }
 
     /// Create a diagnostic for the rule.
-    fn new_diag(&self, checker: &Checker, message: String) -> Diagnostic {
+    fn new_diag(
+        &self,
+        checker: &Checker,
+        message: impl Into<std::borrow::Cow<'static, str>>,
+    ) -> Diagnostic
+    where
+        Self: Sized,
+    {
         Diagnostic::new(&checker.path, self.name(), self.severity(), message)
     }
 }

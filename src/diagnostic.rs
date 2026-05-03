@@ -56,7 +56,7 @@ pub struct Diagnostic {
     pub path: PathBuf,
     pub rule: &'static str,
     pub severity: Severity,
-    pub message: String,
+    pub message: Cow<'static, str>,
     pub lines: Vec<DiagnosticLine>,
     pub misspelled_words: HashSet<String>,
 }
@@ -134,12 +134,17 @@ impl DiagnosticLine {
 impl Diagnostic {
     /// Create a new `Diagnostic` with the given path, severity, and message.
     #[allow(clippy::too_many_arguments)]
-    pub fn new(path: &Path, rule: &'static str, severity: Severity, message: String) -> Self {
+    pub fn new(
+        path: &Path,
+        rule: &'static str,
+        severity: Severity,
+        message: impl Into<Cow<'static, str>>,
+    ) -> Self {
         Self {
             path: PathBuf::from(path),
             rule,
             severity,
-            message,
+            message: message.into(),
             ..Default::default()
         }
     }

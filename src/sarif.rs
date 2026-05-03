@@ -333,7 +333,7 @@ mod tests {
             path: PathBuf::from(path),
             rule,
             severity,
-            message: message.to_string(),
+            message: message.to_string().into(),
             lines: vec![DiagnosticLine {
                 line_number,
                 message: line_message.to_string(),
@@ -507,7 +507,7 @@ mod tests {
                 path: PathBuf::from("test.po"),
                 rule: "encoding",
                 severity: Severity::Info,
-                message: "invalid encoding".to_string(),
+                message: Cow::Borrowed("invalid encoding"),
                 lines: vec![],
                 misspelled_words: HashSet::new(),
             }],

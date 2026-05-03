@@ -56,7 +56,7 @@ impl RuleChecker for ObsoleteRule {
     fn check_entry(&self, checker: &Checker, entry: &Entry) -> Vec<Diagnostic> {
         if entry.obsolete {
             vec![
-                self.new_diag(checker, "obsolete entry".to_string())
+                self.new_diag(checker, "obsolete entry")
                     .with_entry(entry),
             ]
         } else {
