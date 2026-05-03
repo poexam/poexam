@@ -251,12 +251,14 @@ impl Diagnostic {
     }
 
     /// Append the formatted diagnostic line (number + message) with colors to `out`.
-    fn format_line_into(out: &mut String, line: &DiagnosticLine) {
-        let prefix_lf_empty = "        | ".cyan().to_string();
-        let prefix_line = if line.line_number > 0 {
-            format!("{:7} | ", line.line_number).cyan().to_string()
+    ///
+    /// `prefix_lf_empty` is the line-continuation prefix; the caller computes it
+    /// once per `format_lines` call and passes it down here.
+    fn format_line_into(out: &mut String, line: &DiagnosticLine, prefix_lf_empty: &str) {
+        let prefix_line: Cow<'_, str> = if line.line_number > 0 {
+            Cow::Owned(format!("{:7} | ", line.line_number).cyan().to_string())
         } else {
-            prefix_lf_empty.clone()
+            Cow::Borrowed(prefix_lf_empty)
         };
         if line.message.is_empty() {
             out.push_str(&prefix_line);
@@ -267,7 +269,7 @@ impl Diagnostic {
                 out.push_str(&prefix_line);
             } else {
                 out.push('\n');
-                out.push_str(&prefix_lf_empty);
+                out.push_str(prefix_lf_empty);
             }
             out.push_str(l);
         }
@@ -279,12 +281,13 @@ impl Diagnostic {
             return "\n".to_string();
         }
         let bar = "        |".cyan().to_string();
+        let prefix_lf_empty = "        | ".cyan().to_string();
         let mut out = String::new();
         out.push('\n');
         out.push_str(&bar);
         for line in &self.lines {
             out.push('\n');
-            Self::format_line_into(&mut out, line);
+            Self::format_line_into(&mut out, line, &prefix_lf_empty);
         }
         out.push('\n');
         out.push_str(&bar);
