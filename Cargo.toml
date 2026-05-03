@@ -36,7 +36,7 @@ spellbook = "0.4.0"
 toml = "1.1.2"
 
 [dev-dependencies]
-tempfile = "3.21.0"
+tempfile = "3.27.0"
 
 [profile.release]
 lto = true
