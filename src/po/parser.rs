@@ -163,24 +163,31 @@ impl<'d> Parser<'d> {
 
     /// Extract a string value from a line, and decode if necessary (not UTF-8).
     fn extract_string(&mut self, line: &'d [u8]) -> Cow<'d, str> {
-        if let Some(start) = line.iter().position(|&b| b == b'"')
-            && let Some(end) = line.iter().rposition(|&b| b == b'"')
-            && start != end
-        {
-            if let Some(encoding) = self.encoding {
-                let (cow, _, errors) = encoding.decode(&line[start + 1..end]);
-                if errors {
-                    self.encoding_error = true;
-                }
-                cow
-            } else if let Ok(s) = str::from_utf8(&line[start + 1..end]) {
-                Cow::Borrowed(s)
-            } else {
-                self.encoding_error = true;
-                String::from_utf8_lossy(&line[start + 1..end])
-            }
+        let Some(start) = memchr::memchr(b'"', line) else {
+            return Cow::Borrowed("");
+        };
+        // Fast path: PO string lines almost always end with the closing quote,
+        // so we avoid a second full scan.
+        let end = if line.len() > start + 1 && line.last() == Some(&b'"') {
+            line.len() - 1
         } else {
-            Cow::Borrowed("")
+            match memchr::memrchr(b'"', line) {
+                Some(end) if end != start => end,
+                _ => return Cow::Borrowed(""),
+            }
+        };
+        let bytes = &line[start + 1..end];
+        if let Some(encoding) = self.encoding {
+            let (cow, _, errors) = encoding.decode(bytes);
+            if errors {
+                self.encoding_error = true;
+            }
+            cow
+        } else if let Ok(s) = str::from_utf8(bytes) {
+            Cow::Borrowed(s)
+        } else {
+            self.encoding_error = true;
+            String::from_utf8_lossy(bytes)
         }
     }
 
