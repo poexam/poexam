@@ -162,10 +162,7 @@ mod tests {
     #[test]
     fn test_strip_formats() {
         assert_eq!(strip_formats("", Language::C), "");
-        assert_eq!(
-            strip_formats("Hello, world!", Language::C),
-            "Hello, world!"
-        );
+        assert_eq!(strip_formats("Hello, world!", Language::C), "Hello, world!");
         assert_eq!(
             strip_formats(
                 "Hello/你好, %3$d %2$s %1$f %05.2f %ld %hhd %zd %% %é world! %",
@@ -269,12 +266,9 @@ mod tests {
     fn test_email_pos() {
         assert!(FormatEmailPos::new("", Language::C).next().is_none());
         assert_eq!(
-            FormatEmailPos::new(
-                "Contact us at user@example.com for more info.",
-                Language::C
-            )
-            .map(|m| (m.s, m.start, m.end))
-            .collect::<Vec<_>>(),
+            FormatEmailPos::new("Contact us at user@example.com for more info.", Language::C)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
             vec![("user@example.com", 14, 30)]
         );
         assert_eq!(

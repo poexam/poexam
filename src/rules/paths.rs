@@ -104,15 +104,12 @@ impl RuleChecker for PathsRule {
                 if id_paths_hash == str_paths_hash {
                     vec![]
                 } else {
-                    vec![
-                        self.new_diag(checker, "different paths")
-                            .with_msgs_hl(
-                                msgid,
-                                id_paths.iter().map(|m| (m.start, m.end)),
-                                msgstr,
-                                str_paths.iter().map(|m| (m.start, m.end)),
-                            ),
-                    ]
+                    vec![self.new_diag(checker, "different paths").with_msgs_hl(
+                        msgid,
+                        id_paths.iter().map(|m| (m.start, m.end)),
+                        msgstr,
+                        str_paths.iter().map(|m| (m.start, m.end)),
+                    )]
                 }
             }
         }

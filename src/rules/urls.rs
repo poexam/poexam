@@ -103,15 +103,12 @@ impl RuleChecker for UrlsRule {
                 if id_urls_hash == str_urls_hash {
                     vec![]
                 } else {
-                    vec![
-                        self.new_diag(checker, "different URLs")
-                            .with_msgs_hl(
-                                msgid,
-                                id_urls.iter().map(|m| (m.start, m.end)),
-                                msgstr,
-                                str_urls.iter().map(|m| (m.start, m.end)),
-                            ),
-                    ]
+                    vec![self.new_diag(checker, "different URLs").with_msgs_hl(
+                        msgid,
+                        id_urls.iter().map(|m| (m.start, m.end)),
+                        msgstr,
+                        str_urls.iter().map(|m| (m.start, m.end)),
+                    )]
                 }
             }
         }

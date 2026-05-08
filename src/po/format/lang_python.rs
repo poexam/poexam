@@ -393,11 +393,7 @@ mod tests {
 
     #[test]
     fn test_html_tags_pos() {
-        assert!(
-            FormatHtmlTagPos::new("", Language::Python)
-                .next()
-                .is_none()
-        );
+        assert!(FormatHtmlTagPos::new("", Language::Python).next().is_none());
         assert!(
             FormatHtmlTagPos::new("", Language::PythonBrace)
                 .next()

@@ -107,10 +107,12 @@ impl RuleChecker for BracketsRule {
                     bracket.0,
                     bracket.1,
                 );
-                diags.push(
-                    self.new_diag(checker, msg)
-                        .with_msgs_hl(msgid, id_open.iter().copied(), msgstr, str_open.iter().copied()),
-                );
+                diags.push(self.new_diag(checker, msg).with_msgs_hl(
+                    msgid,
+                    id_open.iter().copied(),
+                    msgstr,
+                    str_open.iter().copied(),
+                ));
                 continue;
             }
             if id_count_open > str_count_open {
@@ -118,40 +120,48 @@ impl RuleChecker for BracketsRule {
                     "missing opening {} brackets '{}' ({id_count_open} / {str_count_open})",
                     BRACKET_NAMES[idx], bracket.0,
                 );
-                diags.push(
-                    self.new_diag(checker, msg)
-                        .with_msgs_hl(msgid, id_open.iter().copied(), msgstr, str_open.iter().copied()),
-                );
+                diags.push(self.new_diag(checker, msg).with_msgs_hl(
+                    msgid,
+                    id_open.iter().copied(),
+                    msgstr,
+                    str_open.iter().copied(),
+                ));
             }
             if id_count_open < str_count_open {
                 let msg = format!(
                     "extra opening {} brackets '{}' ({id_count_open} / {str_count_open})",
                     BRACKET_NAMES[idx], bracket.0,
                 );
-                diags.push(
-                    self.new_diag(checker, msg)
-                        .with_msgs_hl(msgid, id_open.iter().copied(), msgstr, str_open.iter().copied()),
-                );
+                diags.push(self.new_diag(checker, msg).with_msgs_hl(
+                    msgid,
+                    id_open.iter().copied(),
+                    msgstr,
+                    str_open.iter().copied(),
+                ));
             }
             if id_count_close > str_count_close {
                 let msg = format!(
                     "missing closing {} brackets '{}' ({id_count_close} / {str_count_close})",
                     BRACKET_NAMES[idx], bracket.1,
                 );
-                diags.push(
-                    self.new_diag(checker, msg)
-                        .with_msgs_hl(msgid, id_close.iter().copied(), msgstr, str_close.iter().copied()),
-                );
+                diags.push(self.new_diag(checker, msg).with_msgs_hl(
+                    msgid,
+                    id_close.iter().copied(),
+                    msgstr,
+                    str_close.iter().copied(),
+                ));
             }
             if id_count_close < str_count_close {
                 let msg = format!(
                     "extra closing {} brackets '{}' ({id_count_close} / {str_count_close})",
                     BRACKET_NAMES[idx], bracket.1,
                 );
-                diags.push(
-                    self.new_diag(checker, msg)
-                        .with_msgs_hl(msgid, id_close.iter().copied(), msgstr, str_close.iter().copied()),
-                );
+                diags.push(self.new_diag(checker, msg).with_msgs_hl(
+                    msgid,
+                    id_close.iter().copied(),
+                    msgstr,
+                    str_close.iter().copied(),
+                ));
             }
         }
         diags

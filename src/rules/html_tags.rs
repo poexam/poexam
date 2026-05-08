@@ -102,15 +102,12 @@ impl RuleChecker for HtmlTagsRule {
                 if id_tags_hash == str_tags_hash {
                     vec![]
                 } else {
-                    vec![
-                        self.new_diag(checker, "different HTML tags")
-                            .with_msgs_hl(
-                                msgid,
-                                id_tags.iter().map(|m| (m.start, m.end)),
-                                msgstr,
-                                str_tags.iter().map(|m| (m.start, m.end)),
-                            ),
-                    ]
+                    vec![self.new_diag(checker, "different HTML tags").with_msgs_hl(
+                        msgid,
+                        id_tags.iter().map(|m| (m.start, m.end)),
+                        msgstr,
+                        str_tags.iter().map(|m| (m.start, m.end)),
+                    )]
                 }
             }
         }

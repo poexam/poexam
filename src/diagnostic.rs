@@ -368,12 +368,8 @@ mod tests {
 
     #[test]
     fn test_add_line() {
-        let mut diag = Diagnostic::new(
-            Path::new("test.po"),
-            "blank",
-            Severity::Info,
-            String::new(),
-        );
+        let mut diag =
+            Diagnostic::new(Path::new("test.po"), "blank", Severity::Info, String::new());
         diag.add_line(42, "msgstr \"\"", [(8, 9)]);
         assert_eq!(diag.lines.len(), 1);
         assert_eq!(diag.lines[0].line_number, 42);
@@ -384,8 +380,8 @@ mod tests {
     #[test]
     fn test_with_msg() {
         let msg = Message::new(10, "hello");
-        let diag = Diagnostic::new(Path::new("a.po"), "r", Severity::Info, String::new())
-            .with_msg(&msg);
+        let diag =
+            Diagnostic::new(Path::new("a.po"), "r", Severity::Info, String::new()).with_msg(&msg);
         assert_eq!(diag.lines.len(), 1);
         assert_eq!(diag.lines[0].line_number, 10);
         assert_eq!(diag.lines[0].message, "hello");

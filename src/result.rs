@@ -309,10 +309,7 @@ mod tests {
     #[test]
     fn test_display_result_all_clean_returns_zero() {
         let args = default_check_args();
-        let result = vec![
-            file_result("a.po", vec![]),
-            file_result("b.po", vec![]),
-        ];
+        let result = vec![file_result("a.po", vec![]), file_result("b.po", vec![])];
         let code = display_result(&result, &args, &Duration::from_millis(0));
         assert_eq!(code, 0);
     }
@@ -346,7 +343,10 @@ mod tests {
         // Misspelled output mode is considered a "list, not a verdict" — exit 0 always.
         let mut args = default_check_args();
         args.output = args::CheckOutputFormat::Misspelled;
-        let result = vec![file_result("a.po", vec![diag("spelling-str", Severity::Info)])];
+        let result = vec![file_result(
+            "a.po",
+            vec![diag("spelling-str", Severity::Info)],
+        )];
         let code = display_result(&result, &args, &Duration::from_millis(0));
         assert_eq!(code, 0);
     }

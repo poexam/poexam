@@ -108,15 +108,12 @@ impl RuleChecker for EmailsRule {
                 if id_emails_hash == str_emails_hash {
                     vec![]
                 } else {
-                    vec![
-                        self.new_diag(checker, "different emails")
-                            .with_msgs_hl(
-                                msgid,
-                                id_emails.iter().map(|m| (m.start, m.end)),
-                                msgstr,
-                                str_emails.iter().map(|m| (m.start, m.end)),
-                            ),
-                    ]
+                    vec![self.new_diag(checker, "different emails").with_msgs_hl(
+                        msgid,
+                        id_emails.iter().map(|m| (m.start, m.end)),
+                        msgstr,
+                        str_emails.iter().map(|m| (m.start, m.end)),
+                    )]
                 }
             }
         }

@@ -85,8 +85,7 @@ impl RuleChecker for FormatsRule {
             return vec![];
         }
         let mut id_fmt: Vec<_> = FormatPos::new(&msgid.value, entry.format_language).collect();
-        let mut str_fmt: Vec<_> =
-            FormatPos::new(&msgstr.value, entry.format_language).collect();
+        let mut str_fmt: Vec<_> = FormatPos::new(&msgstr.value, entry.format_language).collect();
         let error = if entry.format_language == Language::C {
             // C format strings can include reordering position, so we need to sort them
             // and strip index before comparing. The original order is not needed after

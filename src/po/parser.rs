@@ -77,8 +77,8 @@ impl<'d> Parser<'d> {
             return None;
         }
         let start = self.offset;
-        let end = memchr::memchr(b'\n', &self.data[start..])
-            .map_or(self.data_len, |pos| start + pos);
+        let end =
+            memchr::memchr(b'\n', &self.data[start..]).map_or(self.data_len, |pos| start + pos);
         self.offset = end + 1;
         self.next_line_number += 1;
         Some(&self.data[start..end])
@@ -158,7 +158,9 @@ impl<'d> Parser<'d> {
                     }
                 }
             }
-            entry.keywords.push(String::from_utf8_lossy(kw).into_owned());
+            entry
+                .keywords
+                .push(String::from_utf8_lossy(kw).into_owned());
         }
     }
 
@@ -208,7 +210,21 @@ impl<'d> Parser<'d> {
                 self.field = Field::Ctxt;
                 entry.msgctxt = Some(Message::new(self.line_number, self.extract_string(line)));
             }
-            [b'm', b's', b'g', b'i', b'd', b'_', b'p', b'l', b'u', b'r', b'a', b'l', ..] => {
+            [
+                b'm',
+                b's',
+                b'g',
+                b'i',
+                b'd',
+                b'_',
+                b'p',
+                b'l',
+                b'u',
+                b'r',
+                b'a',
+                b'l',
+                ..,
+            ] => {
                 self.field = Field::IdPlural;
                 entry.msgid_plural =
                     Some(Message::new(self.line_number, self.extract_string(line)));
