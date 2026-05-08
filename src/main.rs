@@ -41,6 +41,7 @@ mod result;
 mod rules;
 mod sarif;
 mod stats;
+mod table;
 
 use clap::Parser;
 

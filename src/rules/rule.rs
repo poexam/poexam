@@ -18,6 +18,7 @@ use crate::{
         plurals, punc, punc_space, short, spelling, tabs, unchanged, untranslated, urls,
         whitespace,
     },
+    table::render_table,
 };
 
 pub type Rule = Box<dyn RuleChecker + Send + Sync>;
@@ -245,44 +246,90 @@ pub fn get_selected_rules(config: &Config) -> Result<Rules, Box<dyn std::error::
     Ok(Rules::new(selected_rules))
 }
 
+/// Print all rules as a table, with default rules first.
+fn print_rules_table(all_rules: &[Rule]) {
+    let (default_rules, other_rules) = all_rules
+        .iter()
+        .partition::<Vec<&Rule>, _>(|r| r.is_default());
+    let rows: Vec<Vec<String>> = default_rules
+        .iter()
+        .chain(other_rules.iter())
+        .map(|r| {
+            vec![
+                r.name().to_string(),
+                if r.is_default() { "yes" } else { "no" }.to_string(),
+                if r.is_check() { "yes" } else { "no" }.to_string(),
+                r.severity().to_string(),
+                r.description().to_string(),
+            ]
+        })
+        .collect();
+    println!(
+        "{} rules ({} default, {} non-default):\n\n{}",
+        all_rules.len(),
+        default_rules.len(),
+        other_rules.len(),
+        render_table(
+            &["Name", "Default", "Check", "Severity", "Description"],
+            &rows,
+        ),
+    );
+}
+
+/// Print all special rules as a table.
+fn print_special_rules_table(all_rules: &[Rule]) {
+    let mut non_check_rules: Vec<&'static str> = Vec::new();
+    let mut spelling_rules: Vec<&'static str> = Vec::new();
+    let mut default_count = 0;
+    for rule in all_rules {
+        if !rule.is_check() {
+            non_check_rules.push(rule.name());
+        }
+        if rule.name().starts_with("spelling-") {
+            spelling_rules.push(rule.name());
+        }
+        if rule.is_default() {
+            default_count += 1;
+        }
+    }
+    let rows: Vec<Vec<String>> = vec![
+        vec![
+            "all".to_string(),
+            all_rules.len().to_string(),
+            "All available rules.".to_string(),
+        ],
+        vec![
+            "checks".to_string(),
+            (all_rules.len() - non_check_rules.len()).to_string(),
+            format!(
+                "All rules that actually check (all rules except: {}).",
+                non_check_rules.join(", ")
+            ),
+        ],
+        vec![
+            "default".to_string(),
+            default_count.to_string(),
+            "Default rules (can be used to add extra rules, e.g. \"default,spelling,fuzzy\")."
+                .to_string(),
+        ],
+        vec![
+            "spelling".to_string(),
+            spelling_rules.len().to_string(),
+            format!("All spelling rules: {}.", spelling_rules.join(", ")),
+        ],
+    ];
+    println!(
+        "Special rules to enable multiple rules at once:\n\n{}",
+        render_table(&["Name", "Rules", "Description"], &rows),
+    );
+}
+
 /// Display rules used to check PO files.
 pub fn run_rules(_args: &args::RulesArgs) -> i32 {
     let rules = get_all_rules();
-    let default_rules: Vec<&Rule> = rules.iter().filter(|r| r.is_default()).collect();
-    let other_rules: Vec<&Rule> = rules.iter().filter(|r| !r.is_default()).collect();
-    let non_check_rules: Vec<&Rule> = rules.iter().filter(|r| !r.is_check()).collect();
-    if default_rules.is_empty() {
-        println!("No default rules.");
-    } else {
-        println!("{} default rules:", default_rules.len());
-        for rule in &default_rules {
-            println!("  {rule}");
-        }
-    }
-    if other_rules.is_empty() {
-        println!("No other rules.");
-    } else {
-        println!("{} other rules:", other_rules.len());
-        for rule in &other_rules {
-            println!("  {rule}");
-        }
-    }
-    println!("Total: {} rules", default_rules.len() + other_rules.len());
+    print_rules_table(&rules);
     println!();
-    println!("Special rules to enable multiple rules at once:");
-    println!("  all: all available rules");
-    println!(
-        "  checks: all rules that actually check (all rules except: {})",
-        non_check_rules
-            .iter()
-            .map(|rule| rule.name())
-            .collect::<Vec<_>>()
-            .join(", "),
-    );
-    println!(
-        "  default: default rules (can be used to add extra rules, e.g. \"default,spelling,fuzzy\")"
-    );
-    println!("  spelling: all spelling rules");
+    print_special_rules_table(&rules);
     0
 }
 

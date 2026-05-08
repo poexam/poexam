@@ -8,6 +8,10 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 ## Version 0.0.10 (under dev)
 
+### Changed
+
+- Display `poexam rules` output as tables
+
 ### Added
 
 - Add support for format string "java-format"
