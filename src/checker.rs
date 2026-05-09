@@ -185,6 +185,17 @@ impl<'d> Checker<'d> {
                         }
                     };
                 }
+                if let Some(msgstr_0) = entry.msgstr.get(&0) {
+                    for rule in &rules.enabled {
+                        if rule.name() != "noqa"
+                            && (entry.noqa || entry.noqa_rules.iter().any(|r| r == rule.name()))
+                        {
+                            continue;
+                        }
+                        self.diagnostics
+                            .extend(rule.check_header(self, &entry, msgstr_0));
+                    }
+                }
                 continue;
             }
             if (!entry.is_translated() && !rules.untranslated_rule)

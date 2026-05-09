@@ -14,9 +14,9 @@ use crate::{
     po::{entry::Entry, message::Message},
     rules::{
         blank, brackets, changed, compilation, double_quotes, double_spaces, double_words, emails,
-        encoding, escapes, formats, fuzzy, html_tags, long, newlines, noqa, obsolete, paths, pipes,
-        plurals, punc, punc_space, short, spelling, tabs, unchanged, unicode_ctrl, untranslated,
-        urls, whitespace,
+        encoding, escapes, formats, fuzzy, header, html_tags, long, newlines, noqa, obsolete,
+        paths, pipes, plurals, punc, punc_space, short, spelling, tabs, unchanged, unicode_ctrl,
+        untranslated, urls, whitespace,
     },
     table::render_table,
 };
@@ -96,6 +96,16 @@ pub trait RuleChecker {
         vec![]
     }
 
+    /// Check the PO file header for diagnostics.
+    fn check_header(
+        &self,
+        _checker: &Checker,
+        _entry: &Entry,
+        _msgstr: &Message,
+    ) -> Vec<Diagnostic> {
+        vec![]
+    }
+
     /// Check an entry for diagnostics.
     fn check_entry(&self, _checker: &Checker, _entry: &Entry) -> Vec<Diagnostic> {
         vec![]
@@ -145,6 +155,7 @@ fn get_all_rules() -> Vec<Rule> {
         Box::new(escapes::EscapesRule {}),
         Box::new(formats::FormatsRule {}),
         Box::new(fuzzy::FuzzyRule {}),
+        Box::new(header::HeaderRule {}),
         Box::new(html_tags::HtmlTagsRule {}),
         Box::new(long::LongRule {}),
         Box::new(newlines::NewlinesRule {}),

@@ -58,7 +58,7 @@ The project is REUSE-compliant. Run `pre-commit run --all-files` (or rely on the
      - `Severity::Error` — file won't compile or msgid/msgstr structural mismatch that breaks runtime (e.g. `compilation`, `escapes`, `formats`, `newlines`, `plurals`, `tabs`).
      - `Severity::Warning` — translation is likely wrong but file still compiles (e.g. `blank`, `long`, `short`).
      - `Severity::Info` — stylistic or informational (default for most rules).
-   - One or more check methods: `check_file()`, `check_entry()`, `check_ctxt()`, or `check_msg()`.
+   - One or more check methods: `check_file()`, `check_header()`, `check_entry()`, `check_ctxt()`, or `check_msg()`.
 3. Add `pub mod my_rule;` in `src/rules/mod.rs`.
 4. Register the rule in `src/rules/rule.rs`, `get_all_rules()`.
 5. Add tests in the same file using `#[cfg(test)]` module.
