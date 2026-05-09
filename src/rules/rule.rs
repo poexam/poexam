@@ -15,8 +15,8 @@ use crate::{
     rules::{
         blank, brackets, changed, compilation, double_quotes, double_spaces, double_words, emails,
         encoding, escapes, formats, fuzzy, html_tags, long, newlines, noqa, obsolete, paths, pipes,
-        plurals, punc, punc_space, short, spelling, tabs, unchanged, untranslated, urls,
-        whitespace,
+        plurals, punc, punc_space, short, spelling, tabs, unchanged, unicode_ctrl, untranslated,
+        urls, whitespace,
     },
     table::render_table,
 };
@@ -163,6 +163,7 @@ fn get_all_rules() -> Vec<Rule> {
         Box::new(spelling::SpellingStrRule {}),
         Box::new(tabs::TabsRule {}),
         Box::new(unchanged::UnchangedRule {}),
+        Box::new(unicode_ctrl::UnicodeCtrlRule {}),
         Box::new(untranslated::UntranslatedRule {}),
         Box::new(urls::UrlsRule {}),
         Box::new(whitespace::WhitespaceEndRule {}),

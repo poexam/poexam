@@ -31,6 +31,7 @@ pub mod short;
 pub mod spelling;
 pub mod tabs;
 pub mod unchanged;
+pub mod unicode_ctrl;
 pub mod untranslated;
 pub mod urls;
 pub mod whitespace;

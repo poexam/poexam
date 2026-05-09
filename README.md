@@ -104,6 +104,7 @@ It can perform a lot of checks via the default rules:
 | punc-space-str   | info     | Incorrect spaces around punctuation (translation). |
 | short            | warning  | Translation too short.                             |
 | tabs             | error    | Missing/extra tabs.                                |
+| unicode-ctrl     | warning  | Stray Unicode control chars in translation.        |
 | whitespace-end   | info     | Missing/extra whitespace at the end.               |
 | whitespace-start | info     | Missing/extra whitespace at the start.             |
 
