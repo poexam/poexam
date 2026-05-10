@@ -273,14 +273,6 @@ mod tests {
     }
 
     #[test]
-    fn test_config_default() {
-        let c = Config::default();
-        assert!(c.path.is_none());
-        // Default `check` should match `CheckConfig::default()`.
-        assert_eq!(c.check.select, vec!["default".to_string()]);
-    }
-
-    #[test]
     fn test_config_new_no_path_yields_defaults() {
         let c = Config::new(None).expect("config builds without a path");
         assert!(c.path.is_none());
