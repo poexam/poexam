@@ -11,6 +11,8 @@ use std::collections::HashSet;
 use crate::checker::Checker;
 use crate::diagnostic::{Diagnostic, Severity};
 use crate::po::entry::Entry;
+use crate::po::format::iter::{FormatEmailPos, FormatUrlPos};
+use crate::po::format::language::Language;
 use crate::po::message::Message;
 use crate::rules::rule::RuleChecker;
 
@@ -100,6 +102,20 @@ impl RuleChecker for HeaderRule {
             })
             .collect();
 
+        if let Some((_, value)) = fields
+            .iter()
+            .find(|(name, _)| name == "report-msgid-bugs-to")
+            && !is_valid_report_msgid_bugs_to(value)
+        {
+            diagnostics.push(
+                self.new_diag(
+                    checker,
+                    format!("invalid value '{value}' for field 'Report-Msgid-Bugs-To' in header"),
+                )
+                .with_msg(msgstr),
+            );
+        }
+
         if let Some((_, value)) = fields.iter().find(|(name, _)| name == "language")
             && !is_valid_language(value)
         {
@@ -107,6 +123,30 @@ impl RuleChecker for HeaderRule {
                 self.new_diag(
                     checker,
                     format!("invalid value '{value}' for field 'Language' in header"),
+                )
+                .with_msg(msgstr),
+            );
+        }
+
+        if let Some((_, value)) = fields.iter().find(|(name, _)| name == "last-translator")
+            && !is_valid_last_translator(value)
+        {
+            diagnostics.push(
+                self.new_diag(
+                    checker,
+                    format!("invalid value '{value}' for field 'Last-Translator' in header"),
+                )
+                .with_msg(msgstr),
+            );
+        }
+
+        if let Some((_, value)) = fields.iter().find(|(name, _)| name == "language-team")
+            && !is_valid_language_team(value)
+        {
+            diagnostics.push(
+                self.new_diag(
+                    checker,
+                    format!("invalid value '{value}' for field 'Language-Team' in header"),
                 )
                 .with_msg(msgstr),
             );
@@ -180,6 +220,42 @@ fn is_valid_language(value: &str) -> bool {
     }
 
     true
+}
+
+/// Validate a `Report-Msgid-Bugs-To` header value: it must contain exactly one email address.
+fn is_valid_report_msgid_bugs_to(value: &str) -> bool {
+    count_emails(value) == 1
+}
+
+/// Validate a `Last-Translator` header value: it must contain exactly one email address.
+fn is_valid_last_translator(value: &str) -> bool {
+    count_emails(value) == 1
+}
+
+/// Validate a `Language-Team` header value: it must contain exactly one
+/// contact, either an email address **or** an HTTP(S) URL. Having both is
+/// rejected, as is having neither or duplicates of either.
+fn is_valid_language_team(value: &str) -> bool {
+    matches!(
+        (
+            count_emails(value),
+            FormatUrlPos::new(value, Language::Null).count()
+        ),
+        (1, 0) | (0, 1),
+    )
+}
+
+/// Count the email addresses in a header field value.
+///
+/// The value is first normalized to take care of obfuscated email address like
+/// "user AT domain DOT com".
+fn count_emails(value: &str) -> usize {
+    let normalized = value
+        .replace(" at ", "@")
+        .replace(" AT ", "@")
+        .replace(" dot ", ".")
+        .replace(" DOT ", ".");
+    FormatEmailPos::new(&normalized, Language::Null).count()
 }
 
 /// Validate a `Content-Type` header value. The value must be of the form
@@ -545,6 +621,187 @@ msgstr \"\"
     fn test_content_type_other_param_before_charset_is_valid() {
         // RFC 2045 allows multiple parameters in any order.
         assert!(check_content_type("text/plain; format=flowed; charset=UTF-8").is_empty());
+    }
+
+    fn check_report_msgid_bugs_to(value: &str) -> Vec<Diagnostic> {
+        let header = COMPLETE_HEADER.replace(
+            "\"Report-Msgid-Bugs-To: flashcode@flashtux.org\\n\"",
+            &format!("\"Report-Msgid-Bugs-To: {value}\\n\""),
+        );
+        check(&header)
+    }
+
+    #[test]
+    fn test_report_msgid_bugs_to_bare_email_is_valid() {
+        assert!(check_report_msgid_bugs_to("bugs@example.org").is_empty());
+    }
+
+    #[test]
+    fn test_report_msgid_bugs_to_canonical_form_is_valid() {
+        assert!(check_report_msgid_bugs_to("Project Bugs <bugs@example.org>").is_empty());
+    }
+
+    #[test]
+    fn test_report_msgid_bugs_to_no_email_is_invalid() {
+        let diags = check_report_msgid_bugs_to("Project Bugs");
+        assert_eq!(diags.len(), 1);
+        assert_eq!(
+            diags[0].message,
+            "invalid value 'Project Bugs' for field 'Report-Msgid-Bugs-To' in header"
+        );
+        assert_eq!(diags[0].severity, Severity::Error);
+    }
+
+    #[test]
+    fn test_report_msgid_bugs_to_empty_value_is_invalid() {
+        let diags = check_report_msgid_bugs_to("");
+        assert_eq!(diags.len(), 1);
+        assert_eq!(
+            diags[0].message,
+            "invalid value '' for field 'Report-Msgid-Bugs-To' in header"
+        );
+    }
+
+    #[test]
+    fn test_report_msgid_bugs_to_two_emails_is_invalid() {
+        let diags = check_report_msgid_bugs_to("a@example.org b@example.org");
+        assert_eq!(diags.len(), 1);
+        assert!(diags[0].message.contains("'Report-Msgid-Bugs-To'"));
+    }
+
+    #[test]
+    fn test_report_msgid_bugs_to_url_only_is_invalid() {
+        // The user spec says "exactly one email" — a bug-tracker URL alone is not enough.
+        let diags = check_report_msgid_bugs_to("https://bugs.example.org/");
+        assert_eq!(diags.len(), 1);
+        assert!(diags[0].message.contains("'Report-Msgid-Bugs-To'"));
+    }
+
+    fn check_last_translator(value: &str) -> Vec<Diagnostic> {
+        let header = COMPLETE_HEADER.replace(
+            "\"Last-Translator: Sébastien Helleu <flashcode@flashtux.org>\\n\"",
+            &format!("\"Last-Translator: {value}\\n\""),
+        );
+        check(&header)
+    }
+
+    #[test]
+    fn test_last_translator_canonical_form_is_valid() {
+        assert!(check_last_translator("Sébastien Helleu <flashcode@flashtux.org>").is_empty());
+    }
+
+    #[test]
+    fn test_last_translator_bare_email_is_valid() {
+        assert!(check_last_translator("flashcode@flashtux.org").is_empty());
+    }
+
+    #[test]
+    fn test_last_translator_no_email_is_invalid() {
+        let diags = check_last_translator("Sébastien Helleu");
+        assert_eq!(diags.len(), 1);
+        assert_eq!(
+            diags[0].message,
+            "invalid value 'Sébastien Helleu' for field 'Last-Translator' in header"
+        );
+        assert_eq!(diags[0].severity, Severity::Error);
+    }
+
+    #[test]
+    fn test_last_translator_empty_value_is_invalid() {
+        let diags = check_last_translator("");
+        assert_eq!(diags.len(), 1);
+        assert_eq!(
+            diags[0].message,
+            "invalid value '' for field 'Last-Translator' in header"
+        );
+    }
+
+    #[test]
+    fn test_last_translator_two_emails_is_invalid() {
+        let diags = check_last_translator("Foo <foo@example.com> and Bar <bar@example.com>");
+        assert_eq!(diags.len(), 1);
+        assert!(diags[0].message.contains("'Last-Translator'"));
+    }
+
+    #[test]
+    fn test_last_translator_url_only_is_invalid() {
+        // A URL is not an email — Last-Translator requires an email specifically.
+        let diags = check_last_translator("Sébastien Helleu <https://flashtux.org>");
+        assert_eq!(diags.len(), 1);
+        assert!(diags[0].message.contains("'Last-Translator'"));
+    }
+
+    fn check_language_team(value: &str) -> Vec<Diagnostic> {
+        let header = COMPLETE_HEADER.replace(
+            "\"Language-Team: French <translators-fr@example.com>\\n\"",
+            &format!("\"Language-Team: {value}\\n\""),
+        );
+        check(&header)
+    }
+
+    #[test]
+    fn test_language_team_with_email_is_valid() {
+        assert!(check_language_team("French <translators-fr@example.com>").is_empty());
+    }
+
+    #[test]
+    fn test_language_team_bare_email_is_valid() {
+        assert!(check_language_team("translators-fr@example.com").is_empty());
+    }
+
+    #[test]
+    fn test_language_team_with_url_is_valid() {
+        assert!(check_language_team("French <https://example.com/i18n/>").is_empty());
+    }
+
+    #[test]
+    fn test_language_team_bare_url_is_valid() {
+        assert!(check_language_team("https://example.com/i18n/").is_empty());
+    }
+
+    #[test]
+    fn test_language_team_no_contact_is_invalid() {
+        let diags = check_language_team("French");
+        assert_eq!(diags.len(), 1);
+        assert_eq!(
+            diags[0].message,
+            "invalid value 'French' for field 'Language-Team' in header"
+        );
+        assert_eq!(diags[0].severity, Severity::Error);
+    }
+
+    #[test]
+    fn test_language_team_empty_value_is_invalid() {
+        let diags = check_language_team("");
+        assert_eq!(diags.len(), 1);
+        assert_eq!(
+            diags[0].message,
+            "invalid value '' for field 'Language-Team' in header"
+        );
+    }
+
+    #[test]
+    fn test_language_team_email_and_url_is_invalid() {
+        // "Either … or …" — the rule rejects having both forms.
+        let diags =
+            check_language_team("French <translators-fr@example.com> <https://example.com/i18n/>");
+        assert_eq!(diags.len(), 1);
+        assert!(diags[0].message.contains("'Language-Team'"));
+    }
+
+    #[test]
+    fn test_language_team_two_emails_is_invalid() {
+        let diags = check_language_team("French <a@example.com> <b@example.com>");
+        assert_eq!(diags.len(), 1);
+        assert!(diags[0].message.contains("'Language-Team'"));
+    }
+
+    #[test]
+    fn test_language_team_two_urls_is_invalid() {
+        let diags =
+            check_language_team("French <https://example.com/> <https://other.example.org/>");
+        assert_eq!(diags.len(), 1);
+        assert!(diags[0].message.contains("'Language-Team'"));
     }
 
     fn check_plural_forms(value: &str) -> Vec<Diagnostic> {
