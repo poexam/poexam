@@ -94,7 +94,7 @@ It can perform a lot of checks via the default rules:
 | encoding         | info     | Incorrect encoding (charset).                      |
 | escapes          | error    | Missing/extra escape characters.                   |
 | formats          | error    | Inconsistent format strings.                       |
-| header           | error    | Missing required fields in PO file header.         |
+| header           | error    | Invalid/missing required fields in PO file header. |
 | long             | warning  | Translation too long.                              |
 | newlines         | error    | Missing/extra newlines.                            |
 | pipes            | info     | Missing/extra pipes.                               |
