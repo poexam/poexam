@@ -23,6 +23,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 ### Fixed
 
+- Allow `+` in local part of an email
 - Allow emails and URLs inside angle brackets
 - Use only URLs with at least one dot inside in rule "urls"
 

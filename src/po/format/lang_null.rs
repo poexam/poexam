@@ -95,12 +95,12 @@ mod tests {
         );
         assert_eq!(
             FormatEmailPos::new(
-                "Contact us at user@domain.com or <user1@domain2.com> for more info. Invalid: user@domain",
+                "Contact us at user+test@domain.com or <user1@domain2.com> for more info. Invalid: user@domain",
                 Language::Null
             )
             .map(|m| (m.s, m.start, m.end))
             .collect::<Vec<_>>(),
-            vec![("user@domain.com", 14, 29), ("user1@domain2.com", 34, 51)]
+            vec![("user+test@domain.com", 14, 34), ("user1@domain2.com", 39, 56)]
         );
     }
 
