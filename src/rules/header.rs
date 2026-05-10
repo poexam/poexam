@@ -124,6 +124,18 @@ impl RuleChecker for HeaderRule {
             );
         }
 
+        if let Some((_, value)) = fields.iter().find(|(name, _)| name == "plural-forms")
+            && !is_valid_plural_forms(value)
+        {
+            diagnostics.push(
+                self.new_diag(
+                    checker,
+                    format!("invalid value '{value}' for field 'Plural-Forms' in header"),
+                )
+                .with_msg(msgstr),
+            );
+        }
+
         diagnostics
     }
 }
@@ -188,6 +200,20 @@ fn is_valid_content_type(value: &str) -> bool {
             .then(|| val.trim())
     });
     charset.is_some_and(|c| encoding_rs::Encoding::for_label(c.as_bytes()).is_some())
+}
+
+/// Validate the `nplurals=N` part of a `Plural-Forms` header value: `N` must
+/// be a positive integer. The `plural=EXPRESSION` part is not validated.
+fn is_valid_plural_forms(value: &str) -> bool {
+    let Some(n) = value.split(';').find_map(|param| {
+        let (key, val) = param.split_once('=')?;
+        key.trim()
+            .eq_ignore_ascii_case("nplurals")
+            .then(|| val.trim())
+    }) else {
+        return false;
+    };
+    matches!(n.parse::<u32>(), Ok(n) if n >= 1)
 }
 
 #[cfg(test)]
@@ -519,5 +545,90 @@ msgstr \"\"
     fn test_content_type_other_param_before_charset_is_valid() {
         // RFC 2045 allows multiple parameters in any order.
         assert!(check_content_type("text/plain; format=flowed; charset=UTF-8").is_empty());
+    }
+
+    fn check_plural_forms(value: &str) -> Vec<Diagnostic> {
+        let header = COMPLETE_HEADER.replace(
+            "\"Plural-Forms: nplurals=2; plural=(n > 1);\\n\"",
+            &format!("\"Plural-Forms: {value}\\n\""),
+        );
+        check(&header)
+    }
+
+    #[test]
+    fn test_plural_forms_is_optional() {
+        // Removing Plural-Forms entirely must not produce a diagnostic.
+        let header =
+            COMPLETE_HEADER.replace("\"Plural-Forms: nplurals=2; plural=(n > 1);\\n\"\n", "");
+        assert!(check(&header).is_empty());
+    }
+
+    #[test]
+    fn test_plural_forms_simple_is_valid() {
+        assert!(check_plural_forms("nplurals=2; plural=(n != 1);").is_empty());
+    }
+
+    #[test]
+    fn test_plural_forms_single_is_valid() {
+        assert!(check_plural_forms("nplurals=1; plural=0;").is_empty());
+    }
+
+    #[test]
+    fn test_plural_forms_arabic_is_valid() {
+        assert!(check_plural_forms("nplurals=6; plural=(n==0 ? 0 : n==1 ? 1 : 2);").is_empty());
+    }
+
+    #[test]
+    fn test_plural_forms_extra_whitespace_is_tolerated() {
+        assert!(check_plural_forms(" nplurals = 3 ; plural=(n != 1);").is_empty());
+    }
+
+    #[test]
+    fn test_plural_forms_zero_is_invalid() {
+        let diags = check_plural_forms("nplurals=0; plural=0;");
+        assert_eq!(diags.len(), 1);
+        assert_eq!(
+            diags[0].message,
+            "invalid value 'nplurals=0; plural=0;' for field 'Plural-Forms' in header"
+        );
+        assert_eq!(diags[0].severity, Severity::Error);
+    }
+
+    #[test]
+    fn test_plural_forms_negative_is_invalid() {
+        let diags = check_plural_forms("nplurals=-1; plural=0;");
+        assert_eq!(diags.len(), 1);
+        assert!(diags[0].message.contains("'nplurals=-1; plural=0;'"));
+    }
+
+    #[test]
+    fn test_plural_forms_non_integer_is_invalid() {
+        let diags = check_plural_forms("nplurals=abc; plural=0;");
+        assert_eq!(diags.len(), 1);
+        assert!(diags[0].message.contains("'nplurals=abc; plural=0;'"));
+    }
+
+    #[test]
+    fn test_plural_forms_missing_nplurals_is_invalid() {
+        let diags = check_plural_forms("plural=(n != 1);");
+        assert_eq!(diags.len(), 1);
+        assert!(diags[0].message.contains("'plural=(n != 1);'"));
+    }
+
+    #[test]
+    fn test_plural_forms_empty_nplurals_is_invalid() {
+        let diags = check_plural_forms("nplurals=; plural=0;");
+        assert_eq!(diags.len(), 1);
+        assert!(diags[0].message.contains("'nplurals=; plural=0;'"));
+    }
+
+    #[test]
+    fn test_plural_forms_empty_value_is_invalid() {
+        let diags = check_plural_forms("");
+        assert_eq!(diags.len(), 1);
+        assert_eq!(
+            diags[0].message,
+            "invalid value '' for field 'Plural-Forms' in header"
+        );
     }
 }
