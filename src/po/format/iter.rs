@@ -145,6 +145,9 @@ impl<'a> FormatUrlPos<'a> {
 ///
 /// For example in C language, with the string `Hello, %d %s world! https://example.com`,
 /// it will return `https://example.com` with its position in the string.
+///
+/// Angle brackets around URLs are handled, e.g. `Hello, %d %s world! <https://example.com>`
+/// (the angle brackets are not included in the returned URL).
 impl<'a> Iterator for FormatUrlPos<'a> {
     type Item = MatchFmtPos<'a>;
 
@@ -170,8 +173,13 @@ impl<'a> Iterator for FormatUrlPos<'a> {
                 }
             }
             match (idx_start, idx_end) {
-                (Some(start), Some(end)) => {
-                    let s = &self.s[start..end];
+                (Some(mut start), Some(mut end)) => {
+                    let mut s = &self.s[start..end];
+                    if s.starts_with('<') && s.ends_with('>') {
+                        s = &s[1..s.len() - 1];
+                        start += 1;
+                        end -= 1;
+                    }
                     if s.contains("://") && s.contains('.') {
                         return Some(MatchFmtPos { s, start, end });
                     }
@@ -249,6 +257,9 @@ impl<'a> FormatEmailPos<'a> {
 ///
 /// For example in C language, with the string `Please send email to: user@example.com`,
 /// it will return `user@example.com` with its position in the string.
+///
+/// Angle brackets around emails are handled, e.g. `Please send email to: <user@example.com>`
+/// (the angle brackets are not included in the returned email).
 impl<'a> Iterator for FormatEmailPos<'a> {
     type Item = MatchFmtPos<'a>;
 
@@ -274,8 +285,13 @@ impl<'a> Iterator for FormatEmailPos<'a> {
                 }
             }
             match (idx_start, idx_end) {
-                (Some(start), Some(end)) => {
-                    let s = &self.s[start..end];
+                (Some(mut start), Some(mut end)) => {
+                    let mut s = &self.s[start..end];
+                    if s.starts_with('<') && s.ends_with('>') {
+                        s = &s[1..s.len() - 1];
+                        start += 1;
+                        end -= 1;
+                    }
                     if Self::is_valid_email(s) {
                         return Some(MatchFmtPos { s, start, end });
                     }

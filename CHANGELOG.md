@@ -23,6 +23,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 ### Fixed
 
+- Allow emails and URLs inside angle brackets
 - Use only URLs with at least one dot inside in rule "urls"
 
 ## Version 0.0.9 (2026-04-15)

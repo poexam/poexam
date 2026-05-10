@@ -72,10 +72,16 @@ mod tests {
                 .is_none()
         );
         assert_eq!(
-            FormatUrlPos::new("Visit https://example.com for more info.", Language::Null)
-                .map(|m| (m.s, m.start, m.end))
-                .collect::<Vec<_>>(),
-            vec![("https://example.com", 6, 25)]
+            FormatUrlPos::new(
+                "Visit https://example.com or <https://example2.com> for more info.",
+                Language::Null
+            )
+            .map(|m| (m.s, m.start, m.end))
+            .collect::<Vec<_>>(),
+            vec![
+                ("https://example.com", 6, 25),
+                ("https://example2.com", 30, 50)
+            ]
         );
     }
 
@@ -89,12 +95,12 @@ mod tests {
         );
         assert_eq!(
             FormatEmailPos::new(
-                "Contact us at user@domain.com for more info. Invalid: user@domain",
+                "Contact us at user@domain.com or <user1@domain2.com> for more info. Invalid: user@domain",
                 Language::Null
             )
             .map(|m| (m.s, m.start, m.end))
             .collect::<Vec<_>>(),
-            vec![("user@domain.com", 14, 29)]
+            vec![("user@domain.com", 14, 29), ("user1@domain2.com", 34, 51)]
         );
     }
 
