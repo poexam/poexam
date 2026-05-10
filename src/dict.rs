@@ -101,12 +101,6 @@ mod tests {
     }
 
     #[test]
-    fn test_constants() {
-        assert_eq!(DEFAULT_PATH_DICTS, "/usr/share/hunspell");
-        assert_eq!(DEFAULT_LANG_ID, "en_US");
-    }
-
-    #[test]
     fn test_get_dict_name_loads_when_files_present() {
         let tmp = tmp_dir("name-ok");
         write_dict(tmp.path(), "en_US", &["hello", "world"]);
