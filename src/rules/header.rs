@@ -112,6 +112,18 @@ impl RuleChecker for HeaderRule {
             );
         }
 
+        if let Some((_, value)) = fields.iter().find(|(name, _)| name == "content-type")
+            && !is_valid_content_type(value)
+        {
+            diagnostics.push(
+                self.new_diag(
+                    checker,
+                    format!("invalid value '{value}' for field 'Content-Type' in header"),
+                )
+                .with_msg(msgstr),
+            );
+        }
+
         diagnostics
     }
 }
@@ -156,6 +168,26 @@ fn is_valid_language(value: &str) -> bool {
     }
 
     true
+}
+
+/// Validate a `Content-Type` header value. The value must be of the form
+/// `text/plain; charset=<name>`, where `<name>` is a charset that
+/// [`encoding_rs`] recognises. The MIME type is matched case-insensitively per
+/// RFC 2045; whitespace around `;` and `=` is tolerated.
+fn is_valid_content_type(value: &str) -> bool {
+    let Some((mime_type, params)) = value.split_once(';') else {
+        return false;
+    };
+    if !mime_type.trim().eq_ignore_ascii_case("text/plain") {
+        return false;
+    }
+    let charset = params.split(';').find_map(|param| {
+        let (key, val) = param.split_once('=')?;
+        key.trim()
+            .eq_ignore_ascii_case("charset")
+            .then(|| val.trim())
+    });
+    charset.is_some_and(|c| encoding_rs::Encoding::for_label(c.as_bytes()).is_some())
 }
 
 #[cfg(test)]
@@ -401,5 +433,91 @@ msgstr \"\"
         let diags = check_language("fr2");
         assert_eq!(diags.len(), 1);
         assert!(diags[0].message.contains("'fr2'"));
+    }
+
+    fn check_content_type(value: &str) -> Vec<Diagnostic> {
+        let header = COMPLETE_HEADER.replace(
+            "\"Content-Type: text/plain; charset=UTF-8\\n\"",
+            &format!("\"Content-Type: {value}\\n\""),
+        );
+        check(&header)
+    }
+
+    #[test]
+    fn test_content_type_utf8_is_valid() {
+        assert!(check_content_type("text/plain; charset=UTF-8").is_empty());
+    }
+
+    #[test]
+    fn test_content_type_iso_8859_15_is_valid() {
+        assert!(check_content_type("text/plain; charset=ISO-8859-15").is_empty());
+    }
+
+    #[test]
+    fn test_content_type_charset_is_case_insensitive() {
+        // Encoding labels are case-insensitive per the WHATWG encoding standard.
+        assert!(check_content_type("text/plain; charset=utf-8").is_empty());
+    }
+
+    #[test]
+    fn test_content_type_extra_whitespace_is_tolerated() {
+        assert!(check_content_type("text/plain ;  charset = UTF-8").is_empty());
+    }
+
+    #[test]
+    fn test_content_type_mime_case_insensitive() {
+        assert!(check_content_type("Text/Plain; charset=UTF-8").is_empty());
+    }
+
+    #[test]
+    fn test_content_type_wrong_mime_type_is_invalid() {
+        let diags = check_content_type("text/html; charset=UTF-8");
+        assert_eq!(diags.len(), 1);
+        assert_eq!(
+            diags[0].message,
+            "invalid value 'text/html; charset=UTF-8' for field 'Content-Type' in header"
+        );
+        assert_eq!(diags[0].severity, Severity::Error);
+    }
+
+    #[test]
+    fn test_content_type_missing_charset_is_invalid() {
+        let diags = check_content_type("text/plain");
+        assert_eq!(diags.len(), 1);
+        assert!(diags[0].message.contains("'text/plain'"));
+    }
+
+    #[test]
+    fn test_content_type_missing_charset_value_is_invalid() {
+        let diags = check_content_type("text/plain; charset=");
+        assert_eq!(diags.len(), 1);
+        assert!(diags[0].message.contains("'text/plain; charset='"));
+    }
+
+    #[test]
+    fn test_content_type_unknown_charset_is_invalid() {
+        let diags = check_content_type("text/plain; charset=does-not-exist");
+        assert_eq!(diags.len(), 1);
+        assert!(
+            diags[0]
+                .message
+                .contains("'text/plain; charset=does-not-exist'")
+        );
+    }
+
+    #[test]
+    fn test_content_type_empty_value_is_invalid() {
+        let diags = check_content_type("");
+        assert_eq!(diags.len(), 1);
+        assert_eq!(
+            diags[0].message,
+            "invalid value '' for field 'Content-Type' in header"
+        );
+    }
+
+    #[test]
+    fn test_content_type_other_param_before_charset_is_valid() {
+        // RFC 2045 allows multiple parameters in any order.
+        assert!(check_content_type("text/plain; format=flowed; charset=UTF-8").is_empty());
     }
 }
