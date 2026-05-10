@@ -51,7 +51,7 @@ impl RuleChecker for HeaderRule {
         Severity::Error
     }
 
-    /// Check the PO file header for missing required fields.
+    /// Check the PO file header for invalid or missing required fields.
     ///
     /// Field matching is case-insensitive (per RFC 822, which the gettext
     /// header format follows) and tolerates surrounding whitespace.
@@ -81,23 +81,81 @@ impl RuleChecker for HeaderRule {
     ///
     /// Diagnostics reported with severity [`error`](Severity::Error):
     /// - `missing field 'xxx' in header`
+    /// - `invalid value 'xxx' for field 'yyy' in header`
     fn check_header(&self, checker: &Checker, _entry: &Entry, msgstr: &Message) -> Vec<Diagnostic> {
-        let present: HashSet<String> = msgstr
+        let fields: Vec<(String, &str)> = msgstr
             .value
             .split('\n')
             .filter_map(|line| line.split_once(':'))
-            .map(|(field, _)| field.trim().to_ascii_lowercase())
+            .map(|(name, value)| (name.trim().to_ascii_lowercase(), value.trim()))
             .collect();
+        let present: HashSet<&str> = fields.iter().map(|(name, _)| name.as_str()).collect();
 
-        REQUIRED_FIELDS
+        let mut diagnostics: Vec<Diagnostic> = REQUIRED_FIELDS
             .iter()
-            .filter(|field| !present.contains(&field.to_ascii_lowercase()))
+            .filter(|field| !present.contains(field.to_ascii_lowercase().as_str()))
             .map(|field| {
                 self.new_diag(checker, format!("missing field '{field}' in header"))
                     .with_msg(msgstr)
             })
-            .collect()
+            .collect();
+
+        if let Some((_, value)) = fields.iter().find(|(name, _)| name == "language")
+            && !is_valid_language(value)
+        {
+            diagnostics.push(
+                self.new_diag(
+                    checker,
+                    format!("invalid value '{value}' for field 'Language' in header"),
+                )
+                .with_msg(msgstr),
+            );
+        }
+
+        diagnostics
     }
+}
+
+/// Validate a `Language` header value against the gettext spec, which accepts
+/// three forms:
+/// - `ll` — ISO 639 two- or three-letter lowercase language code
+/// - `ll_CC` — language code, `_`, ISO 3166 two-letter uppercase country code
+/// - `ll_CC@variant` — `ll_CC`, `@`, lowercase variant designator
+///
+/// Only structural validation is performed (case and length); the actual ISO
+/// code lists are not consulted.
+fn is_valid_language(value: &str) -> bool {
+    let (lang_country, variant) = match value.split_once('@') {
+        Some((lc, v)) => (lc, Some(v)),
+        None => (value, None),
+    };
+
+    if let Some(v) = variant
+        && (v.is_empty() || !v.chars().all(|c| c.is_ascii_lowercase()))
+    {
+        return false;
+    }
+
+    let (lang, country) = match lang_country.split_once('_') {
+        Some((l, c)) => (l, Some(c)),
+        None => (lang_country, None),
+    };
+
+    if variant.is_some() && country.is_none() {
+        return false;
+    }
+
+    if !matches!(lang.len(), 2 | 3) || !lang.chars().all(|c| c.is_ascii_lowercase()) {
+        return false;
+    }
+
+    if let Some(c) = country
+        && (c.len() != 2 || !c.chars().all(|ch| ch.is_ascii_uppercase()))
+    {
+        return false;
+    }
+
+    true
 }
 
 #[cfg(test)]
@@ -234,5 +292,114 @@ msgstr \"\"
             diags.is_empty(),
             "global `noqa` on the header entry should suppress all diagnostics"
         );
+    }
+
+    fn check_language(value: &str) -> Vec<Diagnostic> {
+        let header =
+            COMPLETE_HEADER.replace("\"Language: fr\\n\"", &format!("\"Language: {value}\\n\""));
+        check(&header)
+    }
+
+    #[test]
+    fn test_language_two_letter_code_is_valid() {
+        assert!(check_language("fr").is_empty());
+        assert!(check_language("en").is_empty());
+        assert!(check_language("de").is_empty());
+    }
+
+    #[test]
+    fn test_language_three_letter_code_is_valid() {
+        assert!(check_language("haw").is_empty());
+        assert!(check_language("ast").is_empty());
+    }
+
+    #[test]
+    fn test_language_with_country_is_valid() {
+        assert!(check_language("pt_BR").is_empty());
+        assert!(check_language("de_AT").is_empty());
+        assert!(check_language("en_US").is_empty());
+    }
+
+    #[test]
+    fn test_language_with_variant_is_valid() {
+        assert!(check_language("sr_RS@latin").is_empty());
+        assert!(check_language("ca_ES@valencia").is_empty());
+    }
+
+    #[test]
+    fn test_language_uppercase_is_invalid() {
+        let diags = check_language("FR");
+        assert_eq!(diags.len(), 1);
+        assert_eq!(
+            diags[0].message,
+            "invalid value 'FR' for field 'Language' in header"
+        );
+        assert_eq!(diags[0].severity, Severity::Error);
+    }
+
+    #[test]
+    fn test_language_too_long_is_invalid() {
+        let diags = check_language("fren");
+        assert_eq!(diags.len(), 1);
+        assert!(diags[0].message.contains("'fren'"));
+    }
+
+    #[test]
+    fn test_language_single_letter_is_invalid() {
+        let diags = check_language("f");
+        assert_eq!(diags.len(), 1);
+        assert!(diags[0].message.contains("'f'"));
+    }
+
+    #[test]
+    fn test_language_country_lowercase_is_invalid() {
+        let diags = check_language("fr_fr");
+        assert_eq!(diags.len(), 1);
+        assert!(diags[0].message.contains("'fr_fr'"));
+    }
+
+    #[test]
+    fn test_language_country_three_letter_is_invalid() {
+        let diags = check_language("en_USA");
+        assert_eq!(diags.len(), 1);
+        assert!(diags[0].message.contains("'en_USA'"));
+    }
+
+    #[test]
+    fn test_language_variant_without_country_is_invalid() {
+        let diags = check_language("sr@latin");
+        assert_eq!(diags.len(), 1);
+        assert!(diags[0].message.contains("'sr@latin'"));
+    }
+
+    #[test]
+    fn test_language_uppercase_variant_is_invalid() {
+        let diags = check_language("sr_RS@LATIN");
+        assert_eq!(diags.len(), 1);
+        assert!(diags[0].message.contains("'sr_RS@LATIN'"));
+    }
+
+    #[test]
+    fn test_language_empty_variant_is_invalid() {
+        let diags = check_language("sr_RS@");
+        assert_eq!(diags.len(), 1);
+        assert!(diags[0].message.contains("'sr_RS@'"));
+    }
+
+    #[test]
+    fn test_language_empty_value_is_invalid() {
+        let diags = check_language("");
+        assert_eq!(diags.len(), 1);
+        assert_eq!(
+            diags[0].message,
+            "invalid value '' for field 'Language' in header"
+        );
+    }
+
+    #[test]
+    fn test_language_with_digits_is_invalid() {
+        let diags = check_language("fr2");
+        assert_eq!(diags.len(), 1);
+        assert!(diags[0].message.contains("'fr2'"));
     }
 }
