@@ -31,5 +31,11 @@ path_words = "."
 # check spelling only for these languages
 # langs = ["en_US", "fr"]
 
+# min ratio source/translation length to flag "too short" (min: 2)
+# short_factor = 8
+
+# min ratio translation/source length to flag "too long" (min: 2)
+# long_factor = 8
+
 # perform only checks with these severities
 # severity = ["error", "warning", "info"]

@@ -11,6 +11,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ### Changed
 
 - Display `poexam rules` output as tables
+- Remove special-case condition for single-character strings in rules "short" and "long"
 
 ### Added
 
@@ -20,6 +21,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - Add non-default rule "html-tags"
 - Add SARIF v2.1.0 output with `--output sarif`
 - Add description of rules in output of `poexam rules`
+- Add options `short_factor` and `long_factor` to configure the length-ratio factor in rules "short" and "long" (default: 8, min: 2)
 
 ### Fixed
 

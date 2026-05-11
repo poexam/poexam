@@ -83,7 +83,7 @@ impl RuleChecker for LongRule {
         if len_msgstr == 0 {
             return vec![];
         }
-        if len_msgid * 10 <= len_msgstr || (len_msgid == 1 && len_msgstr > 1) {
+        if len_msgid * checker.config.check.long_factor as usize <= len_msgstr {
             vec![
                 self.new_diag(
                     checker,
@@ -136,19 +136,13 @@ msgstr " ... :"
     fn test_long_error() {
         let diags = check_long(
             r#"
-msgid " :"
-msgstr " ... :"
-
 msgid "ok"
-msgstr "ok, ceci est une traduction trop longue pour test"
+msgstr "ok, ceci est un long message"
 "#,
         );
-        assert_eq!(diags.len(), 2);
+        assert_eq!(diags.len(), 1);
         let diag = &diags[0];
         assert_eq!(diag.severity, Severity::Warning);
-        assert_eq!(diag.message, "translation too long (1 / 5)");
-        let diag = &diags[1];
-        assert_eq!(diag.severity, Severity::Warning);
-        assert_eq!(diag.message, "translation too long (2 / 49)");
+        assert_eq!(diag.message, "translation too long (2 / 28)");
     }
 }

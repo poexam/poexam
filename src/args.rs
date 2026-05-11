@@ -96,6 +96,14 @@ pub struct CheckArgs {
     #[arg(long)]
     pub langs: Option<String>,
 
+    /// Factor used to determine if a translation is too short compared to the source (default: 8, min: 2)
+    #[arg(long, value_parser = clap::value_parser!(u16).range(2..))]
+    pub short_factor: Option<u16>,
+
+    /// Factor used to determine if a translation is too long compared to the source (default: 8, min: 2)
+    #[arg(long, value_parser = clap::value_parser!(u16).range(2..))]
+    pub long_factor: Option<u16>,
+
     /// Perform only checks with this severity (can be given multiple times); by default all checks are performed
     #[arg(short = 'e', long, value_enum)]
     pub severity: Vec<Severity>,

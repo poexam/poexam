@@ -276,6 +276,8 @@ mod tests {
             path_words: None,
             lang_id: None,
             langs: None,
+            short_factor: None,
+            long_factor: None,
             severity: vec![],
             punc_ignore_ellipsis: false,
             no_errors: false,

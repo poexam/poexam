@@ -57,6 +57,12 @@ pub struct CheckConfig {
     #[serde(default)]
     pub langs: Vec<String>,
 
+    #[serde(default = "default_check_short_factor")]
+    pub short_factor: u16,
+
+    #[serde(default = "default_check_long_factor")]
+    pub long_factor: u16,
+
     #[serde(default)]
     pub severity: Vec<Severity>,
 
@@ -84,6 +90,16 @@ fn default_check_lang_id() -> String {
     String::from(dict::DEFAULT_LANG_ID)
 }
 
+/// Default value for `check.short_factor`.
+fn default_check_short_factor() -> u16 {
+    8
+}
+
+/// Default value for `check.long_factor`.
+fn default_check_long_factor() -> u16 {
+    8
+}
+
 impl Default for CheckConfig {
     fn default() -> Self {
         Self {
@@ -97,6 +113,8 @@ impl Default for CheckConfig {
             path_words: None,
             lang_id: default_check_lang_id(),
             langs: vec![],
+            short_factor: default_check_short_factor(),
+            long_factor: default_check_long_factor(),
             severity: vec![],
             punc_ignore_ellipsis: false,
         }
@@ -114,6 +132,20 @@ impl Config {
             None => String::new(),
         };
         let mut config: Self = toml::from_str(&content)?;
+        if config.check.short_factor < 2 {
+            return Err(format!(
+                "invalid `check.short_factor`: {} (min: 2)",
+                config.check.short_factor,
+            )
+            .into());
+        }
+        if config.check.long_factor < 2 {
+            return Err(format!(
+                "invalid `check.long_factor`: {} (min: 2)",
+                config.check.long_factor,
+            )
+            .into());
+        }
         if let Some(path) = path {
             config.path = Some(PathBuf::from(path));
         }
@@ -158,6 +190,12 @@ impl Config {
         }
         if let Some(langs) = &args.langs {
             self.check.langs = langs.split(',').map(|s| s.trim().to_string()).collect();
+        }
+        if let Some(short_factor) = args.short_factor {
+            self.check.short_factor = short_factor;
+        }
+        if let Some(long_factor) = args.long_factor {
+            self.check.long_factor = long_factor;
         }
         if !args.severity.is_empty() {
             self.check.severity.clone_from(&args.severity);
@@ -230,6 +268,8 @@ mod tests {
             path_words: None,
             lang_id: None,
             langs: None,
+            short_factor: None,
+            long_factor: None,
             severity: vec![],
             punc_ignore_ellipsis: false,
             no_errors: false,
@@ -325,6 +365,24 @@ punc_ignore_ellipsis = true
         let cfg_path = root.join("poexam.toml");
         std::fs::write(&cfg_path, "not = valid = toml").expect("write file");
         assert!(Config::new(Some(&cfg_path)).is_err());
+    }
+
+    #[test]
+    fn test_config_new_rejects_factor_below_min() {
+        let (_tmp, root) = tmp_dir("cfg-factor");
+        let cfg_path = root.join("poexam.toml");
+
+        std::fs::write(&cfg_path, "[check]\nshort_factor = 1\n").expect("write config");
+        let err = Config::new(Some(&cfg_path)).expect_err("short_factor below min is an error");
+        let msg = err.to_string();
+        assert!(msg.contains("check.short_factor"));
+        assert!(msg.contains("min: 2"));
+
+        std::fs::write(&cfg_path, "[check]\nlong_factor = 0\n").expect("rewrite config");
+        let err = Config::new(Some(&cfg_path)).expect_err("long_factor below min is an error");
+        let msg = err.to_string();
+        assert!(msg.contains("check.long_factor"));
+        assert!(msg.contains("min: 2"));
     }
 
     #[test]

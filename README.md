@@ -75,6 +75,8 @@ The following options are available in the `check` section (each option can be o
 | path_words           | String (path)    | Path with custom words (absolute or relative to the config file). |
 | lang_id              | String           | Language used to check source strings.                            |
 | langs                | Array of strings | Check spelling only for these languages.                          |
+| short_factor         | Integer          | Min ratio source/translation length to flag "too short" (min: 2). |
+| long_factor          | Integer          | Min ratio translation/source length to flag "too long" (min: 2).  |
 | severity             | Array of strings | Run only checks with these severities (`info`/`warning`/`error`). |
 | punc_ignore_ellipsis | Boolean          | Ignore ellipsis differences (`...` vs `…`) in punc rules.         |
 

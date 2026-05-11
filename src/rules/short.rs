@@ -83,9 +83,7 @@ impl RuleChecker for ShortRule {
         if len_msgstr == 0 {
             return vec![];
         }
-        if len_msgstr * 10 <= len_msgid
-            || (len_msgstr == 1 && len_msgid > 1 && msgid.value.chars().any(char::is_whitespace))
-        {
+        if len_msgstr * checker.config.check.short_factor as usize <= len_msgid {
             vec![
                 self.new_diag(
                     checker,
@@ -138,19 +136,13 @@ msgstr " :"
     fn test_short_error() {
         let diags = check_short(
             r#"
-msgid " ... :"
-msgstr " :"
-
-msgid "ok, this is a very long test message"
+msgid "ok, this is a long message"
 msgstr "ok"
 "#,
         );
-        assert_eq!(diags.len(), 2);
+        assert_eq!(diags.len(), 1);
         let diag = &diags[0];
         assert_eq!(diag.severity, Severity::Warning);
-        assert_eq!(diag.message, "translation too short (5 / 1)");
-        let diag = &diags[1];
-        assert_eq!(diag.severity, Severity::Warning);
-        assert_eq!(diag.message, "translation too short (36 / 2)");
+        assert_eq!(diag.message, "translation too short (26 / 2)");
     }
 }
