@@ -49,9 +49,9 @@ impl RuleChecker for HtmlTagsRule {
     /// ```
     ///
     /// Diagnostics reported:
-    /// - [`info`](Severity::Info): `missing HTML tags (# / #)`
-    /// - [`info`](Severity::Info): `extra HTML tags (# / #)`
-    /// - [`info`](Severity::Info): `different HTML tags`
+    /// - [`warning`](Severity::Warning): `missing HTML tags (# / #)`
+    /// - [`warning`](Severity::Warning): `extra HTML tags (# / #)`
+    /// - [`warning`](Severity::Warning): `different HTML tags`
     fn check_msg(
         &self,
         checker: &Checker,
@@ -66,7 +66,7 @@ impl RuleChecker for HtmlTagsRule {
             std::cmp::Ordering::Greater => self
                 .new_diag(
                     checker,
-                    Severity::Info,
+                    Severity::Warning,
                     format!("missing HTML tags ({} / {})", id_tags.len(), str_tags.len()),
                 )
                 .map(|d| {
@@ -82,7 +82,7 @@ impl RuleChecker for HtmlTagsRule {
             std::cmp::Ordering::Less => self
                 .new_diag(
                     checker,
-                    Severity::Info,
+                    Severity::Warning,
                     format!("extra HTML tags ({} / {})", id_tags.len(), str_tags.len()),
                 )
                 .map(|d| {
@@ -102,7 +102,7 @@ impl RuleChecker for HtmlTagsRule {
                 if id_tags_hash == str_tags_hash {
                     vec![]
                 } else {
-                    self.new_diag(checker, Severity::Info, "different HTML tags")
+                    self.new_diag(checker, Severity::Warning, "different HTML tags")
                         .map(|d| {
                             d.with_msgs_hl(
                                 msgid,
@@ -203,13 +203,13 @@ msgstr "Bonjour <i>monde</i>"
         );
         assert_eq!(diags.len(), 3);
         let diag = &diags[0];
-        assert_eq!(diag.severity, Severity::Info);
+        assert_eq!(diag.severity, Severity::Warning);
         assert_eq!(diag.message, "missing HTML tags (2 / 1)");
         let diag = &diags[1];
-        assert_eq!(diag.severity, Severity::Info);
+        assert_eq!(diag.severity, Severity::Warning);
         assert_eq!(diag.message, "extra HTML tags (2 / 3)");
         let diag = &diags[2];
-        assert_eq!(diag.severity, Severity::Info);
+        assert_eq!(diag.severity, Severity::Warning);
         assert_eq!(diag.message, "different HTML tags");
     }
 }
