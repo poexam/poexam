@@ -15,6 +15,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - Use severity "error" instead of "info" in rule "encoding"
 - Use severity "warning" instead of "info" in rule "emails"
 - Use severity "warning" instead of "info" in rule "paths"
+- Use severity "warning" instead of "info" in rule "urls"
 - Remove special-case condition for single-character strings in rules "short" and "long"
 
 ### Added

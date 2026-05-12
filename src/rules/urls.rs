@@ -50,9 +50,9 @@ impl RuleChecker for UrlsRule {
     /// ```
     ///
     /// Diagnostics reported:
-    /// - [`info`](Severity::Info): `missing URLs (# / #)`
-    /// - [`info`](Severity::Info): `extra URLs (# / #)`
-    /// - [`info`](Severity::Info): `different URLs`
+    /// - [`warning`](Severity::Warning): `missing URLs (# / #)`
+    /// - [`warning`](Severity::Warning): `extra URLs (# / #)`
+    /// - [`warning`](Severity::Warning): `different URLs`
     fn check_msg(
         &self,
         checker: &Checker,
@@ -66,7 +66,7 @@ impl RuleChecker for UrlsRule {
             std::cmp::Ordering::Greater => self
                 .new_diag(
                     checker,
-                    Severity::Info,
+                    Severity::Warning,
                     format!("missing URLs ({} / {})", id_urls.len(), str_urls.len()),
                 )
                 .map(|d| {
@@ -82,7 +82,7 @@ impl RuleChecker for UrlsRule {
             std::cmp::Ordering::Less => self
                 .new_diag(
                     checker,
-                    Severity::Info,
+                    Severity::Warning,
                     format!("extra URLs ({} / {})", id_urls.len(), str_urls.len()),
                 )
                 .map(|d| {
@@ -103,7 +103,7 @@ impl RuleChecker for UrlsRule {
                 if id_urls_hash == str_urls_hash {
                     vec![]
                 } else {
-                    self.new_diag(checker, Severity::Info, "different URLs")
+                    self.new_diag(checker, Severity::Warning, "different URLs")
                         .map(|d| {
                             d.with_msgs_hl(
                                 msgid,
@@ -171,13 +171,13 @@ msgstr "URLs différentes : https://exampe.com/test -- http://google.com"
         );
         assert_eq!(diags.len(), 3);
         let diag = &diags[0];
-        assert_eq!(diag.severity, Severity::Info);
+        assert_eq!(diag.severity, Severity::Warning);
         assert_eq!(diag.message, "missing URLs (2 / 1)");
         let diag = &diags[1];
-        assert_eq!(diag.severity, Severity::Info);
+        assert_eq!(diag.severity, Severity::Warning);
         assert_eq!(diag.message, "extra URLs (1 / 2)");
         let diag = &diags[2];
-        assert_eq!(diag.severity, Severity::Info);
+        assert_eq!(diag.severity, Severity::Warning);
         assert_eq!(diag.message, "different URLs");
     }
 }
