@@ -123,22 +123,22 @@ report too many false positives or can slow down the process.
 
 You can enable them on-demand:
 
-| Rule name      | Severity | Diagnostic reported                              |
-|----------------|----------|--------------------------------------------------|
-| changed        | info     | Translation is different from the source string. |
-| compilation    | error    | Compilation with `msgfmt`.                       |
-| double-words   | info     | Translation has consecutive repeated words.      |
-| fuzzy          | info     | Fuzzy entry.                                     |
-| html-tags      | info     | Missing/extra/different HTML tags.               |
-| noqa           | info     | Entry has `noqa` comment.                        |
-| obsolete       | info     | Obsolete entry.                                  |
-| paths          | info     | Missing/extra/different paths.                   |
-| spelling-ctxt  | info     | Spelling error in the context.                   |
-| spelling-id    | info     | Spelling error in the source.                    |
-| spelling-str   | info     | Spelling error in the translation.               |
-| unchanged      | info     | Translation is the same as the source string.    |
-| untranslated   | info     | Untranslated entry.                              |
-| urls           | info     | Missing/extra/different URLs.                    |
+| Rule name      | Diagnostic reported                              |
+|----------------|--------------------------------------------------|
+| changed        | Translation is different from the source string. |
+| compilation    | Compilation with `msgfmt`.                       |
+| double-words   | Translation has consecutive repeated words.      |
+| fuzzy          | Fuzzy entry.                                     |
+| html-tags      | Missing/extra/different HTML tags.               |
+| noqa           | Entry has `noqa` comment.                        |
+| obsolete       | Obsolete entry.                                  |
+| paths          | Missing/extra/different paths.                   |
+| spelling-ctxt  | Spelling error in the context.                   |
+| spelling-id    | Spelling error in the source.                    |
+| spelling-str   | Spelling error in the translation.               |
+| unchanged      | Translation is the same as the source string.    |
+| untranslated   | Untranslated entry.                              |
+| urls           | Missing/extra/different URLs.                    |
 
 The result is very clear, almost all errors are highlighted in the strings so you can immediately see where the issue is.
 
