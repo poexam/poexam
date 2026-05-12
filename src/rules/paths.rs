@@ -50,9 +50,9 @@ impl RuleChecker for PathsRule {
     /// ```
     ///
     /// Diagnostics reported:
-    /// - [`info`](Severity::Info): `missing paths (# / #)`
-    /// - [`info`](Severity::Info): `extra paths (# / #)`
-    /// - [`info`](Severity::Info): `different paths`
+    /// - [`warning`](Severity::Warning): `missing paths (# / #)`
+    /// - [`warning`](Severity::Warning): `extra paths (# / #)`
+    /// - [`warning`](Severity::Warning): `different paths`
     fn check_msg(
         &self,
         checker: &Checker,
@@ -66,7 +66,7 @@ impl RuleChecker for PathsRule {
             std::cmp::Ordering::Greater => self
                 .new_diag(
                     checker,
-                    Severity::Info,
+                    Severity::Warning,
                     format!("missing paths ({} / {})", id_paths.len(), str_paths.len()),
                 )
                 .map(|d| {
@@ -82,7 +82,7 @@ impl RuleChecker for PathsRule {
             std::cmp::Ordering::Less => self
                 .new_diag(
                     checker,
-                    Severity::Info,
+                    Severity::Warning,
                     format!("extra paths ({} / {})", id_paths.len(), str_paths.len()),
                 )
                 .map(|d| {
@@ -104,7 +104,7 @@ impl RuleChecker for PathsRule {
                 if id_paths_hash == str_paths_hash {
                     vec![]
                 } else {
-                    self.new_diag(checker, Severity::Info, "different paths")
+                    self.new_diag(checker, Severity::Warning, "different paths")
                         .map(|d| {
                             d.with_msgs_hl(
                                 msgid,
@@ -173,13 +173,13 @@ msgstr "chemins différents : /tmp/output.txt -- ./relative/path"
         );
         assert_eq!(diags.len(), 3);
         let diag = &diags[0];
-        assert_eq!(diag.severity, Severity::Info);
+        assert_eq!(diag.severity, Severity::Warning);
         assert_eq!(diag.message, "missing paths (2 / 1)");
         let diag = &diags[1];
-        assert_eq!(diag.severity, Severity::Info);
+        assert_eq!(diag.severity, Severity::Warning);
         assert_eq!(diag.message, "extra paths (1 / 2)");
         let diag = &diags[2];
-        assert_eq!(diag.severity, Severity::Info);
+        assert_eq!(diag.severity, Severity::Warning);
         assert_eq!(diag.message, "different paths");
     }
 }
