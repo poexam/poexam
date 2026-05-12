@@ -66,7 +66,8 @@ impl RuleChecker for UnicodeCtrlRule {
     /// ```
     ///
     /// Diagnostics reported:
-    /// - [`warning`](Severity::Warning): `extra control character U+XXXX (NAME)`
+    /// - [`error`](Severity::Error): `extra control character U+0000 (NULL)` — truncates C strings, real correctness bug
+    /// - [`warning`](Severity::Warning): `extra control character U+XXXX (NAME)` — for every other flagged code point
     fn check_msg(
         &self,
         checker: &Checker,
@@ -90,10 +91,21 @@ impl RuleChecker for UnicodeCtrlRule {
                     c as u32,
                     ctrl_char_name(c),
                 );
-                self.new_diag(checker, Severity::Warning, msg)
+                self.new_diag(checker, ctrl_char_severity(c), msg)
                     .map(|d| d.with_msgs_hl(msgid, [], msgstr, positions))
             })
             .collect()
+    }
+}
+
+/// Severity for a stray control character. NULL bytes truncate C strings and
+/// silently lose the tail of the translation — that's a correctness bug. All
+/// the other control / format characters are visually disruptive but don't
+/// alter the meaning of valid prefixes.
+fn ctrl_char_severity(c: char) -> Severity {
+    match c as u32 {
+        0x00 => Severity::Error,
+        _ => Severity::Warning,
     }
 }
 
@@ -806,6 +818,18 @@ msgstr "Bonjour, le monde"
         let diags = check_with_lang("de", "msgid \"x\"\nmsgstr \"a\u{0000}b\"\n");
         assert_eq!(diags.len(), 1);
         assert!(diags[0].message.contains("U+0000 (NULL)"));
+        assert_eq!(diags[0].severity, Severity::Error);
+    }
+
+    #[test]
+    fn test_ctrl_char_severity() {
+        // NULL byte is the only code point promoted to error.
+        assert_eq!(ctrl_char_severity('\u{0000}'), Severity::Error);
+        assert_eq!(ctrl_char_severity('\u{0007}'), Severity::Warning);
+        assert_eq!(ctrl_char_severity('\u{200B}'), Severity::Warning);
+        assert_eq!(ctrl_char_severity('\u{202E}'), Severity::Warning);
+        assert_eq!(ctrl_char_severity('\u{FEFF}'), Severity::Warning);
+        assert_eq!(ctrl_char_severity('\u{FFFD}'), Severity::Warning);
     }
 
     #[test]
