@@ -29,10 +29,6 @@ impl RuleChecker for UnchangedRule {
         true
     }
 
-    fn severity(&self) -> Severity {
-        Severity::Info
-    }
-
     /// Check for unchanged translation: the same as the source string.
     ///
     /// If the source message contains only upper case characters, it is ignored.
@@ -51,8 +47,8 @@ impl RuleChecker for UnchangedRule {
     /// msgstr "ceci est un test"
     /// ```
     ///
-    /// Diagnostics reported with severity [`info`](Severity::Info):
-    /// - `unchanged translation`
+    /// Diagnostics reported:
+    /// - [`info`](Severity::Info): `unchanged translation`
     fn check_msg(
         &self,
         checker: &Checker,
@@ -65,10 +61,11 @@ impl RuleChecker for UnchangedRule {
             && msgid.value == msgstr.value
             && msgid.value.chars().any(char::is_lowercase)
         {
-            return vec![
-                self.new_diag(checker, "unchanged translation")
-                    .with_msgs(msgid, msgstr),
-            ];
+            return self
+                .new_diag(checker, Severity::Info, "unchanged translation")
+                .map(|d| d.with_msgs(msgid, msgstr))
+                .into_iter()
+                .collect();
         }
         vec![]
     }

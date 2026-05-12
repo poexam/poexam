@@ -30,10 +30,6 @@ impl RuleChecker for DoubleWordsRule {
         true
     }
 
-    fn severity(&self) -> Severity {
-        Severity::Info
-    }
-
     /// Check for double consecutive words in the translation.
     ///
     /// This rule is not enabled by default.
@@ -50,8 +46,8 @@ impl RuleChecker for DoubleWordsRule {
     /// msgstr "Ceci est un test"
     /// ```
     ///
-    /// Diagnostics reported with severity [`info`](Severity::Info):
-    /// - `word 'xxx' is repeated`
+    /// Diagnostics reported:
+    /// - [`info`](Severity::Info): `word '…' is repeated`
     fn check_msg(
         &self,
         checker: &Checker,
@@ -71,9 +67,13 @@ impl RuleChecker for DoubleWordsRule {
                     .chars()
                     .all(char::is_whitespace)
             {
-                diags.push(
-                    self.new_diag(checker, format!("word '{}' is repeated", word.s))
-                        .with_msgs_hl(msgid, [], msgstr, [(word.start, next_word.end)]),
+                diags.extend(
+                    self.new_diag(
+                        checker,
+                        Severity::Info,
+                        format!("word '{}' is repeated", word.s),
+                    )
+                    .map(|d| d.with_msgs_hl(msgid, [], msgstr, [(word.start, next_word.end)])),
                 );
             }
         }

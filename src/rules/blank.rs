@@ -29,10 +29,6 @@ impl RuleChecker for BlankRule {
         true
     }
 
-    fn severity(&self) -> Severity {
-        Severity::Warning
-    }
-
     /// Check for blank translation (only whitespace).
     ///
     /// As the translation is not empty, it is used and it does not contain the appropriate
@@ -50,8 +46,8 @@ impl RuleChecker for BlankRule {
     /// msgstr "ceci est un test"
     /// ```
     ///
-    /// Diagnostics reported with severity [`warning`](Severity::Warning):
-    /// - `blank translation`
+    /// Diagnostics reported:
+    /// - [`warning`](Severity::Warning): `blank translation`
     fn check_msg(
         &self,
         checker: &Checker,
@@ -63,12 +59,10 @@ impl RuleChecker for BlankRule {
             && !msgstr.value.is_empty()
             && msgstr.value.trim().is_empty()
         {
-            vec![self.new_diag(checker, "blank translation").with_msgs_hl(
-                msgid,
-                [],
-                msgstr,
-                [(0, msgstr.value.len())],
-            )]
+            self.new_diag(checker, Severity::Warning, "blank translation")
+                .map(|d| d.with_msgs_hl(msgid, [], msgstr, [(0, msgstr.value.len())]))
+                .into_iter()
+                .collect()
         } else {
             vec![]
         }

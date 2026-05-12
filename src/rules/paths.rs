@@ -33,10 +33,6 @@ impl RuleChecker for PathsRule {
         true
     }
 
-    fn severity(&self) -> Severity {
-        Severity::Info
-    }
-
     /// Check for missing, extra or different paths in the translation.
     ///
     /// This rule is not enabled by default.
@@ -53,10 +49,10 @@ impl RuleChecker for PathsRule {
     /// msgstr "Chemin : /tmp/output.txt"
     /// ```
     ///
-    /// Diagnostics reported with severity [`info`](Severity::Info):
-    /// - `missing paths (# / #)`
-    /// - `extra paths (# / #)`
-    /// - `different paths`
+    /// Diagnostics reported:
+    /// - [`info`](Severity::Info): `missing paths (# / #)`
+    /// - [`info`](Severity::Info): `extra paths (# / #)`
+    /// - [`info`](Severity::Info): `different paths`
     fn check_msg(
         &self,
         checker: &Checker,
@@ -67,34 +63,38 @@ impl RuleChecker for PathsRule {
         let id_paths: Vec<_> = FormatPathPos::new(&msgid.value, entry.format_language).collect();
         let str_paths: Vec<_> = FormatPathPos::new(&msgstr.value, entry.format_language).collect();
         match id_paths.len().cmp(&str_paths.len()) {
-            std::cmp::Ordering::Greater => {
-                vec![
-                    self.new_diag(
-                        checker,
-                        format!("missing paths ({} / {})", id_paths.len(), str_paths.len()),
-                    )
-                    .with_msgs_hl(
+            std::cmp::Ordering::Greater => self
+                .new_diag(
+                    checker,
+                    Severity::Info,
+                    format!("missing paths ({} / {})", id_paths.len(), str_paths.len()),
+                )
+                .map(|d| {
+                    d.with_msgs_hl(
                         msgid,
                         id_paths.iter().map(|m| (m.start, m.end)),
                         msgstr,
                         str_paths.iter().map(|m| (m.start, m.end)),
-                    ),
-                ]
-            }
-            std::cmp::Ordering::Less => {
-                vec![
-                    self.new_diag(
-                        checker,
-                        format!("extra paths ({} / {})", id_paths.len(), str_paths.len()),
                     )
-                    .with_msgs_hl(
+                })
+                .into_iter()
+                .collect(),
+            std::cmp::Ordering::Less => self
+                .new_diag(
+                    checker,
+                    Severity::Info,
+                    format!("extra paths ({} / {})", id_paths.len(), str_paths.len()),
+                )
+                .map(|d| {
+                    d.with_msgs_hl(
                         msgid,
                         id_paths.iter().map(|m| (m.start, m.end)),
                         msgstr,
                         str_paths.iter().map(|m| (m.start, m.end)),
-                    ),
-                ]
-            }
+                    )
+                })
+                .into_iter()
+                .collect(),
             std::cmp::Ordering::Equal => {
                 // Check that paths are the same, in any order.
                 // A single pair of quotes is skipped from both sides of the path.
@@ -104,12 +104,17 @@ impl RuleChecker for PathsRule {
                 if id_paths_hash == str_paths_hash {
                     vec![]
                 } else {
-                    vec![self.new_diag(checker, "different paths").with_msgs_hl(
-                        msgid,
-                        id_paths.iter().map(|m| (m.start, m.end)),
-                        msgstr,
-                        str_paths.iter().map(|m| (m.start, m.end)),
-                    )]
+                    self.new_diag(checker, Severity::Info, "different paths")
+                        .map(|d| {
+                            d.with_msgs_hl(
+                                msgid,
+                                id_paths.iter().map(|m| (m.start, m.end)),
+                                msgstr,
+                                str_paths.iter().map(|m| (m.start, m.end)),
+                            )
+                        })
+                        .into_iter()
+                        .collect()
                 }
             }
         }

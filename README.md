@@ -77,7 +77,7 @@ The following options are available in the `check` section (each option can be o
 | langs                | Array of strings | Check spelling only for these languages.                          |
 | short_factor         | Integer          | Min ratio source/translation length to flag "too short" (min: 2). |
 | long_factor          | Integer          | Min ratio translation/source length to flag "too long" (min: 2).  |
-| severity             | Array of strings | Run only checks with these severities (`info`/`warning`/`error`). |
+| severity             | Array of strings | Show diagnostics with these severities (info/warning/error).      |
 | punc_ignore_ellipsis | Boolean          | Ignore ellipsis differences (`...` vs `…`) in punc rules.         |
 
 See configuration file example: [poexam.toml](examples/poexam.toml).
@@ -86,30 +86,30 @@ See configuration file example: [poexam.toml](examples/poexam.toml).
 
 It can perform a lot of checks via the default rules:
 
-| Rule name        | Severity | Diagnostic reported                                |
-|------------------|----------|----------------------------------------------------|
-| blank            | warning  | Blank translation (only whitespace).               |
-| brackets         | info     | Missing/extra brackets.                            |
-| double-quotes    | info     | Missing/extra double quotes.                       |
-| double-spaces    | info     | Missing/extra double spaces.                       |
-| emails           | info     | Missing/extra/different emails.                    |
-| encoding         | info     | Incorrect encoding (charset).                      |
-| escapes          | error    | Missing/extra escape characters.                   |
-| formats          | error    | Inconsistent format strings.                       |
-| header           | error    | Invalid/missing required fields in PO file header. |
-| long             | warning  | Translation too long.                              |
-| newlines         | error    | Missing/extra newlines.                            |
-| pipes            | info     | Missing/extra pipes.                               |
-| plurals          | error    | Incorrect number of plurals.                       |
-| punc-start       | info     | Inconsistent leading punctuation.                  |
-| punc-end         | info     | Inconsistent trailing punctuation.                 |
-| punc-space-id    | info     | Incorrect spaces around punctuation (source).      |
-| punc-space-str   | info     | Incorrect spaces around punctuation (translation). |
-| short            | warning  | Translation too short.                             |
-| tabs             | error    | Missing/extra tabs.                                |
-| unicode-ctrl     | warning  | Stray Unicode control chars in translation.        |
-| whitespace-end   | info     | Missing/extra whitespace at the end.               |
-| whitespace-start | info     | Missing/extra whitespace at the start.             |
+| Rule name        | Diagnostic reported                                |
+|------------------|----------------------------------------------------|
+| blank            | Blank translation (only whitespace).               |
+| brackets         | Missing/extra brackets.                            |
+| double-quotes    | Missing/extra double quotes.                       |
+| double-spaces    | Missing/extra double spaces.                       |
+| emails           | Missing/extra/different emails.                    |
+| encoding         | Incorrect encoding (charset).                      |
+| escapes          | Missing/extra escape characters.                   |
+| formats          | Inconsistent format strings.                       |
+| header           | Invalid/missing required fields in PO file header. |
+| long             | Translation too long.                              |
+| newlines         | Missing/extra newlines.                            |
+| pipes            | Missing/extra pipes.                               |
+| plurals          | Incorrect number of plurals.                       |
+| punc-start       | Inconsistent leading punctuation.                  |
+| punc-end         | Inconsistent trailing punctuation.                 |
+| punc-space-id    | Incorrect spaces around punctuation (source).      |
+| punc-space-str   | Incorrect spaces around punctuation (translation). |
+| short            | Translation too short.                             |
+| tabs             | Missing/extra tabs.                                |
+| unicode-ctrl     | Stray Unicode control chars in translation.        |
+| whitespace-end   | Missing/extra whitespace at the end.               |
+| whitespace-start | Missing/extra whitespace at the start.             |
 
 For the rule `formats`, the following languages are supported:
 

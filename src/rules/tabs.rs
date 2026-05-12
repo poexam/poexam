@@ -29,10 +29,6 @@ impl RuleChecker for TabsRule {
         true
     }
 
-    fn severity(&self) -> Severity {
-        Severity::Error
-    }
-
     /// Check for missing or extra tabs (`\t`) in the translation.
     ///
     /// Wrong entry:
@@ -47,9 +43,9 @@ impl RuleChecker for TabsRule {
     /// msgstr "test \t (tab)"
     /// ```
     ///
-    /// Diagnostics reported with severity [`error`](Severity::Error):
-    /// - `missing tabs '\t' (# / #)`
-    /// - `extra tabs '\t' (# / #)`
+    /// Diagnostics reported:
+    /// - [`error`](Severity::Error): `missing tabs '\t' (# / #)`
+    /// - [`error`](Severity::Error): `extra tabs '\t' (# / #)`
     fn check_msg(
         &self,
         checker: &Checker,
@@ -68,20 +64,23 @@ impl RuleChecker for TabsRule {
                 format!("extra tabs '\\t' ({id_count} / {str_count})")
             }
         };
-        vec![
-            self.new_diag(checker, msg).with_msgs_hl(
-                msgid,
-                msgid
-                    .value
-                    .match_indices('\t')
-                    .map(|(idx, value)| (idx, idx + value.len())),
-                msgstr,
-                msgstr
-                    .value
-                    .match_indices('\t')
-                    .map(|(idx, value)| (idx, idx + value.len())),
-            ),
-        ]
+        self.new_diag(checker, Severity::Error, msg)
+            .map(|d| {
+                d.with_msgs_hl(
+                    msgid,
+                    msgid
+                        .value
+                        .match_indices('\t')
+                        .map(|(idx, value)| (idx, idx + value.len())),
+                    msgstr,
+                    msgstr
+                        .value
+                        .match_indices('\t')
+                        .map(|(idx, value)| (idx, idx + value.len())),
+                )
+            })
+            .into_iter()
+            .collect()
     }
 }
 

@@ -29,10 +29,6 @@ impl RuleChecker for EscapesRule {
         true
     }
 
-    fn severity(&self) -> Severity {
-        Severity::Error
-    }
-
     /// Check for missing or extra escape characters (`\\` and `\`) in the translation.
     ///
     /// Wrong entry:
@@ -47,11 +43,11 @@ impl RuleChecker for EscapesRule {
     /// msgstr "ceci est un \"test\""
     /// ```
     ///
-    /// Diagnostics reported with severity [`error`](Severity::Error):
-    /// - `missing escaped escape characters '\\' (# / #)`
-    /// - `extra escaped escape characters '\\' (# / #)`
-    /// - `missing escaped escape characters '\' (# / #)`
-    /// - `extra escaped escape characters '\' (# / #)`
+    /// Diagnostics reported:
+    /// - [`error`](Severity::Error): `missing escaped escape characters '\\' (# / #)`
+    /// - [`error`](Severity::Error): `extra escaped escape characters '\\' (# / #)`
+    /// - [`error`](Severity::Error): `missing escaped escape characters '\' (# / #)`
+    /// - [`error`](Severity::Error): `extra escaped escape characters '\' (# / #)`
     fn check_msg(
         &self,
         checker: &Checker,
@@ -72,20 +68,24 @@ impl RuleChecker for EscapesRule {
             std::cmp::Ordering::Equal => None,
         };
         if let Some(msg) = msg {
-            return vec![
-                self.new_diag(checker, msg).with_msgs_hl(
-                    msgid,
-                    msgid
-                        .value
-                        .match_indices("\\\\")
-                        .map(|(idx, value)| (idx, idx + value.len())),
-                    msgstr,
-                    msgstr
-                        .value
-                        .match_indices("\\\\")
-                        .map(|(idx, value)| (idx, idx + value.len())),
-                ),
-            ];
+            return self
+                .new_diag(checker, Severity::Error, msg)
+                .map(|d| {
+                    d.with_msgs_hl(
+                        msgid,
+                        msgid
+                            .value
+                            .match_indices("\\\\")
+                            .map(|(idx, value)| (idx, idx + value.len())),
+                        msgstr,
+                        msgstr
+                            .value
+                            .match_indices("\\\\")
+                            .map(|(idx, value)| (idx, idx + value.len())),
+                    )
+                })
+                .into_iter()
+                .collect();
         }
         // Equal counts of "\\": now check single escape character: "\".
         let id_count = msgid.value.matches('\\').count();
@@ -99,20 +99,23 @@ impl RuleChecker for EscapesRule {
                 format!("extra escape characters '\\' ({id_count} / {str_count})")
             }
         };
-        vec![
-            self.new_diag(checker, msg).with_msgs_hl(
-                msgid,
-                msgid
-                    .value
-                    .match_indices('\\')
-                    .map(|(idx, value)| (idx, idx + value.len())),
-                msgstr,
-                msgstr
-                    .value
-                    .match_indices('\\')
-                    .map(|(idx, value)| (idx, idx + value.len())),
-            ),
-        ]
+        self.new_diag(checker, Severity::Error, msg)
+            .map(|d| {
+                d.with_msgs_hl(
+                    msgid,
+                    msgid
+                        .value
+                        .match_indices('\\')
+                        .map(|(idx, value)| (idx, idx + value.len())),
+                    msgstr,
+                    msgstr
+                        .value
+                        .match_indices('\\')
+                        .map(|(idx, value)| (idx, idx + value.len())),
+                )
+            })
+            .into_iter()
+            .collect()
     }
 }
 

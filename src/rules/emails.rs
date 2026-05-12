@@ -33,10 +33,6 @@ impl RuleChecker for EmailsRule {
         true
     }
 
-    fn severity(&self) -> Severity {
-        Severity::Info
-    }
-
     /// Check for missing, extra or different emails in the translation.
     ///
     /// Wrong entry:
@@ -51,10 +47,10 @@ impl RuleChecker for EmailsRule {
     /// msgstr "Email de test : user@example.com"
     /// ```
     ///
-    /// Diagnostics reported with severity [`info`](Severity::Info):
-    /// - `missing emails (# / #)`
-    /// - `extra emails (# / #)`
-    /// - `different emails`
+    /// Diagnostics reported:
+    /// - [`info`](Severity::Info): `missing emails (# / #)`
+    /// - [`info`](Severity::Info): `extra emails (# / #)`
+    /// - [`info`](Severity::Info): `different emails`
     fn check_msg(
         &self,
         checker: &Checker,
@@ -66,38 +62,42 @@ impl RuleChecker for EmailsRule {
         let str_emails: Vec<_> =
             FormatEmailPos::new(&msgstr.value, entry.format_language).collect();
         match id_emails.len().cmp(&str_emails.len()) {
-            std::cmp::Ordering::Greater => {
-                vec![
-                    self.new_diag(
-                        checker,
-                        format!(
-                            "missing emails ({} / {})",
-                            id_emails.len(),
-                            str_emails.len()
-                        ),
-                    )
-                    .with_msgs_hl(
+            std::cmp::Ordering::Greater => self
+                .new_diag(
+                    checker,
+                    Severity::Info,
+                    format!(
+                        "missing emails ({} / {})",
+                        id_emails.len(),
+                        str_emails.len()
+                    ),
+                )
+                .map(|d| {
+                    d.with_msgs_hl(
                         msgid,
                         id_emails.iter().map(|m| (m.start, m.end)),
                         msgstr,
                         str_emails.iter().map(|m| (m.start, m.end)),
-                    ),
-                ]
-            }
-            std::cmp::Ordering::Less => {
-                vec![
-                    self.new_diag(
-                        checker,
-                        format!("extra emails ({} / {})", id_emails.len(), str_emails.len()),
                     )
-                    .with_msgs_hl(
+                })
+                .into_iter()
+                .collect(),
+            std::cmp::Ordering::Less => self
+                .new_diag(
+                    checker,
+                    Severity::Info,
+                    format!("extra emails ({} / {})", id_emails.len(), str_emails.len()),
+                )
+                .map(|d| {
+                    d.with_msgs_hl(
                         msgid,
                         id_emails.iter().map(|m| (m.start, m.end)),
                         msgstr,
                         str_emails.iter().map(|m| (m.start, m.end)),
-                    ),
-                ]
-            }
+                    )
+                })
+                .into_iter()
+                .collect(),
             std::cmp::Ordering::Equal => {
                 // Check that emails are the same, in any order.
                 // A single pair of quotes is skipped from both sides of the email.
@@ -108,12 +108,17 @@ impl RuleChecker for EmailsRule {
                 if id_emails_hash == str_emails_hash {
                     vec![]
                 } else {
-                    vec![self.new_diag(checker, "different emails").with_msgs_hl(
-                        msgid,
-                        id_emails.iter().map(|m| (m.start, m.end)),
-                        msgstr,
-                        str_emails.iter().map(|m| (m.start, m.end)),
-                    )]
+                    self.new_diag(checker, Severity::Info, "different emails")
+                        .map(|d| {
+                            d.with_msgs_hl(
+                                msgid,
+                                id_emails.iter().map(|m| (m.start, m.end)),
+                                msgstr,
+                                str_emails.iter().map(|m| (m.start, m.end)),
+                            )
+                        })
+                        .into_iter()
+                        .collect()
                 }
             }
         }

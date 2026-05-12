@@ -29,10 +29,6 @@ impl RuleChecker for PipesRule {
         true
     }
 
-    fn severity(&self) -> Severity {
-        Severity::Info
-    }
-
     /// Check for missing or extra pipes in the translation.
     ///
     /// Wrong entry:
@@ -47,9 +43,9 @@ impl RuleChecker for PipesRule {
     /// msgstr "syntaxe : ./test -f|-h|-v"
     /// ```
     ///
-    /// Diagnostics reported with severity [`info`](Severity::Info):
-    /// - `missing pipes '|' (# / #)`
-    /// - `extra pipes '|' (# / #)`
+    /// Diagnostics reported:
+    /// - [`info`](Severity::Info): `missing pipes '|' (# / #)`
+    /// - [`info`](Severity::Info): `extra pipes '|' (# / #)`
     fn check_msg(
         &self,
         checker: &Checker,
@@ -68,20 +64,23 @@ impl RuleChecker for PipesRule {
                 format!("extra pipes '|' ({id_count} / {str_count})")
             }
         };
-        vec![
-            self.new_diag(checker, msg).with_msgs_hl(
-                msgid,
-                msgid
-                    .value
-                    .match_indices('|')
-                    .map(|(idx, value)| (idx, idx + value.len())),
-                msgstr,
-                msgstr
-                    .value
-                    .match_indices('|')
-                    .map(|(idx, value)| (idx, idx + value.len())),
-            ),
-        ]
+        self.new_diag(checker, Severity::Info, msg)
+            .map(|d| {
+                d.with_msgs_hl(
+                    msgid,
+                    msgid
+                        .value
+                        .match_indices('|')
+                        .map(|(idx, value)| (idx, idx + value.len())),
+                    msgstr,
+                    msgstr
+                        .value
+                        .match_indices('|')
+                        .map(|(idx, value)| (idx, idx + value.len())),
+                )
+            })
+            .into_iter()
+            .collect()
     }
 }
 

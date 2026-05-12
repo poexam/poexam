@@ -32,10 +32,6 @@ impl RuleChecker for HtmlTagsRule {
         true
     }
 
-    fn severity(&self) -> Severity {
-        Severity::Info
-    }
-
     /// Check for missing, extra or different HTML tags in the translation.
     ///
     /// This rule is not enabled by default.
@@ -52,10 +48,10 @@ impl RuleChecker for HtmlTagsRule {
     /// msgstr "Bonjour <b>monde</b>"
     /// ```
     ///
-    /// Diagnostics reported with severity [`info`](Severity::Info):
-    /// - `missing HTML tags (# / #)`
-    /// - `extra HTML tags (# / #)`
-    /// - `different HTML tags`
+    /// Diagnostics reported:
+    /// - [`info`](Severity::Info): `missing HTML tags (# / #)`
+    /// - [`info`](Severity::Info): `extra HTML tags (# / #)`
+    /// - [`info`](Severity::Info): `different HTML tags`
     fn check_msg(
         &self,
         checker: &Checker,
@@ -67,34 +63,38 @@ impl RuleChecker for HtmlTagsRule {
         let str_tags: Vec<_> =
             FormatHtmlTagPos::new(&msgstr.value, entry.format_language).collect();
         match id_tags.len().cmp(&str_tags.len()) {
-            std::cmp::Ordering::Greater => {
-                vec![
-                    self.new_diag(
-                        checker,
-                        format!("missing HTML tags ({} / {})", id_tags.len(), str_tags.len()),
-                    )
-                    .with_msgs_hl(
+            std::cmp::Ordering::Greater => self
+                .new_diag(
+                    checker,
+                    Severity::Info,
+                    format!("missing HTML tags ({} / {})", id_tags.len(), str_tags.len()),
+                )
+                .map(|d| {
+                    d.with_msgs_hl(
                         msgid,
                         id_tags.iter().map(|m| (m.start, m.end)),
                         msgstr,
                         str_tags.iter().map(|m| (m.start, m.end)),
-                    ),
-                ]
-            }
-            std::cmp::Ordering::Less => {
-                vec![
-                    self.new_diag(
-                        checker,
-                        format!("extra HTML tags ({} / {})", id_tags.len(), str_tags.len()),
                     )
-                    .with_msgs_hl(
+                })
+                .into_iter()
+                .collect(),
+            std::cmp::Ordering::Less => self
+                .new_diag(
+                    checker,
+                    Severity::Info,
+                    format!("extra HTML tags ({} / {})", id_tags.len(), str_tags.len()),
+                )
+                .map(|d| {
+                    d.with_msgs_hl(
                         msgid,
                         id_tags.iter().map(|m| (m.start, m.end)),
                         msgstr,
                         str_tags.iter().map(|m| (m.start, m.end)),
-                    ),
-                ]
-            }
+                    )
+                })
+                .into_iter()
+                .collect(),
             std::cmp::Ordering::Equal => {
                 // Check that HTML tags are the same, in any order.
                 let id_tags_hash: HashSet<_> = id_tags.iter().map(|m| m.s).collect();
@@ -102,12 +102,17 @@ impl RuleChecker for HtmlTagsRule {
                 if id_tags_hash == str_tags_hash {
                     vec![]
                 } else {
-                    vec![self.new_diag(checker, "different HTML tags").with_msgs_hl(
-                        msgid,
-                        id_tags.iter().map(|m| (m.start, m.end)),
-                        msgstr,
-                        str_tags.iter().map(|m| (m.start, m.end)),
-                    )]
+                    self.new_diag(checker, Severity::Info, "different HTML tags")
+                        .map(|d| {
+                            d.with_msgs_hl(
+                                msgid,
+                                id_tags.iter().map(|m| (m.start, m.end)),
+                                msgstr,
+                                str_tags.iter().map(|m| (m.start, m.end)),
+                            )
+                        })
+                        .into_iter()
+                        .collect()
                 }
             }
         }

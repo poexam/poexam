@@ -36,10 +36,6 @@ impl RuleChecker for FormatsRule {
         true
     }
 
-    fn severity(&self) -> Severity {
-        Severity::Error
-    }
-
     /// Check for inconsistent format strings.
     ///
     /// The following languages are supported:
@@ -72,8 +68,8 @@ impl RuleChecker for FormatsRule {
     /// msgstr "%2$s test (%1$d)"
     /// ```
     ///
-    /// Diagnostics reported with severity [`error`](Severity::Error):
-    /// - `inconsistent format strings (xxx)`
+    /// Diagnostics reported:
+    /// - [`error`](Severity::Error): `inconsistent format strings (…)`
     fn check_msg(
         &self,
         checker: &Checker,
@@ -102,18 +98,21 @@ impl RuleChecker for FormatsRule {
             id_fmt_hash != str_fmt_hash
         };
         if error {
-            vec![
-                self.new_diag(
-                    checker,
-                    format!("inconsistent format strings ({})", entry.format_language),
-                )
-                .with_msgs_hl(
+            self.new_diag(
+                checker,
+                Severity::Error,
+                format!("inconsistent format strings ({})", entry.format_language),
+            )
+            .map(|d| {
+                d.with_msgs_hl(
                     msgid,
                     id_fmt.iter().map(|m| (m.start, m.end)),
                     msgstr,
                     str_fmt.iter().map(|m| (m.start, m.end)),
-                ),
-            ]
+                )
+            })
+            .into_iter()
+            .collect()
         } else {
             vec![]
         }

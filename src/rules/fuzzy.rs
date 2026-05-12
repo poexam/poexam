@@ -28,10 +28,6 @@ impl RuleChecker for FuzzyRule {
         false
     }
 
-    fn severity(&self) -> Severity {
-        Severity::Info
-    }
-
     /// Report entry if fuzzy.
     ///
     /// Fuzzy is not strictly speaking an error, but this check helps to identify fuzzy
@@ -52,11 +48,14 @@ impl RuleChecker for FuzzyRule {
     /// msgstr "ceci est un test"
     /// ```
     ///
-    /// Diagnostics reported with severity [`info`](Severity::Info):
-    /// - `fuzzy entry`
+    /// Diagnostics reported:
+    /// - [`info`](Severity::Info): `fuzzy entry`
     fn check_entry(&self, checker: &Checker, entry: &Entry) -> Vec<Diagnostic> {
         if entry.fuzzy {
-            vec![self.new_diag(checker, "fuzzy entry").with_entry(entry)]
+            self.new_diag(checker, Severity::Info, "fuzzy entry")
+                .map(|d| d.with_entry(entry))
+                .into_iter()
+                .collect()
         } else {
             vec![]
         }

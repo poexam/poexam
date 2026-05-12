@@ -28,10 +28,6 @@ impl RuleChecker for ObsoleteRule {
         false
     }
 
-    fn severity(&self) -> Severity {
-        Severity::Info
-    }
-
     /// Report entry if obsolete.
     ///
     /// Obsolete is not strictly speaking an error, but this check helps to identify
@@ -51,11 +47,14 @@ impl RuleChecker for ObsoleteRule {
     /// msgstr "ceci est un test"
     /// ```
     ///
-    /// Diagnostics reported with severity [`info`](Severity::Info):
-    /// - `obsolete entry`
+    /// Diagnostics reported:
+    /// - [`info`](Severity::Info): `obsolete entry`
     fn check_entry(&self, checker: &Checker, entry: &Entry) -> Vec<Diagnostic> {
         if entry.obsolete {
-            vec![self.new_diag(checker, "obsolete entry").with_entry(entry)]
+            self.new_diag(checker, Severity::Info, "obsolete entry")
+                .map(|d| d.with_entry(entry))
+                .into_iter()
+                .collect()
         } else {
             vec![]
         }

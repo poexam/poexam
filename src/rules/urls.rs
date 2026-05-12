@@ -33,10 +33,6 @@ impl RuleChecker for UrlsRule {
         true
     }
 
-    fn severity(&self) -> Severity {
-        Severity::Info
-    }
-
     /// Check for missing, extra or different URLs in the translation.
     ///
     /// This rule is not enabled by default.
@@ -53,10 +49,10 @@ impl RuleChecker for UrlsRule {
     /// msgstr "URL de test : https://example.com"
     /// ```
     ///
-    /// Diagnostics reported with severity [`info`](Severity::Info):
-    /// - `missing URLs (# / #)`
-    /// - `extra URLs (# / #)`
-    /// - `different URLs`
+    /// Diagnostics reported:
+    /// - [`info`](Severity::Info): `missing URLs (# / #)`
+    /// - [`info`](Severity::Info): `extra URLs (# / #)`
+    /// - [`info`](Severity::Info): `different URLs`
     fn check_msg(
         &self,
         checker: &Checker,
@@ -67,34 +63,38 @@ impl RuleChecker for UrlsRule {
         let id_urls: Vec<_> = FormatUrlPos::new(&msgid.value, entry.format_language).collect();
         let str_urls: Vec<_> = FormatUrlPos::new(&msgstr.value, entry.format_language).collect();
         match id_urls.len().cmp(&str_urls.len()) {
-            std::cmp::Ordering::Greater => {
-                vec![
-                    self.new_diag(
-                        checker,
-                        format!("missing URLs ({} / {})", id_urls.len(), str_urls.len()),
-                    )
-                    .with_msgs_hl(
+            std::cmp::Ordering::Greater => self
+                .new_diag(
+                    checker,
+                    Severity::Info,
+                    format!("missing URLs ({} / {})", id_urls.len(), str_urls.len()),
+                )
+                .map(|d| {
+                    d.with_msgs_hl(
                         msgid,
                         id_urls.iter().map(|m| (m.start, m.end)),
                         msgstr,
                         str_urls.iter().map(|m| (m.start, m.end)),
-                    ),
-                ]
-            }
-            std::cmp::Ordering::Less => {
-                vec![
-                    self.new_diag(
-                        checker,
-                        format!("extra URLs ({} / {})", id_urls.len(), str_urls.len()),
                     )
-                    .with_msgs_hl(
+                })
+                .into_iter()
+                .collect(),
+            std::cmp::Ordering::Less => self
+                .new_diag(
+                    checker,
+                    Severity::Info,
+                    format!("extra URLs ({} / {})", id_urls.len(), str_urls.len()),
+                )
+                .map(|d| {
+                    d.with_msgs_hl(
                         msgid,
                         id_urls.iter().map(|m| (m.start, m.end)),
                         msgstr,
                         str_urls.iter().map(|m| (m.start, m.end)),
-                    ),
-                ]
-            }
+                    )
+                })
+                .into_iter()
+                .collect(),
             std::cmp::Ordering::Equal => {
                 // Check that URLs are the same, in any order.
                 // A single pair of quotes is skipped from both sides of the URL.
@@ -103,12 +103,17 @@ impl RuleChecker for UrlsRule {
                 if id_urls_hash == str_urls_hash {
                     vec![]
                 } else {
-                    vec![self.new_diag(checker, "different URLs").with_msgs_hl(
-                        msgid,
-                        id_urls.iter().map(|m| (m.start, m.end)),
-                        msgstr,
-                        str_urls.iter().map(|m| (m.start, m.end)),
-                    )]
+                    self.new_diag(checker, Severity::Info, "different URLs")
+                        .map(|d| {
+                            d.with_msgs_hl(
+                                msgid,
+                                id_urls.iter().map(|m| (m.start, m.end)),
+                                msgstr,
+                                str_urls.iter().map(|m| (m.start, m.end)),
+                            )
+                        })
+                        .into_iter()
+                        .collect()
                 }
             }
         }

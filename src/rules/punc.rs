@@ -33,10 +33,6 @@ impl RuleChecker for PuncStartRule {
         true
     }
 
-    fn severity(&self) -> Severity {
-        Severity::Info
-    }
-
     /// Check for inconsistent leading punctuation between source and translation.
     ///
     /// The following characters are considered as punctuation for this check
@@ -65,8 +61,8 @@ impl RuleChecker for PuncStartRule {
     /// msgstr "; ceci est un test"
     /// ```
     ///
-    /// Diagnostics reported with severity [`info`](Severity::Info):
-    /// - `inconsistent leading punctuation ('…' / '…')`
+    /// Diagnostics reported:
+    /// - [`info`](Severity::Info): `inconsistent leading punctuation ('…' / '…')`
     fn check_msg(
         &self,
         checker: &Checker,
@@ -91,18 +87,14 @@ impl RuleChecker for PuncStartRule {
         if id_punc2 == str_punc2 {
             vec![]
         } else {
-            vec![
-                self.new_diag(
-                    checker,
-                    format!("inconsistent leading punctuation ('{id_punc2}' / '{str_punc2}')"),
-                )
-                .with_msgs_hl(
-                    msgid,
-                    [(0, id_punc.len())],
-                    msgstr,
-                    [(0, str_punc.len())],
-                ),
-            ]
+            self.new_diag(
+                checker,
+                Severity::Info,
+                format!("inconsistent leading punctuation ('{id_punc2}' / '{str_punc2}')"),
+            )
+            .map(|d| d.with_msgs_hl(msgid, [(0, id_punc.len())], msgstr, [(0, str_punc.len())]))
+            .into_iter()
+            .collect()
         }
     }
 }
@@ -124,10 +116,6 @@ impl RuleChecker for PuncEndRule {
 
     fn is_check(&self) -> bool {
         true
-    }
-
-    fn severity(&self) -> Severity {
-        Severity::Info
     }
 
     /// Check for inconsistent trailing punctuation between source and translation.
@@ -156,8 +144,8 @@ impl RuleChecker for PuncEndRule {
     /// msgstr "Ceci est un test."
     /// ```
     ///
-    /// Diagnostics reported with severity [`info`](Severity::Info):
-    /// - `inconsistent trailing punctuation ('…' / '…')`
+    /// Diagnostics reported:
+    /// - [`info`](Severity::Info): `inconsistent trailing punctuation ('…' / '…')`
     fn check_msg(
         &self,
         checker: &Checker,
@@ -174,18 +162,21 @@ impl RuleChecker for PuncEndRule {
         if id_punc2 == str_punc2 {
             vec![]
         } else {
-            vec![
-                self.new_diag(
-                    checker,
-                    format!("inconsistent trailing punctuation ('{id_punc2}' / '{str_punc2}')"),
-                )
-                .with_msgs_hl(
+            self.new_diag(
+                checker,
+                Severity::Info,
+                format!("inconsistent trailing punctuation ('{id_punc2}' / '{str_punc2}')"),
+            )
+            .map(|d| {
+                d.with_msgs_hl(
                     msgid,
                     [(msgid.value.len() - id_punc.len(), msgid.value.len())],
                     msgstr,
                     [(msgstr.value.len() - str_punc.len(), msgstr.value.len())],
-                ),
-            ]
+                )
+            })
+            .into_iter()
+            .collect()
         }
     }
 }

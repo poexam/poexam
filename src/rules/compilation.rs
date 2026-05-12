@@ -27,17 +27,13 @@ impl RuleChecker for CompilationRule {
         true
     }
 
-    fn severity(&self) -> Severity {
-        Severity::Error
-    }
-
     /// Check for compilation errors using the `msgfmt` command.
     ///
     /// This rule is not enabled by default.
     ///
-    /// Diagnostics reported with severity [`error`](Severity::Error):
-    /// - `command '/usr/bin/msgfmt' reported errors`
-    /// - `failed to run command '/usr/bin/msgfmt'`
+    /// Diagnostics reported:
+    /// - [`error`](Severity::Error): `command '/usr/bin/msgfmt' reported errors`
+    /// - [`error`](Severity::Error): `failed to run command '/usr/bin/msgfmt'`
     fn check_file(&self, checker: &Checker) -> Vec<Diagnostic> {
         match std::process::Command::new(&checker.config.check.path_msgfmt)
             .arg("--check-format")
@@ -50,30 +46,31 @@ impl RuleChecker for CompilationRule {
                 if output.status.success() {
                     vec![]
                 } else {
-                    vec![
-                        self.new_diag(
-                            checker,
-                            format!(
-                                "command `{}` reported errors",
-                                checker.config.check.path_msgfmt.display()
-                            ),
-                        )
-                        .with_multiline(&String::from_utf8_lossy(&output.stderr)),
-                    ]
-                }
-            }
-            Err(err) => {
-                vec![
                     self.new_diag(
                         checker,
+                        Severity::Error,
                         format!(
-                            "failed to run command `{}`",
+                            "command `{}` reported errors",
                             checker.config.check.path_msgfmt.display()
                         ),
                     )
-                    .with_multiline(&err.to_string()),
-                ]
+                    .map(|d| d.with_multiline(&String::from_utf8_lossy(&output.stderr)))
+                    .into_iter()
+                    .collect()
+                }
             }
+            Err(err) => self
+                .new_diag(
+                    checker,
+                    Severity::Error,
+                    format!(
+                        "failed to run command `{}`",
+                        checker.config.check.path_msgfmt.display()
+                    ),
+                )
+                .map(|d| d.with_multiline(&err.to_string()))
+                .into_iter()
+                .collect(),
         }
     }
 }

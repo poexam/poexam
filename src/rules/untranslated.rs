@@ -29,10 +29,6 @@ impl RuleChecker for UntranslatedRule {
         false
     }
 
-    fn severity(&self) -> Severity {
-        Severity::Info
-    }
-
     /// Report entry if untranslated.
     ///
     /// Untranslated is not strictly speaking an error, but this check helps to identify
@@ -52,8 +48,8 @@ impl RuleChecker for UntranslatedRule {
     /// msgstr "ceci est un test"
     /// ```
     ///
-    /// Diagnostics reported with severity [`info`](Severity::Info):
-    /// - `untranslated message`
+    /// Diagnostics reported:
+    /// - [`info`](Severity::Info): `untranslated message`
     fn check_msg(
         &self,
         checker: &Checker,
@@ -62,10 +58,10 @@ impl RuleChecker for UntranslatedRule {
         msgstr: &Message,
     ) -> Vec<Diagnostic> {
         if msgstr.value.is_empty() {
-            vec![
-                self.new_diag(checker, "untranslated message")
-                    .with_msg(msgid),
-            ]
+            self.new_diag(checker, Severity::Info, "untranslated message")
+                .map(|d| d.with_msg(msgid))
+                .into_iter()
+                .collect()
         } else {
             vec![]
         }

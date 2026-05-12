@@ -4,7 +4,7 @@
 
 //! Implementation of the `header` rule: check that the PO file header
 //! contains all the required fields (`Project-Id-Version`, `Language`,
-//! `Content-Type`, …).
+//! `Content-Type`, …) and that their values are well-formed.
 
 use std::collections::HashSet;
 
@@ -16,18 +16,24 @@ use crate::po::format::language::Language;
 use crate::po::message::Message;
 use crate::rules::rule::RuleChecker;
 
-/// Fields that must be present in the PO file header. Order is the canonical
-/// display order; diagnostics are emitted in this order for stable output.
-const REQUIRED_FIELDS: &[&str] = &[
-    "Project-Id-Version",
-    "Report-Msgid-Bugs-To",
-    "POT-Creation-Date",
-    "PO-Revision-Date",
-    "Last-Translator",
-    "Language",
-    "Language-Team",
-    "Content-Type",
-    "Content-Transfer-Encoding",
+/// Fields that must be present in the PO file header, with the severity to
+/// emit when they're missing. `Language` is mandatory for any gettext consumer
+/// to pick the right translation (error); `Content-Type` and
+/// `Content-Transfer-Encoding` are encoding-critical (warning); the rest are
+/// informational metadata.
+///
+/// Order is the canonical display order; diagnostics are emitted in this
+/// order for stable output.
+const REQUIRED_FIELDS: &[(&str, Severity)] = &[
+    ("Project-Id-Version", Severity::Info),
+    ("Report-Msgid-Bugs-To", Severity::Info),
+    ("POT-Creation-Date", Severity::Info),
+    ("PO-Revision-Date", Severity::Info),
+    ("Last-Translator", Severity::Info),
+    ("Language", Severity::Error),
+    ("Language-Team", Severity::Info),
+    ("Content-Type", Severity::Warning),
+    ("Content-Transfer-Encoding", Severity::Warning),
 ];
 
 pub struct HeaderRule;
@@ -38,7 +44,7 @@ impl RuleChecker for HeaderRule {
     }
 
     fn description(&self) -> &'static str {
-        "Missing required fields in PO file header."
+        "Missing required fields or invalid field values in PO file header."
     }
 
     fn is_default(&self) -> bool {
@@ -47,10 +53,6 @@ impl RuleChecker for HeaderRule {
 
     fn is_check(&self) -> bool {
         true
-    }
-
-    fn severity(&self) -> Severity {
-        Severity::Error
     }
 
     /// Check the PO file header for invalid or missing required fields.
@@ -81,9 +83,17 @@ impl RuleChecker for HeaderRule {
     /// "Plural-Forms: nplurals=2; plural=(n > 1);\n"
     /// ```
     ///
-    /// Diagnostics reported with severity [`error`](Severity::Error):
-    /// - `missing field 'xxx' in header`
-    /// - `invalid value 'xxx' for field 'yyy' in header`
+    /// Diagnostics reported:
+    /// - [`error`](Severity::Error): `missing field 'Language' in header`
+    /// - [`error`](Severity::Error): `invalid value '…' for field 'Content-Type' in header`
+    /// - [`error`](Severity::Error): `invalid value '…' for field 'Plural-Forms' in header`
+    /// - [`error`](Severity::Error): `invalid value '…' for field 'Language' in header`
+    /// - [`warning`](Severity::Warning): `missing field 'Content-Type' in header`
+    /// - [`warning`](Severity::Warning): `missing field 'Content-Transfer-Encoding' in header`
+    /// - [`info`](Severity::Info): `missing field '…' in header` (for any other required field)
+    /// - [`info`](Severity::Info): `invalid value '…' for field 'Report-Msgid-Bugs-To' in header`
+    /// - [`info`](Severity::Info): `invalid value '…' for field 'Last-Translator' in header`
+    /// - [`info`](Severity::Info): `invalid value '…' for field 'Language-Team' in header`
     fn check_header(&self, checker: &Checker, _entry: &Entry, msgstr: &Message) -> Vec<Diagnostic> {
         let fields: Vec<(String, &str)> = msgstr
             .value
@@ -95,84 +105,94 @@ impl RuleChecker for HeaderRule {
 
         let mut diagnostics: Vec<Diagnostic> = REQUIRED_FIELDS
             .iter()
-            .filter(|field| !present.contains(field.to_ascii_lowercase().as_str()))
-            .map(|field| {
-                self.new_diag(checker, format!("missing field '{field}' in header"))
-                    .with_msg(msgstr)
+            .filter(|(field, _)| !present.contains(field.to_ascii_lowercase().as_str()))
+            .filter_map(|(field, severity)| {
+                self.new_diag(
+                    checker,
+                    *severity,
+                    format!("missing field '{field}' in header"),
+                )
+                .map(|d| d.with_msg(msgstr))
             })
             .collect();
-
-        if let Some((_, value)) = fields
-            .iter()
-            .find(|(name, _)| name == "report-msgid-bugs-to")
-            && !is_valid_report_msgid_bugs_to(value)
-        {
-            diagnostics.push(
-                self.new_diag(
-                    checker,
-                    format!("invalid value '{value}' for field 'Report-Msgid-Bugs-To' in header"),
-                )
-                .with_msg(msgstr),
-            );
-        }
-
-        if let Some((_, value)) = fields.iter().find(|(name, _)| name == "language")
-            && !is_valid_language(value)
-        {
-            diagnostics.push(
-                self.new_diag(
-                    checker,
-                    format!("invalid value '{value}' for field 'Language' in header"),
-                )
-                .with_msg(msgstr),
-            );
-        }
-
-        if let Some((_, value)) = fields.iter().find(|(name, _)| name == "last-translator")
-            && !is_valid_last_translator(value)
-        {
-            diagnostics.push(
-                self.new_diag(
-                    checker,
-                    format!("invalid value '{value}' for field 'Last-Translator' in header"),
-                )
-                .with_msg(msgstr),
-            );
-        }
-
-        if let Some((_, value)) = fields.iter().find(|(name, _)| name == "language-team")
-            && !is_valid_language_team(value)
-        {
-            diagnostics.push(
-                self.new_diag(
-                    checker,
-                    format!("invalid value '{value}' for field 'Language-Team' in header"),
-                )
-                .with_msg(msgstr),
-            );
-        }
 
         if let Some((_, value)) = fields.iter().find(|(name, _)| name == "content-type")
             && !is_valid_content_type(value)
         {
-            diagnostics.push(
+            diagnostics.extend(
                 self.new_diag(
                     checker,
+                    Severity::Error,
                     format!("invalid value '{value}' for field 'Content-Type' in header"),
                 )
-                .with_msg(msgstr),
+                .map(|d| d.with_msg(msgstr)),
             );
         }
 
         if let Some((_, value)) = fields.iter().find(|(name, _)| name == "plural-forms")
             && !is_valid_plural_forms(value)
         {
-            diagnostics.push(
+            diagnostics.extend(
                 self.new_diag(
                     checker,
+                    Severity::Error,
                     format!("invalid value '{value}' for field 'Plural-Forms' in header"),
                 )
-                .with_msg(msgstr),
+                .map(|d| d.with_msg(msgstr)),
+            );
+        }
+
+        if let Some((_, value)) = fields.iter().find(|(name, _)| name == "language")
+            && !is_valid_language(value)
+        {
+            diagnostics.extend(
+                self.new_diag(
+                    checker,
+                    Severity::Error,
+                    format!("invalid value '{value}' for field 'Language' in header"),
+                )
+                .map(|d| d.with_msg(msgstr)),
+            );
+        }
+
+        if let Some((_, value)) = fields
+            .iter()
+            .find(|(name, _)| name == "report-msgid-bugs-to")
+            && !is_valid_report_msgid_bugs_to(value)
+        {
+            diagnostics.extend(
+                self.new_diag(
+                    checker,
+                    Severity::Info,
+                    format!("invalid value '{value}' for field 'Report-Msgid-Bugs-To' in header"),
+                )
+                .map(|d| d.with_msg(msgstr)),
+            );
+        }
+
+        if let Some((_, value)) = fields.iter().find(|(name, _)| name == "last-translator")
+            && !is_valid_last_translator(value)
+        {
+            diagnostics.extend(
+                self.new_diag(
+                    checker,
+                    Severity::Info,
+                    format!("invalid value '{value}' for field 'Last-Translator' in header"),
+                )
+                .map(|d| d.with_msg(msgstr)),
+            );
+        }
+
+        if let Some((_, value)) = fields.iter().find(|(name, _)| name == "language-team")
+            && !is_valid_language_team(value)
+        {
+            diagnostics.extend(
+                self.new_diag(
+                    checker,
+                    Severity::Info,
+                    format!("invalid value '{value}' for field 'Language-Team' in header"),
+                )
+                .map(|d| d.with_msg(msgstr)),
             );
         }
 
@@ -330,8 +350,8 @@ msgstr \"\"
     fn test_empty_header_reports_every_required_field() {
         let diags = check("msgid \"\"\nmsgstr \"\"\n");
         assert_eq!(diags.len(), REQUIRED_FIELDS.len());
-        for d in &diags {
-            assert_eq!(d.severity, Severity::Error);
+        for (d, (_, expected_severity)) in diags.iter().zip(REQUIRED_FIELDS.iter()) {
+            assert_eq!(d.severity, *expected_severity);
             assert!(d.message.starts_with("missing field '"));
             assert!(d.message.ends_with("' in header"));
         }
@@ -341,7 +361,7 @@ msgstr \"\"
     fn test_diagnostics_emitted_in_canonical_order() {
         let diags = check("msgid \"\"\nmsgstr \"\"\n");
         let messages: Vec<&str> = diags.iter().map(|d| d.message.as_ref()).collect();
-        for (idx, field) in REQUIRED_FIELDS.iter().enumerate() {
+        for (idx, (field, _)) in REQUIRED_FIELDS.iter().enumerate() {
             assert!(
                 messages[idx].contains(&format!("'{field}'")),
                 "expected diag #{idx} to mention '{field}', got: {}",
@@ -352,11 +372,35 @@ msgstr \"\"
 
     #[test]
     fn test_single_missing_field_is_reported_alone() {
+        // Language is mandatory for gettext to pick a translation → error.
         let header = COMPLETE_HEADER.replace("\"Language: fr\\n\"\n", "");
         let diags = check(&header);
         assert_eq!(diags.len(), 1);
         assert_eq!(diags[0].message, "missing field 'Language' in header");
         assert_eq!(diags[0].severity, Severity::Error);
+    }
+
+    #[test]
+    fn test_missing_content_type_is_warning() {
+        // Content-Type is encoding-critical → warning.
+        let header =
+            COMPLETE_HEADER.replace("\"Content-Type: text/plain; charset=UTF-8\\n\"\n", "");
+        let diags = check(&header);
+        assert_eq!(diags.len(), 1);
+        assert_eq!(diags[0].message, "missing field 'Content-Type' in header");
+        assert_eq!(diags[0].severity, Severity::Warning);
+    }
+
+    #[test]
+    fn test_missing_content_transfer_encoding_is_warning() {
+        let header = COMPLETE_HEADER.replace("\"Content-Transfer-Encoding: 8bit\\n\"\n", "");
+        let diags = check(&header);
+        assert_eq!(diags.len(), 1);
+        assert_eq!(
+            diags[0].message,
+            "missing field 'Content-Transfer-Encoding' in header"
+        );
+        assert_eq!(diags[0].severity, Severity::Warning);
     }
 
     #[test]
@@ -649,7 +693,7 @@ msgstr \"\"
             diags[0].message,
             "invalid value 'Project Bugs' for field 'Report-Msgid-Bugs-To' in header"
         );
-        assert_eq!(diags[0].severity, Severity::Error);
+        assert_eq!(diags[0].severity, Severity::Info);
     }
 
     #[test]
@@ -703,7 +747,7 @@ msgstr \"\"
             diags[0].message,
             "invalid value 'Sébastien Helleu' for field 'Last-Translator' in header"
         );
-        assert_eq!(diags[0].severity, Severity::Error);
+        assert_eq!(diags[0].severity, Severity::Info);
     }
 
     #[test]
@@ -767,7 +811,7 @@ msgstr \"\"
             diags[0].message,
             "invalid value 'French' for field 'Language-Team' in header"
         );
-        assert_eq!(diags[0].severity, Severity::Error);
+        assert_eq!(diags[0].severity, Severity::Info);
     }
 
     #[test]

@@ -28,10 +28,6 @@ impl RuleChecker for NoqaRule {
         false
     }
 
-    fn severity(&self) -> Severity {
-        Severity::Info
-    }
-
     /// Report entry if it has a `noqa` comment.
     ///
     /// This rule is not enabled by default.
@@ -49,15 +45,14 @@ impl RuleChecker for NoqaRule {
     /// msgstr "ceci est une URL traduite : https://example.com/à_propos"
     /// ```
     ///
-    /// Diagnostics reported with severity [`info`](Severity::Info):
-    /// - `entry with noqa`
+    /// Diagnostics reported:
+    /// - [`info`](Severity::Info): `entry with noqa`
     fn check_entry(&self, checker: &Checker, entry: &Entry) -> Vec<Diagnostic> {
         if entry.noqa || !entry.noqa_rules.is_empty() {
-            vec![
-                self.new_diag(checker, "entry with noqa")
-                    .with_keywords(entry)
-                    .with_entry(entry),
-            ]
+            self.new_diag(checker, Severity::Info, "entry with noqa")
+                .map(|d| d.with_keywords(entry).with_entry(entry))
+                .into_iter()
+                .collect()
         } else {
             vec![]
         }

@@ -40,13 +40,7 @@ pub struct Rules {
 
 impl std::fmt::Display for Rule {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{} [{}]: {}",
-            self.name(),
-            self.severity(),
-            self.description()
-        )
+        write!(f, "{}: {}", self.name(), self.description())
     }
 }
 
@@ -88,9 +82,6 @@ pub trait RuleChecker {
     /// Whether the rule is a check (as opposed to a special rule like "fuzzy" or "noqa").
     fn is_check(&self) -> bool;
 
-    /// Get the severity of the rule.
-    fn severity(&self) -> Severity;
-
     /// Check a file for diagnostics.
     fn check_file(&self, _checker: &Checker) -> Vec<Diagnostic> {
         vec![]
@@ -127,16 +118,29 @@ pub trait RuleChecker {
         vec![]
     }
 
-    /// Create a diagnostic for the rule.
+    /// Create a diagnostic for the rule with the given severity.
+    ///
+    /// Returns `None` if the configured `severity` filter excludes this severity, so rules can
+    /// emit diagnostics of varying severities and the filter is applied at construction time.
     fn new_diag(
         &self,
         checker: &Checker,
+        severity: Severity,
         message: impl Into<std::borrow::Cow<'static, str>>,
-    ) -> Diagnostic
+    ) -> Option<Diagnostic>
     where
         Self: Sized,
     {
-        Diagnostic::new(&checker.path, self.name(), self.severity(), message)
+        let allowed = &checker.config.check.severity;
+        if !allowed.is_empty() && !allowed.contains(&severity) {
+            return None;
+        }
+        Some(Diagnostic::new(
+            &checker.path,
+            self.name(),
+            severity,
+            message,
+        ))
     }
 }
 
@@ -247,11 +251,6 @@ pub fn get_selected_rules(config: &Config) -> Result<Rules, Box<dyn std::error::
     }
     selected_rules.retain(|rule| !config.check.ignore.iter().any(|r| r == rule.name()));
 
-    // Retain only rules with the specified severities.
-    let all_severities = config.check.severity.is_empty();
-    selected_rules
-        .retain(|rule| all_severities || config.check.severity.contains(&rule.severity()));
-
     // Sort rules by name.
     selected_rules.sort_by(|a, b| a.name().cmp(b.name()));
 
@@ -271,7 +270,6 @@ fn print_rules_table(all_rules: &[Rule]) {
                 r.name().to_string(),
                 if r.is_default() { "yes" } else { "no" }.to_string(),
                 if r.is_check() { "yes" } else { "no" }.to_string(),
-                r.severity().to_string(),
                 r.description().to_string(),
             ]
         })
@@ -281,10 +279,7 @@ fn print_rules_table(all_rules: &[Rule]) {
         all_rules.len(),
         default_rules.len(),
         other_rules.len(),
-        render_table(
-            &["Name", "Default", "Check", "Severity", "Description"],
-            &rows,
-        ),
+        render_table(&["Name", "Default", "Check", "Description"], &rows),
     );
 }
 
@@ -474,9 +469,8 @@ mod tests {
     fn test_rule_display() {
         let rule: Rule = Box::new(blank::BlankRule {});
         let display = format!("{rule}");
-        assert!(display.contains("blank"));
-        assert!(display.contains('['));
-        assert!(display.contains(']'));
+        assert!(display.starts_with("blank: "));
+        assert!(display.contains(rule.description()));
     }
 
     #[test]
@@ -664,60 +658,33 @@ mod tests {
     }
 
     #[test]
-    fn test_get_selected_rules_severity_filter() {
-        let config = make_config(
-            vec!["all"],
-            vec!["punc-start", "punc-end"],
-            vec![Severity::Error],
-        );
-        let rules = get_selected_rules(&config).unwrap();
-        for rule in &rules.enabled {
-            assert_eq!(
-                rule.severity(),
-                Severity::Error,
-                "rule '{}' should have Error severity",
-                rule.name()
-            );
-        }
-    }
-
-    #[test]
-    fn test_get_selected_rules_severity_filter_warning() {
-        let config = make_config(vec!["all"], vec![], vec![Severity::Warning]);
-        let rules = get_selected_rules(&config).unwrap();
-        for rule in &rules.enabled {
-            assert_eq!(
-                rule.severity(),
-                Severity::Warning,
-                "rule '{}' should have Warning severity",
-                rule.name()
-            );
-        }
-    }
-
-    #[test]
-    fn test_get_selected_rules_severity_filter_multiple() {
-        let config = make_config(
-            vec!["all"],
-            vec![],
-            vec![Severity::Warning, Severity::Error],
-        );
-        let rules = get_selected_rules(&config).unwrap();
-        for rule in &rules.enabled {
-            assert!(
-                rule.severity() == Severity::Warning || rule.severity() == Severity::Error,
-                "rule '{}' has unexpected severity",
-                rule.name()
-            );
-        }
-    }
-
-    #[test]
-    fn test_get_selected_rules_empty_severity_means_all() {
-        let config = make_config(vec!["all"], vec![], vec![]);
+    fn test_get_selected_rules_severity_does_not_filter_rules() {
+        // Severity is now a per-diagnostic concern. The configured filter must not drop rules.
+        let config = make_config(vec!["all"], vec![], vec![Severity::Error]);
         let rules = get_selected_rules(&config).unwrap();
         let all = get_all_rules();
         assert_eq!(rules.enabled.len(), all.len());
+    }
+
+    #[test]
+    fn test_new_diag_respects_severity_filter() {
+        // With a non-empty severity filter, `new_diag` returns `None` for severities not in the set.
+        let mut checker = Checker::new(b"");
+        checker.config.check.severity = vec![Severity::Error];
+        let rule = blank::BlankRule {};
+        assert!(rule.new_diag(&checker, Severity::Error, "boom").is_some());
+        assert!(rule.new_diag(&checker, Severity::Warning, "boom").is_none());
+        assert!(rule.new_diag(&checker, Severity::Info, "boom").is_none());
+    }
+
+    #[test]
+    fn test_new_diag_empty_filter_allows_all() {
+        // Empty filter means no filtering: every severity is allowed.
+        let checker = Checker::new(b"");
+        let rule = blank::BlankRule {};
+        assert!(rule.new_diag(&checker, Severity::Error, "boom").is_some());
+        assert!(rule.new_diag(&checker, Severity::Warning, "boom").is_some());
+        assert!(rule.new_diag(&checker, Severity::Info, "boom").is_some());
     }
 
     #[test]

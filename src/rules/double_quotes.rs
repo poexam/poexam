@@ -40,10 +40,6 @@ impl RuleChecker for DoubleQuotesRule {
         true
     }
 
-    fn severity(&self) -> Severity {
-        Severity::Info
-    }
-
     /// Check for missing or extra double quotes in the translation.
     ///
     /// The following quotes are considered:
@@ -68,9 +64,9 @@ impl RuleChecker for DoubleQuotesRule {
     /// msgstr "ceci est un \"test\""
     /// ```
     ///
-    /// Diagnostics reported with severity [`info`](Severity::Info):
-    /// - `missing double quotes (# / #)`
-    /// - `extra double quotes (# / #)`
+    /// Diagnostics reported:
+    /// - [`info`](Severity::Info): `missing double quotes (# / #)`
+    /// - [`info`](Severity::Info): `extra double quotes (# / #)`
     fn check_msg(
         &self,
         checker: &Checker,
@@ -89,20 +85,23 @@ impl RuleChecker for DoubleQuotesRule {
                 format!("extra double quotes ({id_count} / {str_count})")
             }
         };
-        vec![
-            self.new_diag(checker, msg).with_msgs_hl(
-                msgid,
-                msgid
-                    .value
-                    .match_indices(DOUBLE_QUOTES)
-                    .map(|(idx, value)| (idx, idx + value.len())),
-                msgstr,
-                msgstr
-                    .value
-                    .match_indices(DOUBLE_QUOTES)
-                    .map(|(idx, value)| (idx, idx + value.len())),
-            ),
-        ]
+        self.new_diag(checker, Severity::Info, msg)
+            .map(|d| {
+                d.with_msgs_hl(
+                    msgid,
+                    msgid
+                        .value
+                        .match_indices(DOUBLE_QUOTES)
+                        .map(|(idx, value)| (idx, idx + value.len())),
+                    msgstr,
+                    msgstr
+                        .value
+                        .match_indices(DOUBLE_QUOTES)
+                        .map(|(idx, value)| (idx, idx + value.len())),
+                )
+            })
+            .into_iter()
+            .collect()
     }
 }
 

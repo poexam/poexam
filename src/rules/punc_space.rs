@@ -31,10 +31,6 @@ impl RuleChecker for PuncSpaceIdRule {
         true
     }
 
-    fn severity(&self) -> Severity {
-        Severity::Info
-    }
-
     /// Check for spaces around punctuation in the source string (English).
     ///
     /// In English there must be no space before punctuation.
@@ -51,8 +47,8 @@ impl RuleChecker for PuncSpaceIdRule {
     /// msgstr "ceci est un test !"
     /// ```
     ///
-    /// Diagnostics reported with severity [`info`](Severity::Info):
-    /// - `extra space before 'x'` in source
+    /// Diagnostics reported:
+    /// - [`info`](Severity::Info): `extra space before 'x'` in source
     fn check_msg(
         &self,
         checker: &Checker,
@@ -76,9 +72,15 @@ impl RuleChecker for PuncSpaceIdRule {
                 && matches!(c, ' ' | '\u{00A0}' | '\u{202F}')
                 && matches!(*next_c, ':' | ';' | '!' | '?')
             {
-                diags.push(
-                    self.new_diag(checker, format!("extra space before '{next_c}' in source"))
-                        .with_msgs_hl(msgid, [(idx, *next_idx + next_c.len_utf8())], msgstr, []),
+                diags.extend(
+                    self.new_diag(
+                        checker,
+                        Severity::Info,
+                        format!("extra space before '{next_c}' in source"),
+                    )
+                    .map(|d| {
+                        d.with_msgs_hl(msgid, [(idx, *next_idx + next_c.len_utf8())], msgstr, [])
+                    }),
                 );
             }
         }
@@ -105,10 +107,6 @@ impl RuleChecker for PuncSpaceStrRule {
         true
     }
 
-    fn severity(&self) -> Severity {
-        Severity::Info
-    }
-
     /// Check for spaces around punctuation in the translated string.
     ///
     /// Only French and Finnish are supported.
@@ -133,10 +131,10 @@ impl RuleChecker for PuncSpaceStrRule {
     /// msgstr "achèvement : 42 %, ceci est un test !"
     /// ```
     ///
-    /// Diagnostics reported with severity [`info`](Severity::Info):
-    /// - `missing space before 'x' in translation`
-    /// - `missing non-breaking space before/after 'x' in translation`
-    /// - `space must be a non-breaking space before/after 'x' in translation`
+    /// Diagnostics reported:
+    /// - [`info`](Severity::Info): `missing space before 'x' in translation`
+    /// - [`info`](Severity::Info): `missing non-breaking space before/after 'x' in translation`
+    /// - [`info`](Severity::Info): `space must be a non-breaking space before/after 'x' in translation`
     #[allow(clippy::too_many_lines)]
     fn check_msg(
         &self,
@@ -166,87 +164,108 @@ impl RuleChecker for PuncSpaceStrRule {
             }
             if is_french && c == '«' {
                 if *next_c == ' ' {
-                    diags.push(
+                    diags.extend(
                         self.new_diag(
                             checker,
+                            Severity::Info,
                             format!(
                                 "space must be a non-breaking space after '{c}' in translation"
                             ),
                         )
-                        .with_msgs_hl(
-                            msgid,
-                            [],
-                            msgstr,
-                            [(idx, *next_idx + next_c.len_utf8())],
-                        ),
+                        .map(|d| {
+                            d.with_msgs_hl(
+                                msgid,
+                                [],
+                                msgstr,
+                                [(idx, *next_idx + next_c.len_utf8())],
+                            )
+                        }),
                     );
                 } else if !matches!(*next_c, '\u{00A0}' | '\u{202F}') {
-                    diags.push(
+                    diags.extend(
                         self.new_diag(
                             checker,
+                            Severity::Info,
                             format!("missing non-breaking space after '{c}' in translation"),
                         )
-                        .with_msgs_hl(
-                            msgid,
-                            [],
-                            msgstr,
-                            [(idx, *next_idx + next_c.len_utf8())],
-                        ),
+                        .map(|d| {
+                            d.with_msgs_hl(
+                                msgid,
+                                [],
+                                msgstr,
+                                [(idx, *next_idx + next_c.len_utf8())],
+                            )
+                        }),
                     );
                 }
             } else if is_french && *next_c == '»' {
                 if c == ' ' {
-                    diags.push(
+                    diags.extend(
                         self.new_diag(
                             checker,
+                            Severity::Info,
                             format!(
                                 "space must be a non-breaking space before '{next_c}' in translation"
+                            ),
+                        )
+                        .map(|d| {
+                            d.with_msgs_hl(
+                                msgid,
+                                [],
+                                msgstr,
+                                [(idx, *next_idx + next_c.len_utf8())],
                             )
-                        ).with_msgs_hl(
-                            msgid,
-                            [],
-                            msgstr,
-                            [(idx, *next_idx + next_c.len_utf8())]));
+                        }),
+                    );
                 } else if !matches!(c, '\u{00A0}' | '\u{202F}') {
-                    diags.push(
+                    diags.extend(
                         self.new_diag(
                             checker,
+                            Severity::Info,
                             format!("missing non-breaking space before '{next_c}' in translation"),
                         )
-                        .with_msgs_hl(
-                            msgid,
-                            [],
-                            msgstr,
-                            [(idx, *next_idx + next_c.len_utf8())],
-                        ),
+                        .map(|d| {
+                            d.with_msgs_hl(
+                                msgid,
+                                [],
+                                msgstr,
+                                [(idx, *next_idx + next_c.len_utf8())],
+                            )
+                        }),
                     );
                 }
             } else if c.is_ascii_digit() && *next_c == '%' {
                 if is_french {
-                    diags.push(
+                    diags.extend(
                         self.new_diag(
                             checker,
+                            Severity::Info,
                             format!("missing non-breaking space before '{next_c}' in translation"),
                         )
-                        .with_msgs_hl(
-                            msgid,
-                            [],
-                            msgstr,
-                            [(idx, *next_idx + next_c.len_utf8())],
-                        ),
+                        .map(|d| {
+                            d.with_msgs_hl(
+                                msgid,
+                                [],
+                                msgstr,
+                                [(idx, *next_idx + next_c.len_utf8())],
+                            )
+                        }),
                     );
                 } else if is_finnish {
-                    diags.push(
+                    diags.extend(
                         self.new_diag(
                             checker,
+                            Severity::Info,
                             format!("missing space before '{next_c}' in translation"),
                         )
-                        .with_msgs_hl(
-                            msgid,
-                            [],
-                            msgstr,
-                            [(idx, *next_idx + next_c.len_utf8())],
-                        ),
+                        .map(|d| {
+                            d.with_msgs_hl(
+                                msgid,
+                                [],
+                                msgstr,
+                                [(idx, *next_idx + next_c.len_utf8())],
+                            )
+                        }),
                     );
                 }
             } else if is_french
@@ -254,19 +273,17 @@ impl RuleChecker for PuncSpaceStrRule {
                 && c == ' '
                 && matches!(*next_c, ':' | ';' | '!' | '?')
             {
-                diags.push(
+                diags.extend(
                     self.new_diag(
                         checker,
+                        Severity::Info,
                         format!(
                             "space must be a non-breaking space before '{next_c}' in translation"
                         ),
                     )
-                    .with_msgs_hl(
-                        msgid,
-                        [],
-                        msgstr,
-                        [(idx, *next_idx + next_c.len_utf8())],
-                    ),
+                    .map(|d| {
+                        d.with_msgs_hl(msgid, [], msgstr, [(idx, *next_idx + next_c.len_utf8())])
+                    }),
                 );
             }
         }

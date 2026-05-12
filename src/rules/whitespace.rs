@@ -31,10 +31,6 @@ impl RuleChecker for WhitespaceStartRule {
         true
     }
 
-    fn severity(&self) -> Severity {
-        Severity::Info
-    }
-
     /// Check for inconsistent leading whitespace between source and translation.
     ///
     /// Wrong entry:
@@ -49,8 +45,8 @@ impl RuleChecker for WhitespaceStartRule {
     /// msgstr " ceci est un test"
     /// ```
     ///
-    /// Diagnostics reported with severity [`info`](Severity::Info):
-    /// - `inconsistent leading whitespace ('…' / '…')`
+    /// Diagnostics reported:
+    /// - [`info`](Severity::Info): `inconsistent leading whitespace ('…' / '…')`
     fn check_msg(
         &self,
         checker: &Checker,
@@ -66,18 +62,14 @@ impl RuleChecker for WhitespaceStartRule {
         if id_ws == str_ws {
             vec![]
         } else {
-            vec![
-                self.new_diag(
-                    checker,
-                    format!("inconsistent leading whitespace ('{id_ws}' / '{str_ws}')"),
-                )
-                .with_msgs_hl(
-                    msgid,
-                    [(0, id_ws.len())],
-                    msgstr,
-                    [(0, str_ws.len())],
-                ),
-            ]
+            self.new_diag(
+                checker,
+                Severity::Info,
+                format!("inconsistent leading whitespace ('{id_ws}' / '{str_ws}')"),
+            )
+            .map(|d| d.with_msgs_hl(msgid, [(0, id_ws.len())], msgstr, [(0, str_ws.len())]))
+            .into_iter()
+            .collect()
         }
     }
 }
@@ -101,10 +93,6 @@ impl RuleChecker for WhitespaceEndRule {
         true
     }
 
-    fn severity(&self) -> Severity {
-        Severity::Info
-    }
-
     /// Check for inconsistent trailing whitespace between source and translation.
     ///
     /// Wrong entry:
@@ -119,8 +107,8 @@ impl RuleChecker for WhitespaceEndRule {
     /// msgstr "ceci est un test "
     /// ```
     ///
-    /// Diagnostics reported with severity [`info`](Severity::Info):
-    /// - `inconsistent trailing whitespace ('…' / '…')`
+    /// Diagnostics reported:
+    /// - [`info`](Severity::Info): `inconsistent trailing whitespace ('…' / '…')`
     fn check_msg(
         &self,
         checker: &Checker,
@@ -136,18 +124,21 @@ impl RuleChecker for WhitespaceEndRule {
         if id_ws == str_ws {
             vec![]
         } else {
-            vec![
-                self.new_diag(
-                    checker,
-                    format!("inconsistent trailing whitespace ('{id_ws}' / '{str_ws}')"),
-                )
-                .with_msgs_hl(
+            self.new_diag(
+                checker,
+                Severity::Info,
+                format!("inconsistent trailing whitespace ('{id_ws}' / '{str_ws}')"),
+            )
+            .map(|d| {
+                d.with_msgs_hl(
                     msgid,
                     [(msgid.value.len() - id_ws.len(), msgid.value.len())],
                     msgstr,
                     [(msgstr.value.len() - str_ws.len(), msgstr.value.len())],
-                ),
-            ]
+                )
+            })
+            .into_iter()
+            .collect()
         }
     }
 }

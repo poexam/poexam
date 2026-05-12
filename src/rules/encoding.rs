@@ -28,10 +28,6 @@ impl RuleChecker for EncodingRule {
         true
     }
 
-    fn severity(&self) -> Severity {
-        Severity::Info
-    }
-
     /// Check for translation with incorrect encoding.
     ///
     /// The encoding used to check is the one declared in the PO file, with a fallback
@@ -52,20 +48,21 @@ impl RuleChecker for EncodingRule {
     /// msgstr "testé"
     /// ```
     ///
-    /// Diagnostics reported with severity [`info`](Severity::Info):
-    /// - `invalid characters for encoding xxx`
+    /// Diagnostics reported:
+    /// - [`info`](Severity::Info): `invalid characters for encoding …`
     fn check_entry(&self, checker: &Checker, entry: &Entry) -> Vec<Diagnostic> {
         if entry.encoding_error {
-            vec![
-                self.new_diag(
-                    checker,
-                    format!(
-                        "invalid characters for encoding {}",
-                        checker.encoding_name()
-                    ),
-                )
-                .with_entry(entry),
-            ]
+            self.new_diag(
+                checker,
+                Severity::Info,
+                format!(
+                    "invalid characters for encoding {}",
+                    checker.encoding_name()
+                ),
+            )
+            .map(|d| d.with_entry(entry))
+            .into_iter()
+            .collect()
         } else {
             vec![]
         }

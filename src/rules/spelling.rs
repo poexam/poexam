@@ -38,10 +38,6 @@ impl RuleChecker for SpellingCtxtRule {
         true
     }
 
-    fn severity(&self) -> Severity {
-        Severity::Info
-    }
-
     /// Check spelling in the context string (English).
     ///
     /// This rule is not enabled by default.
@@ -60,18 +56,21 @@ impl RuleChecker for SpellingCtxtRule {
     /// msgstr "Mai"
     /// ```
     ///
-    /// Diagnostics reported with severity [`info`](Severity::Info):
-    /// - `misspelled words in context: xxx`
+    /// Diagnostics reported:
+    /// - [`info`](Severity::Info): `misspelled words in context: …`
     fn check_ctxt(&self, checker: &Checker, entry: &Entry, msgctxt: &Message) -> Vec<Diagnostic> {
         if let Some(dict) = &checker.dict_id {
             let (misspelled_words, pos_words) =
                 check_words(&msgctxt.value, entry.format_language, dict);
             if !misspelled_words.is_empty() {
-                return vec![
-                    self.new_diag(checker, "misspelled words in context")
-                        .with_msg_hl(msgctxt, pos_words)
-                        .with_misspelled_words(misspelled_words),
-                ];
+                return self
+                    .new_diag(checker, Severity::Info, "misspelled words in context")
+                    .map(|d| {
+                        d.with_msg_hl(msgctxt, pos_words)
+                            .with_misspelled_words(misspelled_words)
+                    })
+                    .into_iter()
+                    .collect();
             }
         }
         vec![]
@@ -97,10 +96,6 @@ impl RuleChecker for SpellingIdRule {
         true
     }
 
-    fn severity(&self) -> Severity {
-        Severity::Info
-    }
-
     /// Check spelling in the source string (English).
     ///
     /// This rule is not enabled by default.
@@ -117,8 +112,8 @@ impl RuleChecker for SpellingIdRule {
     /// msgstr "ceci est une faute"
     /// ```
     ///
-    /// Diagnostics reported with severity [`info`](Severity::Info):
-    /// - `misspelled words in source: xxx`
+    /// Diagnostics reported:
+    /// - [`info`](Severity::Info): `misspelled words in source: …`
     fn check_msg(
         &self,
         checker: &Checker,
@@ -130,11 +125,14 @@ impl RuleChecker for SpellingIdRule {
             let (misspelled_words, pos_words) =
                 check_words(&msgid.value, entry.format_language, dict);
             if !misspelled_words.is_empty() {
-                return vec![
-                    self.new_diag(checker, "misspelled words in source")
-                        .with_msgs_hl(msgid, pos_words, msgstr, [])
-                        .with_misspelled_words(misspelled_words),
-                ];
+                return self
+                    .new_diag(checker, Severity::Info, "misspelled words in source")
+                    .map(|d| {
+                        d.with_msgs_hl(msgid, pos_words, msgstr, [])
+                            .with_misspelled_words(misspelled_words)
+                    })
+                    .into_iter()
+                    .collect();
             }
         }
         vec![]
@@ -160,10 +158,6 @@ impl RuleChecker for SpellingStrRule {
         true
     }
 
-    fn severity(&self) -> Severity {
-        Severity::Info
-    }
-
     /// Check spelling in the translated string (using language detected in PO file).
     ///
     /// This rule is not enabled by default.
@@ -180,8 +174,8 @@ impl RuleChecker for SpellingStrRule {
     /// msgstr "ceci est une faute"
     /// ```
     ///
-    /// Diagnostics reported with severity [`info`](Severity::Info):
-    /// - `misspelled words in translation: xxx`
+    /// Diagnostics reported:
+    /// - [`info`](Severity::Info): `misspelled words in translation: …`
     fn check_msg(
         &self,
         checker: &Checker,
@@ -193,11 +187,14 @@ impl RuleChecker for SpellingStrRule {
             let (misspelled_words, pos_words) =
                 check_words(&msgstr.value, entry.format_language, dict);
             if !misspelled_words.is_empty() {
-                return vec![
-                    self.new_diag(checker, "misspelled words in translation")
-                        .with_msgs_hl(msgid, [], msgstr, pos_words)
-                        .with_misspelled_words(misspelled_words),
-                ];
+                return self
+                    .new_diag(checker, Severity::Info, "misspelled words in translation")
+                    .map(|d| {
+                        d.with_msgs_hl(msgid, [], msgstr, pos_words)
+                            .with_misspelled_words(misspelled_words)
+                    })
+                    .into_iter()
+                    .collect();
             }
         }
         vec![]

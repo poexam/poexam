@@ -58,17 +58,9 @@ pub struct SarifReportingDescriptor<'a> {
     pub id: &'static str,
     pub short_description: SarifMessage<'a>,
     pub full_description: SarifMessage<'a>,
-    pub default_configuration: SarifConfiguration,
     pub help: SarifHelp,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub properties: Option<SarifRuleProperties>,
-}
-
-/// Default configuration for a rule.
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SarifConfiguration {
-    pub level: &'static str,
 }
 
 /// Help text for a rule.
@@ -166,19 +158,17 @@ fn compute_fingerprint(rule: &str, path: &str, line: usize, message: &str) -> St
 /// Build a SARIF log from check results.
 pub fn build_sarif(result: &[CheckFileResult]) -> SarifLog<'_> {
     // Collect all unique rules across all checked files, preserving order by name.
-    let mut rules_map: BTreeMap<&str, (&str, Severity)> = BTreeMap::new();
+    let mut rules_map: BTreeMap<&str, &str> = BTreeMap::new();
     for file in result {
         for rule in &file.rules.enabled {
-            rules_map
-                .entry(rule.name())
-                .or_insert((rule.description(), rule.severity()));
+            rules_map.entry(rule.name()).or_insert(rule.description());
         }
     }
 
     // Build rule descriptors and index lookup.
     let mut rule_index_map: BTreeMap<&str, usize> = BTreeMap::new();
     let mut sarif_rules: Vec<SarifReportingDescriptor> = Vec::new();
-    for (idx, (name, (description, severity))) in rules_map.iter().enumerate() {
+    for (idx, (name, description)) in rules_map.iter().enumerate() {
         rule_index_map.insert(name, idx);
         sarif_rules.push(SarifReportingDescriptor {
             id: name,
@@ -187,9 +177,6 @@ pub fn build_sarif(result: &[CheckFileResult]) -> SarifLog<'_> {
             },
             full_description: SarifMessage {
                 text: Cow::Borrowed(description),
-            },
-            default_configuration: SarifConfiguration {
-                level: sarif_level(*severity),
             },
             help: SarifHelp { text: description },
             properties: Some(SarifRuleProperties {
@@ -283,7 +270,6 @@ mod tests {
     struct MockRule {
         name: &'static str,
         description: &'static str,
-        severity: Severity,
     }
 
     impl RuleChecker for MockRule {
@@ -302,22 +288,13 @@ mod tests {
         fn is_check(&self) -> bool {
             true
         }
-
-        fn severity(&self) -> Severity {
-            self.severity
-        }
     }
 
     fn mock_rule(
         name: &'static str,
         description: &'static str,
-        severity: Severity,
     ) -> Box<dyn RuleChecker + Send + Sync> {
-        Box::new(MockRule {
-            name,
-            description,
-            severity,
-        })
+        Box::new(MockRule { name, description })
     }
 
     fn mock_diagnostic(
@@ -389,22 +366,12 @@ mod tests {
         let result = vec![CheckFileResult {
             path: PathBuf::from("test.po"),
             config: Config::default(),
-            rules: Rules::new(vec![mock_rule(
-                "blank",
-                "Checks blank translations.",
-                Severity::Warning,
-            )]),
+            rules: Rules::new(vec![mock_rule("blank", "Checks blank translations.")]),
             diagnostics: vec![],
         }];
         let sarif = build_sarif(&result);
         assert_eq!(sarif.runs[0].tool.driver.rules.len(), 1);
         assert_eq!(sarif.runs[0].tool.driver.rules[0].id, "blank");
-        assert_eq!(
-            sarif.runs[0].tool.driver.rules[0]
-                .default_configuration
-                .level,
-            "warning"
-        );
         assert!(sarif.runs[0].results.is_empty());
     }
 
@@ -414,8 +381,8 @@ mod tests {
             path: PathBuf::from("fr.po"),
             config: Config::default(),
             rules: Rules::new(vec![
-                mock_rule("blank", "Checks blank translations.", Severity::Warning),
-                mock_rule("escapes", "Checks escape characters.", Severity::Error),
+                mock_rule("blank", "Checks blank translations."),
+                mock_rule("escapes", "Checks escape characters."),
             ]),
             diagnostics: vec![
                 mock_diagnostic(
@@ -498,11 +465,7 @@ mod tests {
         let result = vec![CheckFileResult {
             path: PathBuf::from("test.po"),
             config: Config::default(),
-            rules: Rules::new(vec![mock_rule(
-                "encoding",
-                "Checks encoding.",
-                Severity::Info,
-            )]),
+            rules: Rules::new(vec![mock_rule("encoding", "Checks encoding.")]),
             diagnostics: vec![Diagnostic {
                 path: PathBuf::from("test.po"),
                 rule: "encoding",
@@ -528,11 +491,7 @@ mod tests {
         let result = vec![CheckFileResult {
             path: PathBuf::from("test.po"),
             config: Config::default(),
-            rules: Rules::new(vec![mock_rule(
-                "compilation",
-                "Checks compilation.",
-                Severity::Error,
-            )]),
+            rules: Rules::new(vec![mock_rule("compilation", "Checks compilation.")]),
             diagnostics: vec![mock_diagnostic(
                 "test.po",
                 "compilation",
@@ -560,13 +519,13 @@ mod tests {
             CheckFileResult {
                 path: PathBuf::from("a.po"),
                 config: Config::default(),
-                rules: Rules::new(vec![mock_rule("blank", "Checks blank.", Severity::Warning)]),
+                rules: Rules::new(vec![mock_rule("blank", "Checks blank.")]),
                 diagnostics: vec![],
             },
             CheckFileResult {
                 path: PathBuf::from("b.po"),
                 config: Config::default(),
-                rules: Rules::new(vec![mock_rule("blank", "Checks blank.", Severity::Warning)]),
+                rules: Rules::new(vec![mock_rule("blank", "Checks blank.")]),
                 diagnostics: vec![],
             },
         ];
@@ -580,7 +539,7 @@ mod tests {
             CheckFileResult {
                 path: PathBuf::from("fr.po"),
                 config: Config::default(),
-                rules: Rules::new(vec![mock_rule("blank", "Checks blank.", Severity::Warning)]),
+                rules: Rules::new(vec![mock_rule("blank", "Checks blank.")]),
                 diagnostics: vec![mock_diagnostic(
                     "fr.po",
                     "blank",
@@ -594,7 +553,7 @@ mod tests {
             CheckFileResult {
                 path: PathBuf::from("de.po"),
                 config: Config::default(),
-                rules: Rules::new(vec![mock_rule("blank", "Checks blank.", Severity::Warning)]),
+                rules: Rules::new(vec![mock_rule("blank", "Checks blank.")]),
                 diagnostics: vec![mock_diagnostic(
                     "de.po",
                     "blank",
@@ -629,7 +588,7 @@ mod tests {
         let result = vec![CheckFileResult {
             path: PathBuf::from("test.po"),
             config: Config::default(),
-            rules: Rules::new(vec![mock_rule("blank", "Checks blank.", Severity::Warning)]),
+            rules: Rules::new(vec![mock_rule("blank", "Checks blank.")]),
             diagnostics: vec![mock_diagnostic(
                 "test.po",
                 "blank",

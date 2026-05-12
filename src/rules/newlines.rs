@@ -29,10 +29,6 @@ impl RuleChecker for NewlinesRule {
         true
     }
 
-    fn severity(&self) -> Severity {
-        Severity::Error
-    }
-
     /// Check for missing or extra newlines in the translation: carriage return (`\r`) or line feed (`\n`).
     ///
     /// Wrong entry:
@@ -51,19 +47,19 @@ impl RuleChecker for NewlinesRule {
     /// "seconde ligne"
     /// ```
     ///
-    /// Diagnostics reported with severity [`error`](Severity::Error):
-    /// - `missing carriage returns '\r' (# / #)`
-    /// - `extra carriage returns '\r' (# / #)`
-    /// - `missing line feeds '\n' (# / #)`
-    /// - `extra line feeds '\n' (# / #)`
-    /// - `missing carriage return '\r' at the beginning`
-    /// - `extra carriage return '\r' at the beginning`
-    /// - `missing line feed '\n' at the beginning`
-    /// - `extra line feed '\n' at the beginning`
-    /// - `missing carriage return '\r' at the end`
-    /// - `extra carriage return '\r' at the end`
-    /// - `missing line feed '\n' at the end`
-    /// - `extra line feed '\n' at the end`
+    /// Diagnostics reported:
+    /// - [`error`](Severity::Error): `missing carriage returns '\r' (# / #)`
+    /// - [`error`](Severity::Error): `extra carriage returns '\r' (# / #)`
+    /// - [`error`](Severity::Error): `missing line feeds '\n' (# / #)`
+    /// - [`error`](Severity::Error): `extra line feeds '\n' (# / #)`
+    /// - [`error`](Severity::Error): `missing carriage return '\r' at the beginning`
+    /// - [`error`](Severity::Error): `extra carriage return '\r' at the beginning`
+    /// - [`error`](Severity::Error): `missing line feed '\n' at the beginning`
+    /// - [`error`](Severity::Error): `extra line feed '\n' at the beginning`
+    /// - [`error`](Severity::Error): `missing carriage return '\r' at the end`
+    /// - [`error`](Severity::Error): `extra carriage return '\r' at the end`
+    /// - [`error`](Severity::Error): `missing line feed '\n' at the end`
+    /// - [`error`](Severity::Error): `extra line feed '\n' at the end`
     fn check_msg(
         &self,
         checker: &Checker,
@@ -93,21 +89,23 @@ impl NewlinesRule {
         let str_count_cr = msgstr.value.matches('\r').count();
         match id_count_cr.cmp(&str_count_cr) {
             std::cmp::Ordering::Greater => {
-                diags.push(
+                diags.extend(
                     self.new_diag(
                         checker,
+                        Severity::Error,
                         format!("missing carriage returns '\\r' ({id_count_cr} / {str_count_cr})"),
                     )
-                    .with_msgs(msgid, msgstr),
+                    .map(|d| d.with_msgs(msgid, msgstr)),
                 );
             }
             std::cmp::Ordering::Less => {
-                diags.push(
+                diags.extend(
                     self.new_diag(
                         checker,
+                        Severity::Error,
                         format!("extra carriage returns '\\r' ({id_count_cr} / {str_count_cr})"),
                     )
-                    .with_msgs(msgid, msgstr),
+                    .map(|d| d.with_msgs(msgid, msgstr)),
                 );
             }
             std::cmp::Ordering::Equal => {}
@@ -117,21 +115,23 @@ impl NewlinesRule {
         let str_count_lf = msgstr.value.matches('\n').count();
         match id_count_lf.cmp(&str_count_lf) {
             std::cmp::Ordering::Greater => {
-                diags.push(
+                diags.extend(
                     self.new_diag(
                         checker,
+                        Severity::Error,
                         format!("missing line feeds '\\n' ({id_count_lf} / {str_count_lf})"),
                     )
-                    .with_msgs(msgid, msgstr),
+                    .map(|d| d.with_msgs(msgid, msgstr)),
                 );
             }
             std::cmp::Ordering::Less => {
-                diags.push(
+                diags.extend(
                     self.new_diag(
                         checker,
+                        Severity::Error,
                         format!("extra line feeds '\\n' ({id_count_lf} / {str_count_lf})"),
                     )
-                    .with_msgs(msgid, msgstr),
+                    .map(|d| d.with_msgs(msgid, msgstr)),
                 );
             }
             std::cmp::Ordering::Equal => {}
@@ -152,21 +152,23 @@ impl NewlinesRule {
         let str_starts_with_cr = msgstr.value.starts_with('\r');
         match id_starts_with_cr.cmp(&str_starts_with_cr) {
             std::cmp::Ordering::Greater => {
-                diags.push(
+                diags.extend(
                     self.new_diag(
                         checker,
+                        Severity::Error,
                         "missing carriage return '\\r' at the beginning".to_string(),
                     )
-                    .with_msgs(msgid, msgstr),
+                    .map(|d| d.with_msgs(msgid, msgstr)),
                 );
             }
             std::cmp::Ordering::Less => {
-                diags.push(
+                diags.extend(
                     self.new_diag(
                         checker,
+                        Severity::Error,
                         "extra carriage return '\\r' at the beginning".to_string(),
                     )
-                    .with_msgs(msgid, msgstr),
+                    .map(|d| d.with_msgs(msgid, msgstr)),
                 );
             }
             std::cmp::Ordering::Equal => {}
@@ -176,21 +178,23 @@ impl NewlinesRule {
         let str_starts_with_lf = msgstr.value.starts_with('\n');
         match id_starts_with_lf.cmp(&str_starts_with_lf) {
             std::cmp::Ordering::Greater => {
-                diags.push(
+                diags.extend(
                     self.new_diag(
                         checker,
+                        Severity::Error,
                         "missing line feed '\\n' at the beginning".to_string(),
                     )
-                    .with_msgs(msgid, msgstr),
+                    .map(|d| d.with_msgs(msgid, msgstr)),
                 );
             }
             std::cmp::Ordering::Less => {
-                diags.push(
+                diags.extend(
                     self.new_diag(
                         checker,
+                        Severity::Error,
                         "extra line feed '\\n' at the beginning".to_string(),
                     )
-                    .with_msgs(msgid, msgstr),
+                    .map(|d| d.with_msgs(msgid, msgstr)),
                 );
             }
             std::cmp::Ordering::Equal => {}
@@ -211,21 +215,23 @@ impl NewlinesRule {
         let str_ends_with_cr = msgstr.value.ends_with('\r');
         match id_ends_with_cr.cmp(&str_ends_with_cr) {
             std::cmp::Ordering::Greater => {
-                diags.push(
+                diags.extend(
                     self.new_diag(
                         checker,
+                        Severity::Error,
                         "missing carriage return '\\r' at the end".to_string(),
                     )
-                    .with_msgs(msgid, msgstr),
+                    .map(|d| d.with_msgs(msgid, msgstr)),
                 );
             }
             std::cmp::Ordering::Less => {
-                diags.push(
+                diags.extend(
                     self.new_diag(
                         checker,
+                        Severity::Error,
                         "extra carriage return '\\r' at the end".to_string(),
                     )
-                    .with_msgs(msgid, msgstr),
+                    .map(|d| d.with_msgs(msgid, msgstr)),
                 );
             }
             std::cmp::Ordering::Equal => {}
@@ -235,15 +241,19 @@ impl NewlinesRule {
         let str_ends_with_lf = msgstr.value.ends_with('\n');
         match id_ends_with_lf.cmp(&str_ends_with_lf) {
             std::cmp::Ordering::Greater => {
-                diags.push(
-                    self.new_diag(checker, "missing line feed '\\n' at the end")
-                        .with_msgs(msgid, msgstr),
+                diags.extend(
+                    self.new_diag(
+                        checker,
+                        Severity::Error,
+                        "missing line feed '\\n' at the end",
+                    )
+                    .map(|d| d.with_msgs(msgid, msgstr)),
                 );
             }
             std::cmp::Ordering::Less => {
-                diags.push(
-                    self.new_diag(checker, "extra line feed '\\n' at the end")
-                        .with_msgs(msgid, msgstr),
+                diags.extend(
+                    self.new_diag(checker, Severity::Error, "extra line feed '\\n' at the end")
+                        .map(|d| d.with_msgs(msgid, msgstr)),
                 );
             }
             std::cmp::Ordering::Equal => {}

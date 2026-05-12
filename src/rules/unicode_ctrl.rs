@@ -33,10 +33,6 @@ impl RuleChecker for UnicodeCtrlRule {
         true
     }
 
-    fn severity(&self) -> Severity {
-        Severity::Warning
-    }
-
     /// Check for Unicode control / format characters that appear in the translation
     /// but not in the source string. These are usually invisible (zero-width spaces,
     /// bidi overrides, soft hyphens, BOM, C0/C1 controls, …) and are a typical
@@ -69,8 +65,8 @@ impl RuleChecker for UnicodeCtrlRule {
     /// msgstr "Save"
     /// ```
     ///
-    /// Diagnostics reported with severity [`warning`](Severity::Warning):
-    /// - `extra control character U+XXXX (NAME)`
+    /// Diagnostics reported:
+    /// - [`warning`](Severity::Warning): `extra control character U+XXXX (NAME)`
     fn check_msg(
         &self,
         checker: &Checker,
@@ -88,14 +84,14 @@ impl RuleChecker for UnicodeCtrlRule {
         }
         strays
             .into_iter()
-            .map(|(c, positions)| {
+            .filter_map(|(c, positions)| {
                 let msg = format!(
                     "extra control character U+{:04X} ({})",
                     c as u32,
                     ctrl_char_name(c),
                 );
-                self.new_diag(checker, msg)
-                    .with_msgs_hl(msgid, [], msgstr, positions)
+                self.new_diag(checker, Severity::Warning, msg)
+                    .map(|d| d.with_msgs_hl(msgid, [], msgstr, positions))
             })
             .collect()
     }

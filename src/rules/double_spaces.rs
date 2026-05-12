@@ -29,10 +29,6 @@ impl RuleChecker for DoubleSpacesRule {
         true
     }
 
-    fn severity(&self) -> Severity {
-        Severity::Info
-    }
-
     /// Check for missing or extra double spaces in the translation.
     ///
     /// Wrong entry:
@@ -47,9 +43,9 @@ impl RuleChecker for DoubleSpacesRule {
     /// msgstr "le test :  \"xyz\""
     /// ```
     ///
-    /// Diagnostics reported with severity [`info`](Severity::Info):
-    /// - `missing double spaces '  ' (# / #)`
-    /// - `extra double spaces '  ' (# / #)`
+    /// Diagnostics reported:
+    /// - [`info`](Severity::Info): `missing double spaces '  ' (# / #)`
+    /// - [`info`](Severity::Info): `extra double spaces '  ' (# / #)`
     fn check_msg(
         &self,
         checker: &Checker,
@@ -68,20 +64,23 @@ impl RuleChecker for DoubleSpacesRule {
                 format!("extra double spaces '  ' ({id_count} / {str_count})")
             }
         };
-        vec![
-            self.new_diag(checker, msg).with_msgs_hl(
-                msgid,
-                msgid
-                    .value
-                    .match_indices("  ")
-                    .map(|(idx, value)| (idx, idx + value.len())),
-                msgstr,
-                msgstr
-                    .value
-                    .match_indices("  ")
-                    .map(|(idx, value)| (idx, idx + value.len())),
-            ),
-        ]
+        self.new_diag(checker, Severity::Info, msg)
+            .map(|d| {
+                d.with_msgs_hl(
+                    msgid,
+                    msgid
+                        .value
+                        .match_indices("  ")
+                        .map(|(idx, value)| (idx, idx + value.len())),
+                    msgstr,
+                    msgstr
+                        .value
+                        .match_indices("  ")
+                        .map(|(idx, value)| (idx, idx + value.len())),
+                )
+            })
+            .into_iter()
+            .collect()
     }
 }
 

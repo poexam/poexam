@@ -32,10 +32,6 @@ impl RuleChecker for BracketsRule {
         true
     }
 
-    fn severity(&self) -> Severity {
-        Severity::Info
-    }
-
     /// Check for missing or extra round/square/curly/angle brackets in the translation.
     ///
     /// Special case: extra parentheses in the translation are ignored, because this is
@@ -53,13 +49,13 @@ impl RuleChecker for BracketsRule {
     /// msgstr "ceci est un test (exemple)"
     /// ```
     ///
-    /// Diagnostics reported (`xxx` is `round`/`square`/`curly`/`angle`) with severity [`info`](Severity::Info):
-    /// - `missing opening and closing xxx brackets '…' (# / #) and '…' (# / #)`
-    /// - `extra opening and closing xxx brackets '…' (# / #) and '…' (# / #)`
-    /// - `missing opening xxx brackets '…' (# / #)`
-    /// - `extra opening xxx brackets '…' (# / #)`
-    /// - `missing closing xxx brackets '…' (# / #)`
-    /// - `extra closing xxx brackets '…' (# / #)`
+    /// Diagnostics reported (`xxx` is `round`/`square`/`curly`/`angle`):
+    /// - [`info`](Severity::Info): `missing opening and closing xxx brackets '…' (# / #) and '…' (# / #)`
+    /// - [`info`](Severity::Info): `extra opening and closing xxx brackets '…' (# / #) and '…' (# / #)`
+    /// - [`info`](Severity::Info): `missing opening xxx brackets '…' (# / #)`
+    /// - [`info`](Severity::Info): `extra opening xxx brackets '…' (# / #)`
+    /// - [`info`](Severity::Info): `missing closing xxx brackets '…' (# / #)`
+    /// - [`info`](Severity::Info): `extra closing xxx brackets '…' (# / #)`
     fn check_msg(
         &self,
         checker: &Checker,
@@ -107,61 +103,62 @@ impl RuleChecker for BracketsRule {
                     bracket.0,
                     bracket.1,
                 );
-                diags.push(self.new_diag(checker, msg).with_msgs_hl(
-                    msgid,
-                    id_open.iter().copied(),
-                    msgstr,
-                    str_open.iter().copied(),
-                ));
+                let emit = |msg: String| {
+                    self.new_diag(checker, Severity::Info, msg).map(|d| {
+                        d.with_msgs_hl(
+                            msgid,
+                            id_open.iter().copied(),
+                            msgstr,
+                            str_open.iter().copied(),
+                        )
+                    })
+                };
+                diags.extend(emit(msg));
                 continue;
             }
+            let emit_open = |msg: String| {
+                self.new_diag(checker, Severity::Info, msg).map(|d| {
+                    d.with_msgs_hl(
+                        msgid,
+                        id_open.iter().copied(),
+                        msgstr,
+                        str_open.iter().copied(),
+                    )
+                })
+            };
+            let emit_close = |msg: String| {
+                self.new_diag(checker, Severity::Info, msg).map(|d| {
+                    d.with_msgs_hl(
+                        msgid,
+                        id_close.iter().copied(),
+                        msgstr,
+                        str_close.iter().copied(),
+                    )
+                })
+            };
             if id_count_open > str_count_open {
-                let msg = format!(
+                diags.extend(emit_open(format!(
                     "missing opening {} brackets '{}' ({id_count_open} / {str_count_open})",
                     BRACKET_NAMES[idx], bracket.0,
-                );
-                diags.push(self.new_diag(checker, msg).with_msgs_hl(
-                    msgid,
-                    id_open.iter().copied(),
-                    msgstr,
-                    str_open.iter().copied(),
-                ));
+                )));
             }
             if id_count_open < str_count_open {
-                let msg = format!(
+                diags.extend(emit_open(format!(
                     "extra opening {} brackets '{}' ({id_count_open} / {str_count_open})",
                     BRACKET_NAMES[idx], bracket.0,
-                );
-                diags.push(self.new_diag(checker, msg).with_msgs_hl(
-                    msgid,
-                    id_open.iter().copied(),
-                    msgstr,
-                    str_open.iter().copied(),
-                ));
+                )));
             }
             if id_count_close > str_count_close {
-                let msg = format!(
+                diags.extend(emit_close(format!(
                     "missing closing {} brackets '{}' ({id_count_close} / {str_count_close})",
                     BRACKET_NAMES[idx], bracket.1,
-                );
-                diags.push(self.new_diag(checker, msg).with_msgs_hl(
-                    msgid,
-                    id_close.iter().copied(),
-                    msgstr,
-                    str_close.iter().copied(),
-                ));
+                )));
             }
             if id_count_close < str_count_close {
-                let msg = format!(
+                diags.extend(emit_close(format!(
                     "extra closing {} brackets '{}' ({id_count_close} / {str_count_close})",
                     BRACKET_NAMES[idx], bracket.1,
-                );
-                diags.push(self.new_diag(checker, msg).with_msgs_hl(
-                    msgid,
-                    id_close.iter().copied(),
-                    msgstr,
-                    str_close.iter().copied(),
-                ));
+                )));
             }
         }
         diags

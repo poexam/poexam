@@ -29,10 +29,6 @@ impl RuleChecker for ShortRule {
         true
     }
 
-    fn severity(&self) -> Severity {
-        Severity::Warning
-    }
-
     /// Check for too short translation.
     ///
     /// This rule reports the entry if one of both conditions is met (leading and trailing
@@ -53,8 +49,8 @@ impl RuleChecker for ShortRule {
     /// msgstr "ok"
     /// ```
     ///
-    /// Diagnostics reported with severity [`warning`](Severity::Warning):
-    /// - `translation too short (# / #)`
+    /// Diagnostics reported:
+    /// - [`warning`](Severity::Warning): `translation too short (# / #)`
     fn check_msg(
         &self,
         checker: &Checker,
@@ -84,13 +80,14 @@ impl RuleChecker for ShortRule {
             return vec![];
         }
         if len_msgstr * checker.config.check.short_factor as usize <= len_msgid {
-            vec![
-                self.new_diag(
-                    checker,
-                    format!("translation too short ({len_msgid} / {len_msgstr})"),
-                )
-                .with_msgs(msgid, msgstr),
-            ]
+            self.new_diag(
+                checker,
+                Severity::Warning,
+                format!("translation too short ({len_msgid} / {len_msgstr})"),
+            )
+            .map(|d| d.with_msgs(msgid, msgstr))
+            .into_iter()
+            .collect()
         } else {
             vec![]
         }

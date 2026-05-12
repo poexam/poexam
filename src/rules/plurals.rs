@@ -28,10 +28,6 @@ impl RuleChecker for PluralsRule {
         true
     }
 
-    fn severity(&self) -> Severity {
-        Severity::Error
-    }
-
     /// Check for incorrect number of plurals in translation.
     ///
     /// The number of plurals is defined in the PO header like this:
@@ -56,9 +52,9 @@ impl RuleChecker for PluralsRule {
     /// msgstr[1] "%d fichiers"
     /// ```
     ///
-    /// Diagnostics reported with severity [`error`](Severity::Error):
-    /// - `missing translated plural form (found: #, expected: #)`
-    /// - `extra translated plural form (found: #, expected: #)`
+    /// Diagnostics reported:
+    /// - [`error`](Severity::Error): `missing translated plural form (found: #, expected: #)`
+    /// - [`error`](Severity::Error): `extra translated plural form (found: #, expected: #)`
     fn check_entry(&self, checker: &Checker, entry: &Entry) -> Vec<Diagnostic> {
         let expected = checker.nplurals() as usize;
         if expected == 0 || !entry.has_plural_form() {
@@ -67,28 +63,26 @@ impl RuleChecker for PluralsRule {
         }
         let found = entry.msgstr.len();
         match found.cmp(&expected) {
-            std::cmp::Ordering::Less => {
-                vec![
-                    self.new_diag(
-                        checker,
-                        format!(
-                            "missing translated plural form (found: {found}, expected: {expected})",
-                        ),
-                    )
-                    .with_entry(entry),
-                ]
-            }
-            std::cmp::Ordering::Greater => {
-                vec![
-                    self.new_diag(
-                        checker,
-                        format!(
-                            "extra translated plural form (found: {found}, expected: {expected})",
-                        ),
-                    )
-                    .with_entry(entry),
-                ]
-            }
+            std::cmp::Ordering::Less => self
+                .new_diag(
+                    checker,
+                    Severity::Error,
+                    format!(
+                        "missing translated plural form (found: {found}, expected: {expected})",
+                    ),
+                )
+                .map(|d| d.with_entry(entry))
+                .into_iter()
+                .collect(),
+            std::cmp::Ordering::Greater => self
+                .new_diag(
+                    checker,
+                    Severity::Error,
+                    format!("extra translated plural form (found: {found}, expected: {expected})"),
+                )
+                .map(|d| d.with_entry(entry))
+                .into_iter()
+                .collect(),
             std::cmp::Ordering::Equal => vec![],
         }
     }

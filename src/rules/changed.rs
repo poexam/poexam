@@ -29,10 +29,6 @@ impl RuleChecker for ChangedRule {
         false
     }
 
-    fn severity(&self) -> Severity {
-        Severity::Info
-    }
-
     /// Check for changed translation: the translation is not empty and different from
     /// the source string.
     ///
@@ -54,8 +50,8 @@ impl RuleChecker for ChangedRule {
     /// msgstr "this is a test (example)"
     /// ```
     ///
-    /// Diagnostics reported with severity [`info`](Severity::Info):
-    /// - `changed translation`
+    /// Diagnostics reported:
+    /// - [`info`](Severity::Info): `changed translation`
     fn check_msg(
         &self,
         checker: &Checker,
@@ -67,10 +63,10 @@ impl RuleChecker for ChangedRule {
             && !msgstr.value.trim().is_empty()
             && msgstr.value != msgid.value
         {
-            vec![
-                self.new_diag(checker, "changed translation")
-                    .with_msgs(msgid, msgstr),
-            ]
+            self.new_diag(checker, Severity::Info, "changed translation")
+                .map(|d| d.with_msgs(msgid, msgstr))
+                .into_iter()
+                .collect()
         } else {
             vec![]
         }
