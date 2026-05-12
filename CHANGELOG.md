@@ -12,6 +12,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 - Display `poexam rules` output as tables
 - Report severity per diagnostic instead of per rule: remove Severity column from `poexam rules` output, filter diagnostics with `--severity`
+- Use severity "error" instead of "info" in rule "encoding"
 - Remove special-case condition for single-character strings in rules "short" and "long"
 
 ### Added

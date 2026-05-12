@@ -49,12 +49,12 @@ impl RuleChecker for EncodingRule {
     /// ```
     ///
     /// Diagnostics reported:
-    /// - [`info`](Severity::Info): `invalid characters for encoding …`
+    /// - [`error`](Severity::Error): `invalid characters for encoding …`
     fn check_entry(&self, checker: &Checker, entry: &Entry) -> Vec<Diagnostic> {
         if entry.encoding_error {
             self.new_diag(
                 checker,
-                Severity::Info,
+                Severity::Error,
                 format!(
                     "invalid characters for encoding {}",
                     checker.encoding_name()
@@ -110,7 +110,7 @@ msgstr "testé"
         let diags = checker.diagnostics;
         assert_eq!(diags.len(), 1);
         let diag = &diags[0];
-        assert_eq!(diag.severity, Severity::Info);
+        assert_eq!(diag.severity, Severity::Error);
         assert_eq!(diag.message, "invalid characters for encoding UTF-8");
     }
 }
