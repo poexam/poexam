@@ -48,9 +48,9 @@ impl RuleChecker for EmailsRule {
     /// ```
     ///
     /// Diagnostics reported:
-    /// - [`info`](Severity::Info): `missing emails (# / #)`
-    /// - [`info`](Severity::Info): `extra emails (# / #)`
-    /// - [`info`](Severity::Info): `different emails`
+    /// - [`warning`](Severity::Warning): `missing emails (# / #)`
+    /// - [`warning`](Severity::Warning): `extra emails (# / #)`
+    /// - [`warning`](Severity::Warning): `different emails`
     fn check_msg(
         &self,
         checker: &Checker,
@@ -65,7 +65,7 @@ impl RuleChecker for EmailsRule {
             std::cmp::Ordering::Greater => self
                 .new_diag(
                     checker,
-                    Severity::Info,
+                    Severity::Warning,
                     format!(
                         "missing emails ({} / {})",
                         id_emails.len(),
@@ -85,7 +85,7 @@ impl RuleChecker for EmailsRule {
             std::cmp::Ordering::Less => self
                 .new_diag(
                     checker,
-                    Severity::Info,
+                    Severity::Warning,
                     format!("extra emails ({} / {})", id_emails.len(), str_emails.len()),
                 )
                 .map(|d| {
@@ -108,7 +108,7 @@ impl RuleChecker for EmailsRule {
                 if id_emails_hash == str_emails_hash {
                     vec![]
                 } else {
-                    self.new_diag(checker, Severity::Info, "different emails")
+                    self.new_diag(checker, Severity::Warning, "different emails")
                         .map(|d| {
                             d.with_msgs_hl(
                                 msgid,
@@ -177,13 +177,13 @@ msgstr "e-mails différents : user@domain.com -- user2@example.com"
         );
         assert_eq!(diags.len(), 3);
         let diag = &diags[0];
-        assert_eq!(diag.severity, Severity::Info);
+        assert_eq!(diag.severity, Severity::Warning);
         assert_eq!(diag.message, "missing emails (2 / 1)");
         let diag = &diags[1];
-        assert_eq!(diag.severity, Severity::Info);
+        assert_eq!(diag.severity, Severity::Warning);
         assert_eq!(diag.message, "extra emails (1 / 2)");
         let diag = &diags[2];
-        assert_eq!(diag.severity, Severity::Info);
+        assert_eq!(diag.severity, Severity::Warning);
         assert_eq!(diag.message, "different emails");
     }
 }
