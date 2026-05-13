@@ -6,7 +6,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 # Poexam ChangeLog
 
-## Version 0.0.10 (under dev)
+## Version 0.0.10 (2026-05-13)
 
 ### Changed
 
