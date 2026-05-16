@@ -31,6 +31,7 @@ pub struct Parser<'a> {
     nplurals: u32,
     // Internal state of the parser.
     offset: usize,
+    line_offset_start: usize,
     line_number: usize,
     next_line_number: usize,
     field: Field,
@@ -77,11 +78,22 @@ impl<'d> Parser<'d> {
             return None;
         }
         let start = self.offset;
+        self.line_offset_start = start;
         let end =
             memchr::memchr(b'\n', &self.data[start..]).map_or(self.data_len, |pos| start + pos);
         self.offset = end + 1;
         self.next_line_number += 1;
         Some(&self.data[start..end])
+    }
+
+    /// End offset of the line that was just read by `next_line` (clamped to `data_len`
+    /// so the trailing-no-newline case stays in bounds).
+    const fn line_end_offset(&self) -> usize {
+        if self.offset > self.data_len {
+            self.data_len
+        } else {
+            self.offset
+        }
     }
 
     /// Parse the header of a PO entry to extract encoding information if present.
@@ -198,17 +210,46 @@ impl<'d> Parser<'d> {
     ///
     /// The line can be a `msgctxt`, `msgid`, `msgid_plural`, `msgstr`, or a continued string.
     fn parse_message(&mut self, line: &'d [u8], entry: &mut Entry) {
+        let line_start = self.line_offset_start;
+        let line_end = self.line_end_offset();
         match line {
-            [b'"', ..] => match self.field {
-                Field::Comment => {}
-                Field::Ctxt => entry.append_msgctxt(self.extract_string(line)),
-                Field::Id => entry.append_msgid(self.extract_string(line)),
-                Field::IdPlural => entry.append_msgid_plural(self.extract_string(line)),
-                Field::Str(idx) => entry.append_msgstr(idx, self.extract_string(line)),
-            },
+            [b'"', ..] => {
+                let value = self.extract_string(line);
+                match self.field {
+                    Field::Comment => {}
+                    Field::Ctxt => {
+                        entry.append_msgctxt(value);
+                        if let Some(msg) = entry.msgctxt.as_mut() {
+                            msg.byte_range.end = line_end;
+                        }
+                    }
+                    Field::Id => {
+                        entry.append_msgid(value);
+                        if let Some(msg) = entry.msgid.as_mut() {
+                            msg.byte_range.end = line_end;
+                        }
+                    }
+                    Field::IdPlural => {
+                        entry.append_msgid_plural(value);
+                        if let Some(msg) = entry.msgid_plural.as_mut() {
+                            msg.byte_range.end = line_end;
+                        }
+                    }
+                    Field::Str(idx) => {
+                        entry.append_msgstr(idx, value);
+                        if let Some(msg) = entry.msgstr.get_mut(&idx) {
+                            msg.byte_range.end = line_end;
+                        }
+                    }
+                }
+            }
             [b'm', b's', b'g', b'c', b't', b'x', b't', ..] => {
                 self.field = Field::Ctxt;
-                entry.msgctxt = Some(Message::new(self.line_number, self.extract_string(line)));
+                entry.msgctxt = Some(Message::new(
+                    self.line_number,
+                    self.extract_string(line),
+                    line_start..line_end,
+                ));
             }
             [
                 b'm',
@@ -226,12 +267,19 @@ impl<'d> Parser<'d> {
                 ..,
             ] => {
                 self.field = Field::IdPlural;
-                entry.msgid_plural =
-                    Some(Message::new(self.line_number, self.extract_string(line)));
+                entry.msgid_plural = Some(Message::new(
+                    self.line_number,
+                    self.extract_string(line),
+                    line_start..line_end,
+                ));
             }
             [b'm', b's', b'g', b'i', b'd', ..] => {
                 self.field = Field::Id;
-                entry.msgid = Some(Message::new(self.line_number, self.extract_string(line)));
+                entry.msgid = Some(Message::new(
+                    self.line_number,
+                    self.extract_string(line),
+                    line_start..line_end,
+                ));
             }
             [b'm', b's', b'g', b's', b't', b'r', b'[', ..] => {
                 if let Some(idx_end) = memchr::memchr(b']', line)
@@ -241,15 +289,24 @@ impl<'d> Parser<'d> {
                     self.field = Field::Str(idx);
                     entry.msgstr.insert(
                         idx,
-                        Message::new(self.line_number, self.extract_string(line)),
+                        Message::new(
+                            self.line_number,
+                            self.extract_string(line),
+                            line_start..line_end,
+                        ),
                     );
                 }
             }
             [b'm', b's', b'g', b's', b't', b'r', ..] => {
                 self.field = Field::Str(0);
-                entry
-                    .msgstr
-                    .insert(0, Message::new(self.line_number, self.extract_string(line)));
+                entry.msgstr.insert(
+                    0,
+                    Message::new(
+                        self.line_number,
+                        self.extract_string(line),
+                        line_start..line_end,
+                    ),
+                );
             }
             _ => {}
         }
@@ -270,6 +327,7 @@ impl Iterator for Parser<'_> {
         while let Some(line) = self.next_line() {
             if line.is_empty() {
                 if started {
+                    entry.byte_range.end = self.line_end_offset();
                     entry.encoding_error = self.encoding_error;
                     entry.unescape_strings();
                     self.parse_header(&entry);
@@ -279,7 +337,10 @@ impl Iterator for Parser<'_> {
                 self.line_number = self.next_line_number;
                 continue;
             }
-            started = true;
+            if !started {
+                entry.byte_range.start = self.line_offset_start;
+                started = true;
+            }
             match line {
                 // Workflow and sticky flags.
                 [b'#', b',' | b'=', keywords @ ..] => {
@@ -311,6 +372,7 @@ impl Iterator for Parser<'_> {
         }
         if started {
             // Send the last entry if we reached the end of data.
+            entry.byte_range.end = self.line_end_offset();
             entry.encoding_error = self.encoding_error;
             entry.unescape_strings();
             self.parse_header(&entry);
@@ -351,7 +413,7 @@ msgstr "test\n"
         assert!(!entries[0].encoding_error);
         assert_eq!(parser.nplurals, 2);
         assert!(entries[0].msgctxt.is_none());
-        assert_eq!(entries[0].msgid, Some(Message::new(2, "")));
+        assert_eq!(entries[0].msgid, Some(Message::new(2, "", 0..0)));
         assert!(entries[0].msgid_plural.is_none());
         assert_eq!(
             entries[0].msgstr.get(&0),
@@ -361,7 +423,8 @@ msgstr "test\n"
                 Project-Id-Version: my_project\n\
                 Report-Msgid-Bugs-To: someone@example.com\n\
                 Language: fr\n\
-                Plural-Forms: nplurals=2; plural=(n > 1);\n"
+                Plural-Forms: nplurals=2; plural=(n > 1);\n",
+                0..0,
             ))
             .as_ref()
         );
@@ -397,11 +460,11 @@ msgstr "bonjour"
         assert_eq!(entries[0].format_language, Language::Null);
         assert!(!entries[0].encoding_error);
         assert!(entries[0].msgctxt.is_none());
-        assert_eq!(entries[0].msgid, Some(Message::new(2, "hello")));
+        assert_eq!(entries[0].msgid, Some(Message::new(2, "hello", 0..0)));
         assert!(entries[0].msgid_plural.is_none());
         assert_eq!(
             entries[0].msgstr.get(&0),
-            Some(Message::new(3, "bonjour")).as_ref()
+            Some(Message::new(3, "bonjour", 0..0)).as_ref()
         );
     }
 
@@ -426,13 +489,14 @@ msgstr "testé"
         assert_eq!(entries[0].format_language, Language::Null);
         assert!(!entries[0].encoding_error);
         assert!(entries[0].msgctxt.is_none());
-        assert_eq!(entries[0].msgid, Some(Message::new(2, "")));
+        assert_eq!(entries[0].msgid, Some(Message::new(2, "", 0..0)));
         assert!(entries[0].msgid_plural.is_none());
         assert_eq!(
             entries[0].msgstr.get(&0),
             Some(Message::new(
                 3,
-                "Content-Type: text/plain; charset=ISO-8859-15\n"
+                "Content-Type: text/plain; charset=ISO-8859-15\n",
+                0..0,
             ))
             .as_ref()
         );
@@ -443,11 +507,11 @@ msgstr "testé"
         assert_eq!(entries[1].format_language, Language::Null);
         assert!(!entries[1].encoding_error);
         assert!(entries[1].msgctxt.is_none());
-        assert_eq!(entries[1].msgid, Some(Message::new(5, "tested")));
+        assert_eq!(entries[1].msgid, Some(Message::new(5, "tested", 0..0)));
         assert!(entries[1].msgid_plural.is_none());
         assert_eq!(
             entries[1].msgstr.get(&0),
-            Some(Message::new(6, "testé")).as_ref()
+            Some(Message::new(6, "testé", 0..0)).as_ref()
         );
     }
 
@@ -471,11 +535,16 @@ msgstr "testé"
         assert_eq!(entries[0].format_language, Language::Null);
         assert!(!entries[0].encoding_error);
         assert!(entries[0].msgctxt.is_none());
-        assert_eq!(entries[0].msgid, Some(Message::new(2, "")));
+        assert_eq!(entries[0].msgid, Some(Message::new(2, "", 0..0)));
         assert!(entries[0].msgid_plural.is_none());
         assert_eq!(
             entries[0].msgstr.get(&0),
-            Some(Message::new(3, "Content-Type: text/plain; charset=UTF-8\n",)).as_ref()
+            Some(Message::new(
+                3,
+                "Content-Type: text/plain; charset=UTF-8\n",
+                0..0
+            ))
+            .as_ref()
         );
         assert!(entries[1].keywords.is_empty());
         assert!(!entries[1].fuzzy);
@@ -484,11 +553,11 @@ msgstr "testé"
         assert_eq!(entries[1].format_language, Language::Null);
         assert!(entries[1].encoding_error);
         assert!(entries[1].msgctxt.is_none());
-        assert_eq!(entries[1].msgid, Some(Message::new(5, "tested")));
+        assert_eq!(entries[1].msgid, Some(Message::new(5, "tested", 0..0)));
         assert!(entries[1].msgid_plural.is_none());
         assert_eq!(
             entries[1].msgstr.get(&0),
-            Some(Message::new(6, "test�")).as_ref()
+            Some(Message::new(6, "test�", 0..0)).as_ref()
         );
     }
 
@@ -510,13 +579,13 @@ msgstr "mai"
         assert!(!entries[0].encoding_error);
         assert_eq!(
             entries[0].msgctxt,
-            Some(Message::new(2, "month of the year"))
+            Some(Message::new(2, "month of the year", 0..0))
         );
-        assert_eq!(entries[0].msgid, Some(Message::new(3, "may")));
+        assert_eq!(entries[0].msgid, Some(Message::new(3, "may", 0..0)));
         assert!(entries[0].msgid_plural.is_none());
         assert_eq!(
             entries[0].msgstr.get(&0),
-            Some(Message::new(4, "mai")).as_ref()
+            Some(Message::new(4, "mai", 0..0)).as_ref()
         );
     }
 
@@ -539,11 +608,11 @@ msgstr ""
         assert_eq!(entries[0].format_language, Language::Null);
         assert!(!entries[0].encoding_error);
         assert!(entries[0].msgctxt.is_none());
-        assert_eq!(entries[0].msgid, Some(Message::new(2, "hello")));
+        assert_eq!(entries[0].msgid, Some(Message::new(2, "hello", 0..0)));
         assert!(entries[0].msgid_plural.is_none());
         assert_eq!(
             entries[0].msgstr.get(&0),
-            Some(Message::new(3, "bonjour")).as_ref()
+            Some(Message::new(3, "bonjour", 0..0)).as_ref()
         );
         assert_eq!(entries[1].line_number, 5);
         assert!(entries[1].keywords.is_empty());
@@ -553,11 +622,11 @@ msgstr ""
         assert_eq!(entries[1].format_language, Language::Null);
         assert!(!entries[1].encoding_error);
         assert!(entries[1].msgctxt.is_none());
-        assert_eq!(entries[1].msgid, Some(Message::new(5, "hello 2")));
+        assert_eq!(entries[1].msgid, Some(Message::new(5, "hello 2", 0..0)));
         assert!(entries[1].msgid_plural.is_none());
         assert_eq!(
             entries[1].msgstr.get(&0),
-            Some(Message::new(6, "")).as_ref()
+            Some(Message::new(6, "", 0..0)).as_ref()
         );
     }
 
@@ -579,15 +648,18 @@ msgstr[1] "fichiers"
         assert_eq!(entries[0].format_language, Language::Null);
         assert!(!entries[0].encoding_error);
         assert!(entries[0].msgctxt.is_none());
-        assert_eq!(entries[0].msgid, Some(Message::new(2, "file")));
-        assert_eq!(entries[0].msgid_plural, Some(Message::new(3, "files")));
+        assert_eq!(entries[0].msgid, Some(Message::new(2, "file", 0..0)));
+        assert_eq!(
+            entries[0].msgid_plural,
+            Some(Message::new(3, "files", 0..0))
+        );
         assert_eq!(
             entries[0].msgstr.get(&0),
-            Some(Message::new(4, "fichier")).as_ref()
+            Some(Message::new(4, "fichier", 0..0)).as_ref()
         );
         assert_eq!(
             entries[0].msgstr.get(&1),
-            Some(Message::new(5, "fichiers")).as_ref()
+            Some(Message::new(5, "fichiers", 0..0)).as_ref()
         );
     }
 
@@ -622,11 +694,11 @@ msgstr "bonjour, %s"
         assert_eq!(entries[0].format_language, Language::C);
         assert!(!entries[0].encoding_error);
         assert!(entries[0].msgctxt.is_none());
-        assert_eq!(entries[0].msgid, Some(Message::new(6, "hello, %s")));
+        assert_eq!(entries[0].msgid, Some(Message::new(6, "hello, %s", 0..0)));
         assert!(entries[0].msgid_plural.is_none());
         assert_eq!(
             entries[0].msgstr.get(&0),
-            Some(Message::new(7, "bonjour, %s")).as_ref()
+            Some(Message::new(7, "bonjour, %s", 0..0)).as_ref()
         );
         // Parse "noqa" comment.
         let content = r#"
@@ -646,11 +718,11 @@ msgstr "bonjour, %s"
         assert_eq!(entries[0].format_language, Language::C);
         assert!(!entries[0].encoding_error);
         assert!(entries[0].msgctxt.is_none());
-        assert_eq!(entries[0].msgid, Some(Message::new(4, "hello, %s")));
+        assert_eq!(entries[0].msgid, Some(Message::new(4, "hello, %s", 0..0)));
         assert!(entries[0].msgid_plural.is_none());
         assert_eq!(
             entries[0].msgstr.get(&0),
-            Some(Message::new(5, "bonjour, %s")).as_ref()
+            Some(Message::new(5, "bonjour, %s", 0..0)).as_ref()
         );
         // Parse "noqa:xxx" comment (with rules).
         let content = r#"
@@ -670,12 +742,91 @@ msgstr "bonjour, %s"
         assert_eq!(entries[0].format_language, Language::C);
         assert!(!entries[0].encoding_error);
         assert!(entries[0].msgctxt.is_none());
-        assert_eq!(entries[0].msgid, Some(Message::new(4, "hello, %s")));
+        assert_eq!(entries[0].msgid, Some(Message::new(4, "hello, %s", 0..0)));
         assert!(entries[0].msgid_plural.is_none());
         assert_eq!(
             entries[0].msgstr.get(&0),
-            Some(Message::new(5, "bonjour, %s")).as_ref()
+            Some(Message::new(5, "bonjour, %s", 0..0)).as_ref()
         );
+    }
+
+    #[test]
+    fn byte_range_identity_roundtrip() {
+        // Parsing then writing with no replacements must yield byte-identical output.
+        // Run this on the example fixture so it exercises a realistic file.
+        let original: &[u8] =
+            include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/examples/fr.po"));
+        // Drain the parser so all entries are produced (and all internal byte ranges are tracked).
+        let entries: Vec<Entry> = Parser::new(original).collect();
+        assert!(!entries.is_empty());
+        let out = crate::po::writer::write_with_replacements(original, vec![]).unwrap();
+        assert_eq!(out, original, "no-op rewrite must be byte-identical");
+    }
+
+    #[test]
+    fn byte_range_self_splice_roundtrip() {
+        // For every Message in the fixture, replace its byte_range with the bytes
+        // currently at that range. The result must be byte-identical to the input,
+        // proving the recorded offsets are exact.
+        let original: &[u8] =
+            include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/examples/fr.po"));
+        let entries: Vec<Entry> = Parser::new(original).collect();
+        let mut replacements: Vec<(std::ops::Range<usize>, Vec<u8>)> = Vec::new();
+        for entry in &entries {
+            for msg in entry
+                .msgctxt
+                .iter()
+                .chain(entry.msgid.iter())
+                .chain(entry.msgid_plural.iter())
+                .chain(entry.msgstr.values())
+            {
+                assert!(
+                    msg.byte_range.start < msg.byte_range.end,
+                    "every message must have a non-empty byte range"
+                );
+                assert!(msg.byte_range.end <= original.len());
+                let bytes = original[msg.byte_range.clone()].to_vec();
+                replacements.push((msg.byte_range.clone(), bytes));
+            }
+        }
+        let out = crate::po::writer::write_with_replacements(original, replacements).unwrap();
+        assert_eq!(
+            out, original,
+            "self-splice with the same bytes must be byte-identical"
+        );
+    }
+
+    #[test]
+    fn byte_range_entry_covers_entry_bytes() {
+        let content = b"\nmsgid \"hello\"\nmsgstr \"bonjour\"\n\nmsgid \"hello 2\"\nmsgstr \"\"\n";
+        let entries: Vec<Entry> = Parser::new(content).collect();
+        assert_eq!(entries.len(), 2);
+        // First entry's byte range should start at "msgid" of entry 1.
+        let r0 = entries[0].byte_range.clone();
+        assert_eq!(&content[r0.start..r0.start + 5], b"msgid");
+        // It should end past the blank-line separator (or at end of buffer).
+        assert!(r0.end > 0 && r0.end <= content.len());
+        // And the second entry must start strictly after entry 0's range start.
+        assert!(entries[1].byte_range.start >= r0.end - 1);
+    }
+
+    #[test]
+    fn byte_range_message_covers_block_with_continuation() {
+        let content =
+            b"msgid \"\"\n\"hello \"\n\"world\"\nmsgstr \"\"\n\"bonjour \"\n\"le monde\"\n";
+        let entries: Vec<Entry> = Parser::new(content).collect();
+        let msgid = entries[0].msgid.as_ref().unwrap();
+        let msgstr0 = entries[0].msgstr.get(&0).unwrap();
+        // msgid block: from b"msgid" up to and including the b"world"\n line.
+        let id_slice = &content[msgid.byte_range.clone()];
+        assert!(id_slice.starts_with(b"msgid"));
+        assert!(id_slice.ends_with(b"\"world\"\n"));
+        // msgstr block: from b"msgstr" up to and including the b"le monde"\n line.
+        let str_slice = &content[msgstr0.byte_range.clone()];
+        assert!(str_slice.starts_with(b"msgstr"));
+        assert!(str_slice.ends_with(b"\"le monde\"\n"));
+        // Blocks must not overlap.
+        assert!(msgid.byte_range.end <= msgstr0.byte_range.start);
     }
 
     #[test]
@@ -698,11 +849,11 @@ msgstr ""
         assert_eq!(entries[0].format_language, Language::Null);
         assert!(!entries[0].encoding_error);
         assert!(entries[0].msgctxt.is_none());
-        assert_eq!(entries[0].msgid, Some(Message::new(2, "hello world")));
+        assert_eq!(entries[0].msgid, Some(Message::new(2, "hello world", 0..0)));
         assert!(entries[0].msgid_plural.is_none());
         assert_eq!(
             entries[0].msgstr.get(&0),
-            Some(Message::new(5, "bonjour le monde")).as_ref()
+            Some(Message::new(5, "bonjour le monde", 0..0)).as_ref()
         );
     }
 }

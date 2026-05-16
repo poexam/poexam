@@ -7,10 +7,11 @@
 use serde::Serialize;
 
 use std::collections::BTreeMap;
+use std::ops::Range;
 
 use crate::{po::escape::EscapePoExt, po::format::language::Language, po::message::Message};
 
-#[derive(Debug, Default, PartialEq, Eq, Serialize)]
+#[derive(Debug, Default, Serialize)]
 #[allow(clippy::struct_excessive_bools)]
 pub struct Entry {
     pub line_number: usize,
@@ -26,7 +27,32 @@ pub struct Entry {
     pub msgid: Option<Message>,
     pub msgid_plural: Option<Message>,
     pub msgstr: BTreeMap<u32, Message>,
+    /// Byte range of the whole entry (including leading comments and the
+    /// trailing blank line separator) in the original file bytes. Used by the
+    /// auto-fix writer to splice or delete the entry.
+    #[serde(skip)]
+    pub byte_range: Range<usize>,
 }
+
+impl PartialEq for Entry {
+    fn eq(&self, other: &Self) -> bool {
+        self.line_number == other.line_number
+            && self.keywords == other.keywords
+            && self.fuzzy == other.fuzzy
+            && self.obsolete == other.obsolete
+            && self.noqa == other.noqa
+            && self.noqa_rules == other.noqa_rules
+            && self.nowrap == other.nowrap
+            && self.format_language == other.format_language
+            && self.encoding_error == other.encoding_error
+            && self.msgctxt == other.msgctxt
+            && self.msgid == other.msgid
+            && self.msgid_plural == other.msgid_plural
+            && self.msgstr == other.msgstr
+    }
+}
+
+impl Eq for Entry {}
 
 impl Entry {
     /// Create a new PO entry with the line number and default values.
@@ -198,12 +224,12 @@ mod tests {
 
     fn get_test_entry() -> Entry {
         let mut msgstr = BTreeMap::new();
-        msgstr.insert(0, Message::new(4, "fichier\n"));
-        msgstr.insert(1, Message::new(5, "fichiers\n"));
+        msgstr.insert(0, Message::new(4, "fichier\n", 0..0));
+        msgstr.insert(1, Message::new(5, "fichiers\n", 0..0));
         Entry {
-            msgctxt: Some(Message::new(1, "a file\n")),
-            msgid: Some(Message::new(2, "file\n")),
-            msgid_plural: Some(Message::new(3, "files\n")),
+            msgctxt: Some(Message::new(1, "a file\n", 0..0)),
+            msgid: Some(Message::new(2, "file\n", 0..0)),
+            msgid_plural: Some(Message::new(3, "files\n", 0..0)),
             msgstr,
             ..Default::default()
         }
@@ -214,14 +240,14 @@ mod tests {
         let mut entry = Entry::new(1);
         assert!(!entry.is_header());
         assert!(!entry.is_translated());
-        entry.msgctxt = Some(Message::new(1, "a file"));
-        entry.msgid = Some(Message::new(2, ""));
+        entry.msgctxt = Some(Message::new(1, "a file", 0..0));
+        entry.msgid = Some(Message::new(2, "", 0..0));
         assert!(entry.is_header());
         assert!(!entry.is_translated());
-        entry.msgstr.insert(0, Message::new(4, "fichier\\n"));
+        entry.msgstr.insert(0, Message::new(4, "fichier\\n", 0..0));
         assert!(entry.is_header());
         assert!(entry.is_translated());
-        entry.msgid = Some(Message::new(2, "file\\n"));
+        entry.msgid = Some(Message::new(2, "file\\n", 0..0));
         assert!(!entry.is_header());
         assert!(entry.is_translated());
     }
@@ -230,17 +256,23 @@ mod tests {
     fn test_entry_append() {
         let mut entry = get_test_entry();
         entry.append_msgctxt("here");
-        assert_eq!(entry.msgctxt, Some(Message::new(1, "a file\nhere")));
+        assert_eq!(entry.msgctxt, Some(Message::new(1, "a file\nhere", 0..0)));
         entry.append_msgid("here");
-        assert_eq!(entry.msgid, Some(Message::new(2, "file\nhere")));
+        assert_eq!(entry.msgid, Some(Message::new(2, "file\nhere", 0..0)));
         entry.append_msgid_plural("here");
-        assert_eq!(entry.msgid_plural, Some(Message::new(3, "files\nhere")));
+        assert_eq!(
+            entry.msgid_plural,
+            Some(Message::new(3, "files\nhere", 0..0))
+        );
         entry.append_msgstr(0, "ici");
-        assert_eq!(entry.msgstr.get(&0), Some(&Message::new(4, "fichier\nici")));
+        assert_eq!(
+            entry.msgstr.get(&0),
+            Some(&Message::new(4, "fichier\nici", 0..0))
+        );
         entry.append_msgstr(1, "ici");
         assert_eq!(
             entry.msgstr.get(&1),
-            Some(&Message::new(5, "fichiers\nici"))
+            Some(&Message::new(5, "fichiers\nici", 0..0))
         );
     }
 
@@ -248,16 +280,22 @@ mod tests {
     fn test_entry_iter() {
         let entry = get_test_entry();
         let mut iter = entry.iter_ids();
-        assert_eq!(iter.next(), Some(Message::new(2, "file\n")).as_ref());
-        assert_eq!(iter.next(), Some(Message::new(3, "files\n")).as_ref());
+        assert_eq!(iter.next(), Some(Message::new(2, "file\n", 0..0)).as_ref());
+        assert_eq!(iter.next(), Some(Message::new(3, "files\n", 0..0)).as_ref());
         assert!(iter.next().is_none());
         let mut iter = entry.iter_strs();
-        assert_eq!(iter.next(), Some((&0, &Message::new(4, "fichier\n"))));
-        assert_eq!(iter.next(), Some((&1, &Message::new(5, "fichiers\n"))));
+        assert_eq!(iter.next(), Some((&0, &Message::new(4, "fichier\n", 0..0))));
+        assert_eq!(
+            iter.next(),
+            Some((&1, &Message::new(5, "fichiers\n", 0..0)))
+        );
         assert!(iter.next().is_none());
         // `iter_plural_strs` skips msgstr[0] and yields only msgstr[n] for n > 0.
         let mut iter = entry.iter_plural_strs();
-        assert_eq!(iter.next(), Some((&1, &Message::new(5, "fichiers\n"))));
+        assert_eq!(
+            iter.next(),
+            Some((&1, &Message::new(5, "fichiers\n", 0..0)))
+        );
         assert!(iter.next().is_none());
     }
 
@@ -265,7 +303,7 @@ mod tests {
     fn test_iter_plural_strs_no_plurals() {
         // Entry with only msgstr[0] yields nothing from `iter_plural_strs`.
         let mut entry = Entry::new(1);
-        entry.msgstr.insert(0, Message::new(2, "only-one"));
+        entry.msgstr.insert(0, Message::new(2, "only-one", 0..0));
         assert!(entry.iter_plural_strs().next().is_none());
     }
 
@@ -273,17 +311,29 @@ mod tests {
     fn test_escape() {
         let mut entry = get_test_entry();
         entry.escape_strings();
-        assert_eq!(entry.msgctxt, Some(Message::new(1, "a file\\n")));
-        assert_eq!(entry.msgid, Some(Message::new(2, "file\\n")));
-        assert_eq!(entry.msgid_plural, Some(Message::new(3, "files\\n")));
-        assert_eq!(entry.msgstr.get(&0), Some(&Message::new(4, "fichier\\n")));
-        assert_eq!(entry.msgstr.get(&1), Some(&Message::new(5, "fichiers\\n")));
+        assert_eq!(entry.msgctxt, Some(Message::new(1, "a file\\n", 0..0)));
+        assert_eq!(entry.msgid, Some(Message::new(2, "file\\n", 0..0)));
+        assert_eq!(entry.msgid_plural, Some(Message::new(3, "files\\n", 0..0)));
+        assert_eq!(
+            entry.msgstr.get(&0),
+            Some(&Message::new(4, "fichier\\n", 0..0))
+        );
+        assert_eq!(
+            entry.msgstr.get(&1),
+            Some(&Message::new(5, "fichiers\\n", 0..0))
+        );
         entry.unescape_strings();
-        assert_eq!(entry.msgctxt, Some(Message::new(1, "a file\n")));
-        assert_eq!(entry.msgid, Some(Message::new(2, "file\n")));
-        assert_eq!(entry.msgid_plural, Some(Message::new(3, "files\n")));
-        assert_eq!(entry.msgstr.get(&0), Some(&Message::new(4, "fichier\n")));
-        assert_eq!(entry.msgstr.get(&1), Some(&Message::new(5, "fichiers\n")));
+        assert_eq!(entry.msgctxt, Some(Message::new(1, "a file\n", 0..0)));
+        assert_eq!(entry.msgid, Some(Message::new(2, "file\n", 0..0)));
+        assert_eq!(entry.msgid_plural, Some(Message::new(3, "files\n", 0..0)));
+        assert_eq!(
+            entry.msgstr.get(&0),
+            Some(&Message::new(4, "fichier\n", 0..0))
+        );
+        assert_eq!(
+            entry.msgstr.get(&1),
+            Some(&Message::new(5, "fichiers\n", 0..0))
+        );
     }
 
     #[test]

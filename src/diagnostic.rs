@@ -324,9 +324,9 @@ mod tests {
 
     fn entry_with_msg(line: usize, msgid: &str, msgstr: &str) -> Entry {
         let mut entry = Entry::new(line);
-        entry.msgid = Some(Message::new(line + 1, msgid));
+        entry.msgid = Some(Message::new(line + 1, msgid, 0..0));
         let mut msgstr_map = BTreeMap::new();
-        msgstr_map.insert(0_u32, Message::new(line + 2, msgstr));
+        msgstr_map.insert(0_u32, Message::new(line + 2, msgstr, 0..0));
         entry.msgstr = msgstr_map;
         entry
     }
@@ -379,7 +379,7 @@ mod tests {
 
     #[test]
     fn test_with_msg() {
-        let msg = Message::new(10, "hello");
+        let msg = Message::new(10, "hello", 0..0);
         let diag =
             Diagnostic::new(Path::new("a.po"), "r", Severity::Info, String::new()).with_msg(&msg);
         assert_eq!(diag.lines.len(), 1);
@@ -390,7 +390,7 @@ mod tests {
 
     #[test]
     fn test_with_msg_hl() {
-        let msg = Message::new(10, "hello");
+        let msg = Message::new(10, "hello", 0..0);
         let diag = Diagnostic::new(Path::new("a.po"), "r", Severity::Info, String::new())
             .with_msg_hl(&msg, [(0, 5)]);
         assert_eq!(diag.lines[0].highlights, vec![(0, 5)]);
@@ -398,8 +398,8 @@ mod tests {
 
     #[test]
     fn test_with_msgs_inserts_separator() {
-        let msgid = Message::new(10, "hello");
-        let msgstr = Message::new(11, "bonjour");
+        let msgid = Message::new(10, "hello", 0..0);
+        let msgstr = Message::new(11, "bonjour", 0..0);
         let diag = Diagnostic::new(Path::new("a.po"), "r", Severity::Info, String::new())
             .with_msgs(&msgid, &msgstr);
         assert_eq!(diag.lines.len(), 3);
@@ -413,8 +413,8 @@ mod tests {
 
     #[test]
     fn test_with_msgs_hl() {
-        let msgid = Message::new(10, "hello");
-        let msgstr = Message::new(11, "bonjour");
+        let msgid = Message::new(10, "hello", 0..0);
+        let msgstr = Message::new(11, "bonjour", 0..0);
         let diag = Diagnostic::new(Path::new("a.po"), "r", Severity::Info, String::new())
             .with_msgs_hl(&msgid, [(0, 1)], &msgstr, [(2, 4)]);
         assert_eq!(diag.lines[0].highlights, vec![(0, 1)]);
@@ -526,8 +526,8 @@ mod tests {
     #[test]
     fn test_diagnostic_display_with_lines() {
         colored::control::set_override(false);
-        let msgid = Message::new(10, "hello");
-        let msgstr = Message::new(11, "");
+        let msgid = Message::new(10, "hello", 0..0);
+        let msgstr = Message::new(11, "", 0..0);
         let diag = Diagnostic::new(
             Path::new("fr.po"),
             "blank",
