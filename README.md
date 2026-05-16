@@ -10,7 +10,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 [![Build status](https://github.com/poexam/poexam/workflows/CI/badge.svg)](https://github.com/poexam/poexam/actions?query=workflow%3A%22CI%22)
 [![REUSE status](https://api.reuse.software/badge/github.com/poexam/poexam)](https://api.reuse.software/info/github.com/poexam/poexam)
 
-**Poexam** is a blazingly fast PO file linter with a comprehensive diagnostic report.
+**Poexam** is a blazingly fast PO file linter with a comprehensive diagnostic report and auto-fix feature.
 
 It reports very few false positives and can be used in CI jobs and pre-commit hooks.
 
@@ -23,6 +23,7 @@ It reports very few false positives and can be used in CI jobs and pre-commit ho
 - ⚡️ **Blazingly fast**: large directories and files are checked in parallel, in a few milliseconds.
 - 🔎 **Rules**: a lot of checks performed with very few false positives.
 - 🎯 **Clear results**: tricky errors in strings are highlighted with colors.
+- 🔧 **Auto-fix**: rewrite files in place to clear auto-fixable diagnostics.
 - 📊 **Statistics**: detailed statistics including progress, count of messages/words/characters.
 - 💻 **Multi-platform**: available wherever the Rust compiler is available.
 - 🎁 **Free software**: released under [GPLv3](https://gnu.org/licenses/gpl-3.0.html).
@@ -157,6 +158,16 @@ examples/fr.po:42: [info:brackets] missing opening and closing square brackets '
         |
      44 | Test crochets
         |
+```
+
+### Auto-fix
+
+With the option `--fix`, poexam rewrites each PO file in place, applying every diagnostic that carries an auto-fix. The file is then re-checked, so the reported diagnostics reflect the post-fix state; any remaining diagnostic is annotated with `Note: no fix available.` since it could not be fixed.
+
+Example:
+
+```shell
+poexam check --fix po/
 ```
 
 ### Output

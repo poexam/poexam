@@ -317,6 +317,7 @@ mod tests {
                 highlights,
             }],
             misspelled_words: HashSet::new(),
+            fix: None,
         }
     }
 
@@ -368,6 +369,7 @@ mod tests {
             config: Config::default(),
             rules: Rules::new(vec![mock_rule("blank", "Checks blank translations.")]),
             diagnostics: vec![],
+            ..Default::default()
         }];
         let sarif = build_sarif(&result);
         assert_eq!(sarif.runs[0].tool.driver.rules.len(), 1);
@@ -404,6 +406,7 @@ mod tests {
                     vec![],
                 ),
             ],
+            ..Default::default()
         }];
         let sarif = build_sarif(&result);
         let run = &sarif.runs[0];
@@ -473,7 +476,9 @@ mod tests {
                 message: Cow::Borrowed("invalid encoding"),
                 lines: vec![],
                 misspelled_words: HashSet::new(),
+                fix: None,
             }],
+            ..Default::default()
         }];
         let sarif = build_sarif(&result);
         assert_eq!(
@@ -501,6 +506,7 @@ mod tests {
                 "some output",
                 vec![],
             )],
+            ..Default::default()
         }];
         let sarif = build_sarif(&result);
         assert_eq!(
@@ -521,12 +527,14 @@ mod tests {
                 config: Config::default(),
                 rules: Rules::new(vec![mock_rule("blank", "Checks blank.")]),
                 diagnostics: vec![],
+                ..Default::default()
             },
             CheckFileResult {
                 path: PathBuf::from("b.po"),
                 config: Config::default(),
                 rules: Rules::new(vec![mock_rule("blank", "Checks blank.")]),
                 diagnostics: vec![],
+                ..Default::default()
             },
         ];
         let sarif = build_sarif(&result);
@@ -549,6 +557,7 @@ mod tests {
                     "msgstr \"\"",
                     vec![],
                 )],
+                ..Default::default()
             },
             CheckFileResult {
                 path: PathBuf::from("de.po"),
@@ -563,6 +572,7 @@ mod tests {
                     "msgstr \"\"",
                     vec![],
                 )],
+                ..Default::default()
             },
         ];
         let sarif = build_sarif(&result);
@@ -598,6 +608,7 @@ mod tests {
                 "msgstr \" \"",
                 vec![(8, 9)],
             )],
+            ..Default::default()
         }];
         let sarif = build_sarif(&result);
         let json_str = serde_json::to_string(&sarif).expect("SARIF should serialize to JSON");

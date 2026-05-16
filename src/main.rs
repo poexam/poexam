@@ -36,6 +36,7 @@ mod config;
 mod diagnostic;
 mod dict;
 mod dir;
+mod fix;
 mod po;
 mod result;
 mod rules;

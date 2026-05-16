@@ -17,6 +17,7 @@ use serde::{
     ser::{SerializeStruct, Serializer},
 };
 
+use crate::fix::Fix;
 use crate::po::{entry::Entry, message::Message};
 
 const HIGHLIGHT_COLOR: &str = "bright yellow";
@@ -59,6 +60,11 @@ pub struct Diagnostic {
     pub message: Cow<'static, str>,
     pub lines: Vec<DiagnosticLine>,
     pub misspelled_words: HashSet<String>,
+    /// Optional auto-fix produced by the rule. Set only for diagnostics the rule
+    /// knows how to correct deterministically. The fix runner consumes this to
+    /// rewrite the source file when `--fix` is requested.
+    #[serde(skip)]
+    pub fix: Option<Fix>,
 }
 
 impl std::fmt::Display for Severity {
@@ -219,6 +225,12 @@ impl Diagnostic {
     /// Add misspelled words to the diagnostic.
     pub fn with_misspelled_words(mut self, misspelled_words: HashSet<&str>) -> Self {
         self.misspelled_words = misspelled_words.into_iter().map(String::from).collect();
+        self
+    }
+
+    /// Attach an auto-fix to the diagnostic.
+    pub fn with_fix(mut self, fix: Fix) -> Self {
+        self.fix = Some(fix);
         self
     }
 

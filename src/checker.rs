@@ -5,8 +5,10 @@
 //! Checker for PO files.
 
 use std::{
+    collections::{BTreeMap, HashMap},
     fs::File,
     io::Read,
+    ops::Range,
     path::{Path, PathBuf},
 };
 
@@ -19,7 +21,8 @@ use crate::{
     diagnostic::{Diagnostic, Severity},
     dict,
     dir::find_po_files,
-    po::{entry::Entry, parser::Parser},
+    fix::{Edit, FixTarget, apply_msgstr_fixes},
+    po::{entry::Entry, escape::EscapePoExt, parser::Parser, writer::write_with_replacements},
     result::display_result,
     rules::rule::{Rule, Rules, get_selected_rules},
 };
@@ -30,6 +33,9 @@ pub struct CheckFileResult {
     pub config: Config,
     pub rules: Rules,
     pub diagnostics: Vec<Diagnostic>,
+    /// How many distinct msgstrs were rewritten when `--fix` ran on this file.
+    /// Always 0 when `--fix` was not requested or when nothing needed fixing.
+    pub fixes_applied: usize,
 }
 
 #[derive(Default)]
@@ -218,6 +224,132 @@ impl<'d> Checker<'d> {
     }
 }
 
+/// Build the replacement bytes for one msgstr block.
+///
+/// The original block is rewritten as a single `msgstr "..."` (or
+/// `msgstr[N] "..."`) line — the keyword form is copied from the original
+/// bytes so plural and obsolete-prefix variants are preserved. The pilot
+/// always emits the new value on a single line; existing line wrapping is
+/// not re-applied.
+fn format_msgstr_block(original_block: &[u8], new_value: &str) -> Vec<u8> {
+    let escaped = new_value.escape_po();
+    let quote_pos = original_block
+        .iter()
+        .position(|&b| b == b'"')
+        .unwrap_or(original_block.len());
+    // Strip trailing spaces/tabs between the keyword and the opening quote.
+    let mut head_end = quote_pos;
+    while head_end > 0 && matches!(original_block[head_end - 1], b' ' | b'\t') {
+        head_end -= 1;
+    }
+    let head = &original_block[..head_end];
+    let mut out = Vec::with_capacity(head.len() + escaped.len() + 4);
+    out.extend_from_slice(head);
+    out.push(b' ');
+    out.push(b'"');
+    out.extend_from_slice(escaped.as_bytes());
+    out.push(b'"');
+    out.push(b'\n');
+    out
+}
+
+/// Apply every fixable diagnostic to `data` and return the rewritten bytes
+/// together with the count of distinct msgstrs that were actually rewritten,
+/// or `None` if there is nothing to rewrite (no fixes, or every fix is in
+/// conflict and skipped).
+fn apply_fixes_to_data(data: &[u8], diagnostics: &[Diagnostic]) -> Option<(Vec<u8>, usize)> {
+    // Group all msgstr edits by the file byte range they target.
+    let mut edits_by_range: BTreeMap<(usize, usize), Vec<Edit>> = BTreeMap::new();
+    for diag in diagnostics {
+        let Some(fix) = &diag.fix else { continue };
+        match &fix.target {
+            FixTarget::Msgstr { file_byte_range } => {
+                let key = (file_byte_range.start, file_byte_range.end);
+                edits_by_range
+                    .entry(key)
+                    .or_default()
+                    .extend(fix.edits.iter().cloned());
+            }
+        }
+    }
+    if edits_by_range.is_empty() {
+        return None;
+    }
+    // Re-parse so we can look up each msgstr's decoded value by its byte range.
+    let mut msgstr_values: HashMap<(usize, usize), String> = HashMap::new();
+    for entry in Parser::new(data) {
+        for msg in entry.msgstr.values() {
+            msgstr_values.insert(
+                (msg.byte_range.start, msg.byte_range.end),
+                msg.value.clone(),
+            );
+        }
+    }
+    let mut replacements: Vec<(Range<usize>, Vec<u8>)> = Vec::new();
+    for (key, edits) in edits_by_range {
+        let Some(value) = msgstr_values.get(&key) else {
+            continue;
+        };
+        let Ok(new_value) = apply_msgstr_fixes(value, &edits) else {
+            continue;
+        };
+        if new_value == *value {
+            continue;
+        }
+        let range = key.0..key.1;
+        let original_block = &data[range.clone()];
+        let bytes = format_msgstr_block(original_block, &new_value);
+        replacements.push((range, bytes));
+    }
+    if replacements.is_empty() {
+        return None;
+    }
+    let count = replacements.len();
+    write_with_replacements(data, replacements)
+        .ok()
+        .map(|bytes| (bytes, count))
+}
+
+/// Rewrite the file on disk with the fixed bytes, then re-run the rules on the
+/// new contents so the returned diagnostics reflect the post-fix state.
+///
+/// Returns a `CheckFileResult` carrying either the re-check result or a single
+/// `fix-write-error` diagnostic if writing the file fails.
+fn rewrite_and_recheck(
+    path: &PathBuf,
+    new_data: &[u8],
+    fixes_applied: usize,
+    config: Config,
+    rules: Rules,
+    existing_diagnostics: Vec<Diagnostic>,
+) -> CheckFileResult {
+    if let Err(err) = std::fs::write(path, new_data) {
+        let mut diagnostics = existing_diagnostics;
+        diagnostics.push(Diagnostic::new(
+            path.as_path(),
+            "fix-write-error",
+            Severity::Error,
+            err.to_string(),
+        ));
+        return CheckFileResult {
+            path: path.clone(),
+            config,
+            rules,
+            diagnostics,
+            fixes_applied,
+        };
+    }
+    let mut checker = Checker::new(new_data).with_path(path).with_config(config);
+    checker.do_all_checks(&rules);
+    CheckFileResult {
+        path: path.clone(),
+        config: checker.config,
+        rules,
+        diagnostics: checker.diagnostics,
+        fixes_applied,
+    }
+}
+
 /// Check a single PO file and return the list of diagnostics found.
 fn check_file(path: &PathBuf, args: &args::CheckArgs) -> CheckFileResult {
     let path_config = if args.no_config {
@@ -295,11 +427,20 @@ fn check_file(path: &PathBuf, args: &args::CheckArgs) -> CheckFileResult {
     }
     let mut checker = Checker::new(&data).with_path(path).with_config(config);
     checker.do_all_checks(&rules);
+    if args.fix {
+        if let Some((new_data, fixes_applied)) = apply_fixes_to_data(&data, &checker.diagnostics) {
+            let config = std::mem::take(&mut checker.config);
+            let diagnostics = std::mem::take(&mut checker.diagnostics);
+            drop(checker);
+            return rewrite_and_recheck(path, &new_data, fixes_applied, config, rules, diagnostics);
+        }
+    }
     CheckFileResult {
         path: path.clone(),
         config: checker.config,
         rules,
         diagnostics: checker.diagnostics,
+        fixes_applied: 0,
     }
 }
 
@@ -348,6 +489,7 @@ mod tests {
             file_stats: false,
             output: args::CheckOutputFormat::default(),
             quiet: true,
+            fix: false,
         }
     }
 
@@ -517,5 +659,66 @@ msgstr \"olá\"
         args.files = vec![po_path];
         let code = run_check(&args);
         assert_eq!(code, 1);
+    }
+
+    /// PO content with one whitespace-end and one whitespace-start issue.
+    const PO_WHITESPACE_ISSUES: &str = "msgid \"\"
+msgstr \"\"
+\"Language: fr\\n\"
+\"Content-Type: text/plain; charset=UTF-8\\n\"
+
+msgid \"hello \"
+msgstr \"bonjour\"
+
+msgid \" world\"
+msgstr \"monde\"
+";
+
+    #[test]
+    fn test_fix_rewrites_msgstr_blocks_in_place() {
+        let tmp = tmp_dir("fix-rewrite");
+        let po_path = write_po(tmp.path(), "fr.po", PO_WHITESPACE_ISSUES);
+
+        let mut args = default_check_args();
+        args.no_config = true;
+        args.select = Some("whitespace-start,whitespace-end".to_string());
+        args.fix = true;
+        let result = check_file(&po_path, &args);
+
+        // Re-checking the rewritten file must report zero whitespace diagnostics.
+        let whitespace_diags = result
+            .diagnostics
+            .iter()
+            .filter(|d| d.rule == "whitespace-start" || d.rule == "whitespace-end")
+            .count();
+        assert_eq!(
+            whitespace_diags, 0,
+            "expected no whitespace diagnostics after --fix, got {:?}",
+            result.diagnostics
+        );
+
+        // The file on disk should now contain the mirrored whitespace.
+        let fixed = std::fs::read_to_string(&po_path).expect("read fixed file");
+        assert!(fixed.contains("msgstr \"bonjour \""));
+        assert!(fixed.contains("msgstr \" monde\""));
+    }
+
+    #[test]
+    fn test_fix_is_noop_when_no_fixable_diagnostics() {
+        let tmp = tmp_dir("fix-noop");
+        let po_path = write_po(tmp.path(), "fr.po", PO_PT_BR);
+        let original = std::fs::read(&po_path).expect("read original");
+
+        let mut args = default_check_args();
+        args.no_config = true;
+        args.select = Some("whitespace-start,whitespace-end".to_string());
+        args.fix = true;
+        let _ = check_file(&po_path, &args);
+
+        let after = std::fs::read(&po_path).expect("read after");
+        assert_eq!(
+            after, original,
+            "file must be byte-identical when there is nothing to fix"
+        );
     }
 }

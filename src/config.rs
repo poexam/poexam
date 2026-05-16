@@ -278,6 +278,7 @@ mod tests {
             file_stats: false,
             output: args::CheckOutputFormat::default(),
             quiet: false,
+            fix: false,
         }
     }
 

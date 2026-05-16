@@ -135,6 +135,10 @@ pub struct CheckArgs {
     /// Quiet mode: do not report any error, only set the exit code
     #[arg(short, long)]
     pub quiet: bool,
+
+    /// Rewrite files in place, applying every diagnostic that carries an auto-fix
+    #[arg(long)]
+    pub fix: bool,
 }
 
 /// Sort of errors.

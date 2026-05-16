@@ -81,7 +81,16 @@ fn display_diagnostics_human(result: &[CheckFileResult], args: &args::CheckArgs)
         }
     }
     for diag in diags {
-        println!("{diag}");
+        // `Diagnostic`'s Display impl already ends each diagnostic with a
+        // newline-terminated `|` bar, so use `print!` here to keep the optional
+        // "Note: no fix available." line attached to that bar without an empty
+        // line between them. The trailing `println!()` re-creates the blank
+        // separator before the next diagnostic.
+        print!("{diag}");
+        if args.fix {
+            println!("Note: no fix available.");
+        }
+        println!();
     }
 }
 
@@ -147,7 +156,29 @@ fn display_misspelled_words(result: &[CheckFileResult], _args: &args::CheckArgs)
     }
 }
 
+/// Display the summary of the fixes applied and the remaining problems with no fix available.
+fn display_fix_summary(result: &[CheckFileResult], elapsed: &Duration) {
+    let fixes_applied: usize = result.iter().map(|f| f.fixes_applied).sum();
+    let remaining_with_no_fix: usize = result
+        .iter()
+        .flat_map(|f| &f.diagnostics)
+        .filter(|d| d.fix.is_none())
+        .count();
+    if fixes_applied == 0 && remaining_with_no_fix == 0 {
+        println!("No problems found, nothing to fix! [{elapsed:?}]");
+    } else if remaining_with_no_fix == 0 {
+        println!("{fixes_applied} problems fixed, all fixed! [{elapsed:?}]");
+    } else {
+        println!(
+            "{fixes_applied} problems fixed, \
+         {remaining_with_no_fix} remaining (no fix available) \
+         [{elapsed:?}]",
+        );
+    }
+}
+
 /// Display the result of the checks and return the appropriate exit code.
+#[allow(clippy::too_many_lines)]
 pub fn display_result(
     result: &[CheckFileResult],
     args: &args::CheckArgs,
@@ -226,6 +257,10 @@ pub fn display_result(
             }
         }
     }
+    if args.fix && !args.quiet && args.output == args::CheckOutputFormat::Human {
+        display_fix_summary(result, elapsed);
+        return i32::from(files_with_errors != 0);
+    }
     if files_with_errors == 0 {
         if !args.quiet && args.output == args::CheckOutputFormat::Human {
             if files_checked > 0 {
@@ -286,6 +321,7 @@ mod tests {
             file_stats: false,
             output: args::CheckOutputFormat::default(),
             quiet: false,
+            fix: false,
         }
     }
 
