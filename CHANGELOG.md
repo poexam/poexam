@@ -11,6 +11,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ### Changed
 
 - Treat surrounding whitespace as part of the leading/trailing punctuation run in rules "punc-start" and "punc-end"
+- Ignore whitespace when comparing leading/trailing punctuation in rules "punc-start" and "punc-end"
 
 ### Added
 

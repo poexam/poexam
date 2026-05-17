@@ -77,8 +77,8 @@ impl RuleChecker for PuncStartRule {
         let ignore_ellipsis = checker.config.check.punc_ignore_ellipsis;
         let id_punc = get_punc_start(&msgid.value);
         let str_punc = get_punc_start(&msgstr.value);
-        let id_punc2 = punc_normalize(id_punc.trim(), language, ignore_ellipsis);
-        let str_punc2 = punc_normalize(str_punc.trim(), language, ignore_ellipsis);
+        let id_punc2 = punc_normalize(id_punc, language, ignore_ellipsis);
+        let str_punc2 = punc_normalize(str_punc, language, ignore_ellipsis);
         if id_punc2.starts_with('.') || str_punc2.starts_with('.') {
             // Ignore leading dots, often used for hidden or filename extension,
             // and the translation may change the order of words.
@@ -174,8 +174,8 @@ impl RuleChecker for PuncEndRule {
         let ignore_ellipsis = checker.config.check.punc_ignore_ellipsis;
         let id_punc = get_punc_end(&msgid.value);
         let str_punc = get_punc_end(&msgstr.value);
-        let id_punc2 = punc_normalize(id_punc.trim(), language, ignore_ellipsis);
-        let str_punc2 = punc_normalize(str_punc.trim(), language, ignore_ellipsis);
+        let id_punc2 = punc_normalize(id_punc, language, ignore_ellipsis);
+        let str_punc2 = punc_normalize(str_punc, language, ignore_ellipsis);
         if id_punc2 == str_punc2 {
             vec![]
         } else {
@@ -294,10 +294,14 @@ fn get_punc_end(s: &str) -> &str {
 }
 
 /// Normalize punctuation to English symbols: full-width to half-width and take care
-/// about specific cases in some languages.
+/// about specific cases in some languages. Also strips every whitespace
+/// character from the input — spacing around punctuation is a per-script
+/// convention checked by the `punc-space-*` rules, so the start/end rules
+/// only care about which punctuation symbols appear.
 ///
-/// Returns `Cow::Borrowed` when the input is already normalized (the common case
-/// for ASCII English-style punctuation), avoiding an allocation.
+/// Returns `Cow::Borrowed` when the input is already normalized and contains
+/// no whitespace (the common case for ASCII English-style punctuation),
+/// avoiding an allocation.
 fn punc_normalize<'a>(s: &'a str, language: &str, ignore_ellipsis: bool) -> Cow<'a, str> {
     let needs_substitution = s.chars().any(|c| {
         matches!(
@@ -317,6 +321,7 @@ fn punc_normalize<'a>(s: &'a str, language: &str, ignore_ellipsis: bool) -> Cow<
                 | '\u{104B}'
                 | '։'
         ) || (c == '?' && language == "el")
+            || c.is_whitespace()
     });
     let needs_ellipsis = ignore_ellipsis && s.contains("...");
     if !needs_substitution && !needs_ellipsis {
@@ -324,6 +329,7 @@ fn punc_normalize<'a>(s: &'a str, language: &str, ignore_ellipsis: bool) -> Cow<
     }
     let value: String = s
         .chars()
+        .filter(|c| !c.is_whitespace())
         .map(|c| match c {
             // Special case for Greek question mark.
             '?' if language == "el" => ';',
@@ -452,6 +458,16 @@ mod tests {
         assert_eq!(punc_normalize("\u{17D4}", "km", false), ".");
         assert_eq!(punc_normalize("\u{104B}", "my", false), ".");
         assert_eq!(punc_normalize("։", "hy", false), ".");
+        // Every whitespace character is stripped from the result.
+        assert_eq!(punc_normalize(" , ", "fr", false), ",");
+        assert_eq!(punc_normalize(", ...", "fr", false), ",...");
+        assert_eq!(punc_normalize("\t!\n", "fr", false), "!");
+        assert_eq!(punc_normalize("   ", "fr", false), "");
+        // CJK comma without a space compares equal to Latin comma with a space.
+        assert_eq!(
+            punc_normalize(", ...", "fr", false),
+            punc_normalize("、...", "ja", false),
+        );
     }
 
     #[test]
