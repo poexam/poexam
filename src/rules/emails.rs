@@ -8,6 +8,7 @@ use std::collections::HashSet;
 
 use crate::checker::Checker;
 use crate::diagnostic::{Diagnostic, Severity};
+use crate::fix::{Edit, Fix, FixTarget};
 use crate::po::entry::Entry;
 use crate::po::format::iter::FormatEmailPos;
 use crate::po::message::Message;
@@ -50,7 +51,14 @@ impl RuleChecker for EmailsRule {
     /// Diagnostics reported:
     /// - [`warning`](Severity::Warning): `missing emails (# / #)`
     /// - [`warning`](Severity::Warning): `extra emails (# / #)`
-    /// - [`warning`](Severity::Warning): `different emails`
+    /// - [`warning`](Severity::Warning): `different emails` (auto-fixable)
+    ///
+    /// Only the `different emails` diagnostic carries an auto-fix: each
+    /// translation email is replaced in place with the email at the same
+    /// position in the source. The `missing` and `extra` cases are left
+    /// unfixed because inserting a missing email at the right position in
+    /// the prose or choosing which extra to drop both require translator
+    /// judgement.
     fn check_msg(
         &self,
         checker: &Checker,
@@ -108,6 +116,21 @@ impl RuleChecker for EmailsRule {
                 if id_emails_hash == str_emails_hash {
                     vec![]
                 } else {
+                    let edits: Vec<Edit> = id_emails
+                        .iter()
+                        .zip(str_emails.iter())
+                        .filter(|(id, str)| trim_quotes(id.s) != trim_quotes(str.s))
+                        .map(|(id, str)| Edit {
+                            range: str.start..str.end,
+                            replacement: id.s.to_string(),
+                        })
+                        .collect();
+                    let fix = (!edits.is_empty()).then(|| Fix {
+                        target: FixTarget::Msgstr {
+                            file_byte_range: msgstr.byte_range.clone(),
+                        },
+                        edits,
+                    });
                     self.new_diag(checker, Severity::Warning, "different emails")
                         .map(|d| {
                             d.with_msgs_hl(
@@ -116,6 +139,7 @@ impl RuleChecker for EmailsRule {
                                 msgstr,
                                 str_emails.iter().map(|m| (m.start, m.end)),
                             )
+                            .with_optional_fix(fix)
                         })
                         .into_iter()
                         .collect()
@@ -185,5 +209,63 @@ msgstr "e-mails différents : user@domain.com -- user2@example.com"
         let diag = &diags[2];
         assert_eq!(diag.severity, Severity::Warning);
         assert_eq!(diag.message, "different emails");
+    }
+
+    #[test]
+    fn test_different_emails_fix_replaces_each_in_place() {
+        // Two emails, both differ from the source. The fix should propose two
+        // edits, each replacing the translation email with the source email
+        // at the same position.
+        let diags = check_emails(
+            r#"
+msgid "Contact a@x.com or b@x.com"
+msgstr "Contacter a2@x.com ou b2@x.com"
+"#,
+        );
+        assert_eq!(diags.len(), 1);
+        assert_eq!(diags[0].message, "different emails");
+        let fix = diags[0].fix.as_ref().expect("fix attached");
+        assert_eq!(fix.edits.len(), 2);
+        // Edits are produced in source order; replacements come from msgid.
+        assert_eq!(fix.edits[0].replacement, "a@x.com");
+        assert_eq!(fix.edits[1].replacement, "b@x.com");
+    }
+
+    #[test]
+    fn test_different_emails_fix_skips_positions_already_equal() {
+        // First email matches the source; only the second differs. One edit.
+        let diags = check_emails(
+            r#"
+msgid "Contact a@x.com or b@x.com"
+msgstr "Contacter a@x.com ou b2@x.com"
+"#,
+        );
+        assert_eq!(diags.len(), 1);
+        let fix = diags[0].fix.as_ref().expect("fix attached");
+        assert_eq!(fix.edits.len(), 1);
+        assert_eq!(fix.edits[0].replacement, "b@x.com");
+    }
+
+    #[test]
+    fn test_missing_and_extra_emails_have_no_fix() {
+        // The two count-mismatch diagnostics carry no fix.
+        let diags = check_emails(
+            r#"
+msgid "Contact a@x.com or b@x.com"
+msgstr "Contacter a@x.com"
+
+msgid "Contact a@x.com"
+msgstr "Contacter a@x.com ou b@x.com"
+"#,
+        );
+        assert_eq!(diags.len(), 2);
+        assert!(
+            diags[0].fix.is_none(),
+            "missing emails diagnostic must not carry a fix"
+        );
+        assert!(
+            diags[1].fix.is_none(),
+            "extra emails diagnostic must not carry a fix"
+        );
     }
 }

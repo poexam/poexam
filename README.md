@@ -172,6 +172,9 @@ Rules that currently produce auto-fixes:
   **Warning**: this fix can be wrong — a few constructions legitimately repeat a word (e.g. English
   "had had", "that that"; French "que que" in subjunctive clauses; some proper names).
   The translator must review every change produced by this fix before committing.
+- **emails**: When the translation has the same number of emails as the source but at least one
+  differs, replace each translation email in place with the email at the same position in the source.
+  The "missing" and "extra" diagnostics (count mismatch) are not auto-fixable.
 - **header**: Append a default value to the header for `Content-Type` (`text/plain; charset=UTF-8`)
   and `Content-Transfer-Encoding` (`8bit`) when those fields are missing. Other missing fields
   and all "invalid value" diagnostics are not auto-fixable because the correct value depends
@@ -187,6 +190,12 @@ Rules that currently produce auto-fixes:
   (NULL, soft hyphen, zero-width spaces, bidi overrides, BOM, …) that is not present in the source.
 - **whitespace-start**: Replace the leading whitespace run in the translation with the source's run.
 - **whitespace-end**: Replace the trailing whitespace run in the translation with the source's run.
+
+**Warning**: a few of these auto-fixes can be wrong in cases that look correct to the rule but
+were actually intentional. Review every change produced by these fixes before committing:
+
+- **emails**: the translator may have intentionally used a localized contact address (e.g. a
+  language-specific support inbox); the fix overwrites that choice with the source's email.
 
 The rewriter wraps each replaced `msgstr` block the same way GNU `msgcat` does (Unicode Line Breaking + display width, default page width 79), so running `msgcat` on a fixed file is a no-op. The page width is configurable with `--width N` (or `check.width` in the config file); `--width 0` disables wrapping entirely (matches `msgcat --width=0` / `msgcat --no-wrap`).
 
