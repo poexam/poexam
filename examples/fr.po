@@ -64,7 +64,7 @@ msgstr "une longue traduction"
 
 # rule: newlines
 msgid "Test\ntwo lines"
-msgstr "Test deux lignes"
+msgstr "\nTest deux lignes\n"
 
 # rule: paths
 msgid "Path: /tmp/output.txt"

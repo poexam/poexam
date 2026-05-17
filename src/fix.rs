@@ -59,15 +59,25 @@ impl std::error::Error for FixConflict {}
 
 /// Apply a list of edits to a single msgstr value, returning the new value.
 ///
-/// Edits may be passed in any order. They are sorted by `range.start`; if any two
-/// edits cover overlapping byte ranges the function returns [`FixConflict`] and
-/// no edit is applied. Adjacent edits that meet at a single offset are allowed.
+/// Edits may be passed in any order. They are sorted by `range.start`; truly
+/// identical edits (same range *and* same replacement) are deduplicated — two
+/// rules legitimately proposing the same change to the same byte range is a
+/// common pattern (e.g. the `newlines` rule attaches the same begin-fix to its
+/// CR and LF diagnostics). If any two remaining edits cover overlapping byte
+/// ranges the function returns [`FixConflict`] and no edit is applied.
+/// Adjacent edits that meet at a single offset are allowed.
 pub fn apply_msgstr_fixes(value: &str, edits: &[Edit]) -> Result<String, FixConflict> {
     if edits.is_empty() {
         return Ok(value.to_string());
     }
     let mut sorted: Vec<&Edit> = edits.iter().collect();
-    sorted.sort_by_key(|e| e.range.start);
+    sorted.sort_by(|a, b| {
+        a.range
+            .start
+            .cmp(&b.range.start)
+            .then_with(|| a.range.end.cmp(&b.range.end))
+    });
+    sorted.dedup_by(|a, b| a.range == b.range && a.replacement == b.replacement);
     for w in sorted.windows(2) {
         if w[0].range.end > w[1].range.start {
             return Err(FixConflict {
@@ -160,5 +170,24 @@ mod tests {
     fn insertion_via_empty_range() {
         let out = apply_msgstr_fixes("abef", &[edit(2..2, "cd")]).unwrap();
         assert_eq!(out, "abcdef");
+    }
+
+    #[test]
+    fn identical_edits_are_deduped() {
+        // Two rules proposing the exact same change must not trigger a conflict.
+        let out = apply_msgstr_fixes(
+            "hello",
+            &[edit(0..1, "H"), edit(0..1, "H"), edit(0..1, "H")],
+        )
+        .unwrap();
+        assert_eq!(out, "Hello");
+    }
+
+    #[test]
+    fn same_range_different_replacements_still_conflict() {
+        // Same range but different replacements is a real conflict.
+        let err = apply_msgstr_fixes("hello", &[edit(0..1, "H"), edit(0..1, "X")]).unwrap_err();
+        assert_eq!(err.first, 0..1);
+        assert_eq!(err.second, 0..1);
     }
 }

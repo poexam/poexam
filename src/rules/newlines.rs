@@ -6,6 +6,7 @@
 
 use crate::checker::Checker;
 use crate::diagnostic::{Diagnostic, Severity};
+use crate::fix::{Edit, Fix, FixTarget};
 use crate::po::entry::Entry;
 use crate::po::message::Message;
 use crate::rules::rule::RuleChecker;
@@ -52,14 +53,14 @@ impl RuleChecker for NewlinesRule {
     /// - [`error`](Severity::Error): `extra carriage returns '\r' (# / #)`
     /// - [`error`](Severity::Error): `missing line feeds '\n' (# / #)`
     /// - [`error`](Severity::Error): `extra line feeds '\n' (# / #)`
-    /// - [`error`](Severity::Error): `missing carriage return '\r' at the beginning`
-    /// - [`error`](Severity::Error): `extra carriage return '\r' at the beginning`
-    /// - [`error`](Severity::Error): `missing line feed '\n' at the beginning`
-    /// - [`error`](Severity::Error): `extra line feed '\n' at the beginning`
-    /// - [`error`](Severity::Error): `missing carriage return '\r' at the end`
-    /// - [`error`](Severity::Error): `extra carriage return '\r' at the end`
-    /// - [`error`](Severity::Error): `missing line feed '\n' at the end`
-    /// - [`error`](Severity::Error): `extra line feed '\n' at the end`
+    /// - [`error`](Severity::Error): `missing carriage return '\r' at the beginning` (auto-fixable)
+    /// - [`error`](Severity::Error): `extra carriage return '\r' at the beginning` (auto-fixable)
+    /// - [`error`](Severity::Error): `missing line feed '\n' at the beginning` (auto-fixable)
+    /// - [`error`](Severity::Error): `extra line feed '\n' at the beginning` (auto-fixable)
+    /// - [`error`](Severity::Error): `missing carriage return '\r' at the end` (auto-fixable)
+    /// - [`error`](Severity::Error): `extra carriage return '\r' at the end` (auto-fixable)
+    /// - [`error`](Severity::Error): `missing line feed '\n' at the end` (auto-fixable)
+    /// - [`error`](Severity::Error): `extra line feed '\n' at the end` (auto-fixable)
     fn check_msg(
         &self,
         checker: &Checker,
@@ -140,6 +141,11 @@ impl NewlinesRule {
     }
 
     /// Check for CR ('\r') and LF ('\n') at the beginning of the strings.
+    ///
+    /// When the leading CR/LF run of `msgstr` differs from `msgid`'s, the rule
+    /// attaches the same byte-range fix to every diagnostic it emits for this
+    /// boundary. `apply_msgstr_fixes` dedups identical edits, so attaching the
+    /// fix to both the CR and LF diagnostics is safe.
     fn check_cr_lf_beginning(
         &self,
         checker: &Checker,
@@ -147,6 +153,21 @@ impl NewlinesRule {
         msgstr: &Message,
     ) -> Vec<Diagnostic> {
         let mut diags = vec![];
+        let id_run = get_newline_start(&msgid.value);
+        let str_run = get_newline_start(&msgstr.value);
+        let fix = (id_run != str_run).then(|| Fix {
+            target: FixTarget::Msgstr {
+                file_byte_range: msgstr.byte_range.clone(),
+            },
+            edits: vec![Edit {
+                range: 0..str_run.len(),
+                replacement: id_run.to_string(),
+            }],
+        });
+        let attach = |d: Diagnostic| match &fix {
+            Some(f) => d.with_fix(f.clone()),
+            None => d,
+        };
         // Check CR ('\r') at beginning.
         let id_starts_with_cr = msgid.value.starts_with('\r');
         let str_starts_with_cr = msgstr.value.starts_with('\r');
@@ -158,7 +179,7 @@ impl NewlinesRule {
                         Severity::Error,
                         "missing carriage return '\\r' at the beginning".to_string(),
                     )
-                    .map(|d| d.with_msgs(msgid, msgstr)),
+                    .map(|d| attach(d.with_msgs(msgid, msgstr))),
                 );
             }
             std::cmp::Ordering::Less => {
@@ -168,7 +189,7 @@ impl NewlinesRule {
                         Severity::Error,
                         "extra carriage return '\\r' at the beginning".to_string(),
                     )
-                    .map(|d| d.with_msgs(msgid, msgstr)),
+                    .map(|d| attach(d.with_msgs(msgid, msgstr))),
                 );
             }
             std::cmp::Ordering::Equal => {}
@@ -184,7 +205,7 @@ impl NewlinesRule {
                         Severity::Error,
                         "missing line feed '\\n' at the beginning".to_string(),
                     )
-                    .map(|d| d.with_msgs(msgid, msgstr)),
+                    .map(|d| attach(d.with_msgs(msgid, msgstr))),
                 );
             }
             std::cmp::Ordering::Less => {
@@ -194,7 +215,7 @@ impl NewlinesRule {
                         Severity::Error,
                         "extra line feed '\\n' at the beginning".to_string(),
                     )
-                    .map(|d| d.with_msgs(msgid, msgstr)),
+                    .map(|d| attach(d.with_msgs(msgid, msgstr))),
                 );
             }
             std::cmp::Ordering::Equal => {}
@@ -203,6 +224,10 @@ impl NewlinesRule {
     }
 
     /// Check for CR ('\r') and LF ('\n') at the end of the strings.
+    ///
+    /// See [`check_cr_lf_beginning`](Self::check_cr_lf_beginning) for the
+    /// fix-attachment strategy; the same applies here mirrored to the end of
+    /// the string.
     fn check_cr_lf_end(
         &self,
         checker: &Checker,
@@ -210,6 +235,22 @@ impl NewlinesRule {
         msgstr: &Message,
     ) -> Vec<Diagnostic> {
         let mut diags = vec![];
+        let id_run = get_newline_end(&msgid.value);
+        let str_run = get_newline_end(&msgstr.value);
+        let str_run_start = msgstr.value.len() - str_run.len();
+        let fix = (id_run != str_run).then(|| Fix {
+            target: FixTarget::Msgstr {
+                file_byte_range: msgstr.byte_range.clone(),
+            },
+            edits: vec![Edit {
+                range: str_run_start..msgstr.value.len(),
+                replacement: id_run.to_string(),
+            }],
+        });
+        let attach = |d: Diagnostic| match &fix {
+            Some(f) => d.with_fix(f.clone()),
+            None => d,
+        };
         // Check CR ('\r') at end.
         let id_ends_with_cr = msgid.value.ends_with('\r');
         let str_ends_with_cr = msgstr.value.ends_with('\r');
@@ -221,7 +262,7 @@ impl NewlinesRule {
                         Severity::Error,
                         "missing carriage return '\\r' at the end".to_string(),
                     )
-                    .map(|d| d.with_msgs(msgid, msgstr)),
+                    .map(|d| attach(d.with_msgs(msgid, msgstr))),
                 );
             }
             std::cmp::Ordering::Less => {
@@ -231,7 +272,7 @@ impl NewlinesRule {
                         Severity::Error,
                         "extra carriage return '\\r' at the end".to_string(),
                     )
-                    .map(|d| d.with_msgs(msgid, msgstr)),
+                    .map(|d| attach(d.with_msgs(msgid, msgstr))),
                 );
             }
             std::cmp::Ordering::Equal => {}
@@ -247,19 +288,40 @@ impl NewlinesRule {
                         Severity::Error,
                         "missing line feed '\\n' at the end",
                     )
-                    .map(|d| d.with_msgs(msgid, msgstr)),
+                    .map(|d| attach(d.with_msgs(msgid, msgstr))),
                 );
             }
             std::cmp::Ordering::Less => {
                 diags.extend(
                     self.new_diag(checker, Severity::Error, "extra line feed '\\n' at the end")
-                        .map(|d| d.with_msgs(msgid, msgstr)),
+                        .map(|d| attach(d.with_msgs(msgid, msgstr))),
                 );
             }
             std::cmp::Ordering::Equal => {}
         }
         diags
     }
+}
+
+/// Get the leading run of CR/LF characters in `value`.
+fn get_newline_start(value: &str) -> &str {
+    let pos = value
+        .chars()
+        .take_while(|c| matches!(c, '\r' | '\n'))
+        .map(char::len_utf8)
+        .sum::<usize>();
+    &value[..pos]
+}
+
+/// Get the trailing run of CR/LF characters in `value`.
+fn get_newline_end(value: &str) -> &str {
+    let pos = value
+        .chars()
+        .rev()
+        .take_while(|c| matches!(c, '\r' | '\n'))
+        .map(char::len_utf8)
+        .sum::<usize>();
+    &value[value.len() - pos..]
 }
 
 #[cfg(test)]
@@ -405,5 +467,117 @@ msgstr "testé\n"
         let diag = &diags[3];
         assert_eq!(diag.severity, Severity::Error);
         assert_eq!(diag.message, "extra line feed '\\n' at the end");
+    }
+
+    #[test]
+    fn test_get_newline_start_and_end() {
+        assert_eq!(get_newline_start(""), "");
+        assert_eq!(get_newline_start("hello"), "");
+        assert_eq!(get_newline_start("\nhello"), "\n");
+        assert_eq!(get_newline_start("\r\nhello"), "\r\n");
+        assert_eq!(get_newline_start("\n\rhello"), "\n\r");
+        assert_eq!(get_newline_end(""), "");
+        assert_eq!(get_newline_end("hello"), "");
+        assert_eq!(get_newline_end("hello\n"), "\n");
+        assert_eq!(get_newline_end("hello\r\n"), "\r\n");
+    }
+
+    #[test]
+    fn test_newlines_count_diagnostic_has_no_fix() {
+        // Count mismatches cannot be auto-fixed (we don't know where the
+        // missing newline belongs).
+        let diags = check_newlines(
+            r#"
+msgid "first\nsecond"
+msgstr "premier second"
+"#,
+        );
+        assert_eq!(diags.len(), 1);
+        assert_eq!(diags[0].message, "missing line feeds '\\n' (1 / 0)");
+        assert!(diags[0].fix.is_none());
+    }
+
+    fn diag_with_message<'a>(diags: &'a [Diagnostic], message: &str) -> &'a Diagnostic {
+        diags
+            .iter()
+            .find(|d| d.message == message)
+            .unwrap_or_else(|| panic!("no diagnostic with message {message:?} in {diags:#?}"))
+    }
+
+    #[test]
+    fn test_newlines_beginning_fix_attached() {
+        // msgid has a leading LF, msgstr is missing it. The "missing LF at the
+        // beginning" diagnostic carries a fix that prepends "\n"; the count
+        // diagnostic that also fires has no fix.
+        let diags = check_newlines(
+            r#"
+msgid "\ntested"
+msgstr "testé"
+"#,
+        );
+        let count = diag_with_message(&diags, "missing line feeds '\\n' (1 / 0)");
+        assert!(
+            count.fix.is_none(),
+            "count diagnostics are not auto-fixable"
+        );
+        let begin = diag_with_message(&diags, "missing line feed '\\n' at the beginning");
+        let fix = begin.fix.as_ref().expect("fix attached");
+        assert_eq!(fix.edits.len(), 1);
+        assert_eq!(fix.edits[0].range, 0..0);
+        assert_eq!(fix.edits[0].replacement, "\n");
+    }
+
+    #[test]
+    fn test_newlines_beginning_fix_with_cr_and_lf() {
+        // msgid leading = "\n", msgstr leading = "\r\n". Both CR and LF
+        // begin-diagnostics fire; both must carry the same fix so dedup
+        // composes them into a single edit replacing 0..2 with "\n".
+        let diags = check_newlines(
+            r#"
+msgid "\ntested"
+msgstr "\r\ntesté"
+"#,
+        );
+        let cr_begin = diag_with_message(&diags, "extra carriage return '\\r' at the beginning");
+        let lf_begin = diag_with_message(&diags, "missing line feed '\\n' at the beginning");
+        for diag in [cr_begin, lf_begin] {
+            let fix = diag.fix.as_ref().expect("fix on every begin diag");
+            assert_eq!(fix.edits.len(), 1);
+            assert_eq!(fix.edits[0].range, 0..2);
+            assert_eq!(fix.edits[0].replacement, "\n");
+        }
+    }
+
+    #[test]
+    fn test_newlines_end_fix_attached() {
+        // msgid trails with "\n", msgstr doesn't.
+        let diags = check_newlines(
+            r#"
+msgid "tested\n"
+msgstr "testé"
+"#,
+        );
+        let end = diag_with_message(&diags, "missing line feed '\\n' at the end");
+        let fix = end.fix.as_ref().expect("fix attached");
+        // msgstr value "testé" is 6 bytes (t-e-s-t-é(2)). Edit inserts "\n" at the end.
+        assert_eq!(fix.edits.len(), 1);
+        assert_eq!(fix.edits[0].range, 6..6);
+        assert_eq!(fix.edits[0].replacement, "\n");
+    }
+
+    #[test]
+    fn test_newlines_end_fix_removes_extra() {
+        // msgstr has trailing "\n" that msgid doesn't.
+        let diags = check_newlines(
+            r#"
+msgid "tested"
+msgstr "testé\n"
+"#,
+        );
+        let end = diag_with_message(&diags, "extra line feed '\\n' at the end");
+        let fix = end.fix.as_ref().expect("fix attached");
+        assert_eq!(fix.edits.len(), 1);
+        assert_eq!(fix.edits[0].range, 6..7);
+        assert_eq!(fix.edits[0].replacement, "");
     }
 }
