@@ -208,51 +208,6 @@ poexam check --select spelling-str --output misspelled fr.po > fr.dic
 
 With the option `--fix`, poexam rewrites each PO file in place, applying every diagnostic that carries an auto-fix. The file is then re-checked, so the reported diagnostics reflect the post-fix state; any remaining diagnostic is annotated with `Note: no fix available.` since it could not be fixed.
 
-Rules that currently produce auto-fixes:
-
-- **double-words**: Remove the second occurrence of any consecutive repeated word from the translation
-  (along with the whitespace separating it from the first occurrence).
-- **emails**: When the translation has the same number of emails as the source but at least one
-  differs, replace each translation email in place with the email at the same position in the source.
-  The "missing" and "extra" diagnostics (count mismatch) are not auto-fixable.
-- **header**: Append a default value to the header for `Content-Type` (`text/plain; charset=UTF-8`)
-  and `Content-Transfer-Encoding` (`8bit`) when those fields are missing. Other missing fields
-  and all "invalid value" diagnostics are not auto-fixable because the correct value depends
-  on per-file context (language, encoding, contacts, dates).
-- **newlines**: Mirror the source's leading and trailing `\r`/`\n` runs in the translation.
-  The "count" diagnostics (mid-string newline mismatches) are not auto-fixable.
-- **obsolete**: Delete the entire obsolete entry from the file, including any leading comments
-  and the trailing blank-line separator.
-- **paths**: When the translation has the same number of paths as the source but at least one
-  differs, replace each translation path in place with the path at the same position in the source.
-  The "missing" and "extra" diagnostics (count mismatch) are not auto-fixable.
-- **punc-start**: Replace the leading punctuation run in the translation with the source's run.
-- **punc-end**: Replace the trailing punctuation run in the translation with the source's run.
-- **punc-space-str**: Insert or replace spaces around punctuation in the translation to match
-  the target-language convention (NBSP before `:`, `;`, `!`, `?`, around `«` `»`, and between
-  a digit and `%` in French; regular space in Finnish).
-- **unicode-ctrl**: Remove every stray Unicode control or format character from the translation
-  (NULL, soft hyphen, zero-width spaces, bidi overrides, BOM, …) that is not present in the source.
-- **urls**: When the translation has the same number of URLs as the source but at least one
-  differs, replace each translation URL in place with the URL at the same position in the source.
-  The "missing" and "extra" diagnostics (count mismatch) are not auto-fixable.
-- **whitespace-start**: Replace the leading whitespace run in the translation with the source's run.
-- **whitespace-end**: Replace the trailing whitespace run in the translation with the source's run.
-
-**Warning**: a few of these auto-fixes can be wrong in cases that look correct to the rule but
-were actually intentional. Review every change produced by these fixes before committing:
-
-- **double-words**: a few constructions legitimately repeat a word — English "had had", "that
-  that"; French "que que" in subjunctive clauses; some proper names.
-- **emails**: the translator may have intentionally used a localized contact address (e.g. a
-  language-specific support inbox); the fix overwrites that choice with the source's email.
-- **paths**: the translator may have intentionally used a localized path (e.g. a directory
-  name that is part of an example string rather than a real filesystem reference); the fix
-  overwrites that choice with the source's path.
-- **urls**: the translator may have intentionally used a localized URL (e.g. a page with a
-  language prefix such as `/fr/about` instead of `/about`); the fix overwrites that choice
-  with the source's URL.
-
 The rewriter wraps each replaced `msgstr` block the same way GNU `msgcat` does (Unicode Line Breaking + display width, default page width 79), so running `msgcat` on a fixed file is a no-op. The page width is configurable with `--width N` (or `check.width` in the config file); `--width 0` disables wrapping entirely (matches `msgcat --width=0` / `msgcat --no-wrap`).
 
 Example:
@@ -260,6 +215,98 @@ Example:
 ```shell
 poexam check --fix po/
 ```
+
+Rules that currently produce auto-fixes:
+
+#### double-words
+
+- **Fix**: Remove the second occurrence of any consecutive repeated word from the translation,
+  along with the whitespace separating it from the first occurrence.
+- **Safe**: no.
+- **Caveats**: a few constructions legitimately repeat a word — English "had had", "that that";
+  French "que que" in subjunctive clauses; some proper names.
+
+#### emails
+
+- **Fix**: When the translation has the same number of emails as the source but at least one
+  differs, replace each translation email in place with the email at the same position in the
+  source. The "missing" and "extra" diagnostics (count mismatch) are not auto-fixable.
+- **Safe**: no.
+- **Caveats**: the translator may have intentionally used a localized contact address (e.g. a
+  language-specific support inbox); the fix overwrites that choice with the source's email.
+
+#### header
+
+- **Fix**: Append a default value to the header for `Content-Type` (`text/plain; charset=UTF-8`)
+  and `Content-Transfer-Encoding` (`8bit`) when those fields are missing. Other missing fields
+  and all "invalid value" diagnostics are not auto-fixable because the correct value depends
+  on per-file context (language, encoding, contacts, dates).
+- **Safe**: yes.
+
+#### newlines
+
+- **Fix**: Mirror the source's leading and trailing `\r`/`\n` runs in the translation. The
+  "count" diagnostics (mid-string newline mismatches) are not auto-fixable.
+- **Safe**: yes.
+
+#### obsolete
+
+- **Fix**: Delete the entire obsolete entry from the file, including any leading comments and
+  the trailing blank-line separator.
+- **Safe**: yes.
+
+#### paths
+
+- **Fix**: When the translation has the same number of paths as the source but at least one
+  differs, replace each translation path in place with the path at the same position in the
+  source. The "missing" and "extra" diagnostics (count mismatch) are not auto-fixable.
+- **Safe**: no.
+- **Caveats**: the translator may have intentionally used a localized path (e.g. a directory
+  name that is part of an example string rather than a real filesystem reference); the fix
+  overwrites that choice with the source's path.
+
+#### punc-start
+
+- **Fix**: Replace the leading punctuation run in the translation with the source's run.
+- **Safe**: yes.
+
+#### punc-end
+
+- **Fix**: Replace the trailing punctuation run in the translation with the source's run.
+- **Safe**: yes.
+
+#### punc-space-str
+
+- **Fix**: Insert or replace spaces around punctuation in the translation to match the
+  target-language convention (NBSP before `:`, `;`, `!`, `?`, around `«` `»`, and between a
+  digit and `%` in French; regular space in Finnish).
+- **Safe**: yes.
+
+#### unicode-ctrl
+
+- **Fix**: Remove every stray Unicode control or format character from the translation (NULL,
+  soft hyphen, zero-width spaces, bidi overrides, BOM, …) that is not present in the source.
+- **Safe**: yes.
+
+#### urls
+
+- **Fix**: When the translation has the same number of URLs as the source but at least one
+  differs, replace each translation URL in place with the URL at the same position in the
+  source. The "missing" and "extra" diagnostics (count mismatch) are not auto-fixable.
+- **Safe**: no.
+- **Caveats**: the translator may have intentionally used a localized URL (e.g. a page with a
+  language prefix such as `/fr/about` instead of `/about`); the fix overwrites that choice
+  with the source's URL.
+
+#### whitespace-start
+
+- **Fix**: Replace the leading whitespace run in the translation with the source's run.
+- **Safe**: yes.
+
+#### whitespace-end
+
+- **Fix**: Replace the trailing whitespace run in the translation with the source's run.
+- **Safe**: yes.
 
 ### Output
 
