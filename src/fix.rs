@@ -29,6 +29,10 @@ pub enum FixTarget {
     /// (`msgstr` vs. `msgstr[N]`) directly from these bytes, so the rule does
     /// not need to track plural index here.
     Msgstr { file_byte_range: Range<usize> },
+    /// Delete an entire entry from the file. The byte range spans the whole
+    /// entry, including any leading comments and the trailing blank-line
+    /// separator. [`Fix::edits`] is unused for this variant.
+    Entry { file_byte_range: Range<usize> },
 }
 
 /// A set of edits to apply to one msgstr value, plus where to splice the result.

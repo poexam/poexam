@@ -221,6 +221,8 @@ Rules that currently produce auto-fixes:
   on per-file context (language, encoding, contacts, dates).
 - **newlines**: Mirror the source's leading and trailing `\r`/`\n` runs in the translation.
   The "count" diagnostics (mid-string newline mismatches) are not auto-fixable.
+- **obsolete**: Delete the entire obsolete entry from the file, including any leading comments
+  and the trailing blank-line separator.
 - **paths**: When the translation has the same number of paths as the source but at least one
   differs, replace each translation path in place with the path at the same position in the source.
   The "missing" and "extra" diagnostics (count mismatch) are not auto-fixable.

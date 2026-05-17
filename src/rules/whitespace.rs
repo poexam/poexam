@@ -321,7 +321,9 @@ msgstr "testé"
         );
         assert_eq!(diags.len(), 1);
         let fix = diags[0].fix.as_ref().expect("fix should be attached");
-        let FixTarget::Msgstr { file_byte_range } = &fix.target;
+        let FixTarget::Msgstr { file_byte_range } = &fix.target else {
+            panic!("expected FixTarget::Msgstr, got {:?}", fix.target);
+        };
         // The fix replaces the leading whitespace run (currently empty, 0..0)
         // of msgstr with " ".
         assert_eq!(fix.edits.len(), 1);
@@ -342,7 +344,9 @@ msgstr "testé  "
         );
         assert_eq!(diags.len(), 1);
         let fix = diags[0].fix.as_ref().expect("fix should be attached");
-        let FixTarget::Msgstr { file_byte_range } = &fix.target;
+        let FixTarget::Msgstr { file_byte_range } = &fix.target else {
+            panic!("expected FixTarget::Msgstr, got {:?}", fix.target);
+        };
         // Decoded msgstr value is "testé  " (= 7 bytes: t-e-s-t-é(2)-space-space).
         // The fix replaces the trailing 2-byte whitespace run with " ".
         assert_eq!(fix.edits.len(), 1);

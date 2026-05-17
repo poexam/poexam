@@ -5,7 +5,7 @@
 //! Checker for PO files.
 
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::{BTreeMap, BTreeSet, HashMap},
     fs::File,
     io::Read,
     ops::Range,
@@ -227,16 +227,17 @@ impl<'d> Checker<'d> {
 }
 
 /// Apply every fixable diagnostic to `data` and return the rewritten bytes
-/// together with the count of distinct msgstrs that were actually rewritten,
-/// or `None` if there is nothing to rewrite (no fixes, or every fix is in
-/// conflict and skipped).
+/// together with the count of distinct fixes that were actually applied
+/// (msgstrs rewritten + entries deleted), or `None` if there is nothing to
+/// rewrite (no fixes, or every fix is in conflict and skipped).
 fn apply_fixes_to_data(
     data: &[u8],
     diagnostics: &[Diagnostic],
     page_width: usize,
 ) -> Option<(Vec<u8>, usize)> {
-    // Group all msgstr edits by the file byte range they target.
+    // Bucket fixes by target kind.
     let mut edits_by_range: BTreeMap<(usize, usize), Vec<Edit>> = BTreeMap::new();
+    let mut entry_deletions: BTreeSet<(usize, usize)> = BTreeSet::new();
     for diag in diagnostics {
         let Some(fix) = &diag.fix else { continue };
         match &fix.target {
@@ -247,10 +248,18 @@ fn apply_fixes_to_data(
                     .or_default()
                     .extend(fix.edits.iter().cloned());
             }
+            FixTarget::Entry { file_byte_range } => {
+                entry_deletions.insert((file_byte_range.start, file_byte_range.end));
+            }
         }
     }
-    if edits_by_range.is_empty() {
+    if edits_by_range.is_empty() && entry_deletions.is_empty() {
         return None;
+    }
+    let mut replacements: Vec<(Range<usize>, Vec<u8>)> = Vec::new();
+    // Entry deletions: splice the whole range out.
+    for (start, end) in &entry_deletions {
+        replacements.push((*start..*end, Vec::new()));
     }
     // Re-parse so we can look up each msgstr's decoded value by its byte range.
     let mut msgstr_values: HashMap<(usize, usize), String> = HashMap::new();
@@ -262,8 +271,16 @@ fn apply_fixes_to_data(
             );
         }
     }
-    let mut replacements: Vec<(Range<usize>, Vec<u8>)> = Vec::new();
     for (key, edits) in edits_by_range {
+        // Skip msgstr fixes whose target lives inside an entry that's being
+        // deleted: the msgstr edit would conflict with the parent deletion,
+        // and the change is moot since the whole entry is going away.
+        if entry_deletions
+            .iter()
+            .any(|(es, ee)| *es <= key.0 && key.1 <= *ee)
+        {
+            continue;
+        }
         let Some(value) = msgstr_values.get(&key) else {
             continue;
         };
@@ -729,6 +746,55 @@ msgstr \",bonjour\"
 msgid \"tested.\"
 msgstr \"testé!!!\"
 ";
+
+    /// PO content with one live entry and one obsolete entry that has a
+    /// translator comment on top.
+    const PO_OBSOLETE_ISSUES: &str = "msgid \"\"
+msgstr \"\"
+\"Language: fr\\n\"
+\"Content-Type: text/plain; charset=UTF-8\\n\"
+
+msgid \"hello\"
+msgstr \"bonjour\"
+
+# old translator note
+#~ msgid \"goodbye\"
+#~ msgstr \"au revoir\"
+";
+
+    #[test]
+    fn test_fix_deletes_obsolete_entries_including_comments() {
+        let tmp = tmp_dir("fix-obsolete");
+        let po_path = write_po(tmp.path(), "fr.po", PO_OBSOLETE_ISSUES);
+
+        let mut args = default_check_args();
+        args.no_config = true;
+        args.select = Some("obsolete".to_string());
+        args.obsolete = true;
+        args.fix = true;
+        let result = check_file(&po_path, &args);
+
+        let remaining = result
+            .diagnostics
+            .iter()
+            .filter(|d| d.rule == "obsolete")
+            .count();
+        assert_eq!(
+            remaining, 0,
+            "expected no obsolete diagnostics after --fix, got {:?}",
+            result.diagnostics
+        );
+
+        let fixed = std::fs::read_to_string(&po_path).expect("read fixed file");
+        // Live entry preserved.
+        assert!(fixed.contains("msgid \"hello\""));
+        assert!(fixed.contains("msgstr \"bonjour\""));
+        // Obsolete entry and its preceding comment removed.
+        assert!(!fixed.contains("goodbye"));
+        assert!(!fixed.contains("au revoir"));
+        assert!(!fixed.contains("old translator note"));
+        assert!(!fixed.contains("#~"));
+    }
 
     /// PO content with consecutive repeated words ("un un" and "et et") in
     /// the same translation.
