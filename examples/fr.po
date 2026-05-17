@@ -107,6 +107,10 @@ msgstr "ceci"
 msgid "Test \t tabulation"
 msgstr "Test tabulation"
 
+# rule: unicode-ctrl (stray ZERO WIDTH SPACE between "Sa" and "ve")
+msgid "Save"
+msgstr "Sa​ve"
+
 # rule: urls
 msgid "URL example: https://github.com/about"
 msgstr "Exemple d'URL : https://github.com/à_propos"
