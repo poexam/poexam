@@ -730,6 +730,53 @@ msgid \"tested.\"
 msgstr \"testé!!!\"
 ";
 
+    /// PO content with French-typography violations the punc-space-str rule
+    /// flags: regular space before `:` and `!`, missing space before `%`,
+    /// regular spaces around `« »`.
+    const PO_PUNC_SPACE_ISSUES: &str = "msgid \"\"
+msgstr \"\"
+\"Language: fr\\n\"
+\"Content-Type: text/plain; charset=UTF-8\\n\"
+
+msgid \"completion: 42%, this is a test!\"
+msgstr \"achèvement : 42%, ceci est un test !\"
+
+msgid \"French quotes: test\"
+msgstr \"Guillemets : « test »\"
+";
+
+    #[test]
+    fn test_fix_inserts_non_breaking_spaces_in_french_translation() {
+        let tmp = tmp_dir("fix-punc-space");
+        let po_path = write_po(tmp.path(), "fr.po", PO_PUNC_SPACE_ISSUES);
+
+        let mut args = default_check_args();
+        args.no_config = true;
+        args.select = Some("punc-space-str".to_string());
+        args.fix = true;
+        let result = check_file(&po_path, &args);
+
+        let remaining = result
+            .diagnostics
+            .iter()
+            .filter(|d| d.rule == "punc-space-str")
+            .count();
+        assert_eq!(
+            remaining, 0,
+            "expected no punc-space-str diagnostics after --fix, got {:?}",
+            result.diagnostics
+        );
+
+        let fixed = std::fs::read_to_string(&po_path).expect("read fixed file");
+        // Regular space before `:` and `!` replaced with NBSP.
+        assert!(fixed.contains("achèvement\u{00A0}:"));
+        assert!(fixed.contains("test\u{00A0}!"));
+        // NBSP inserted between digit and `%`.
+        assert!(fixed.contains("42\u{00A0}%"));
+        // Regular spaces around `« »` replaced with NBSPs.
+        assert!(fixed.contains("«\u{00A0}test\u{00A0}»"));
+    }
+
     #[test]
     fn test_fix_replaces_inconsistent_punctuation() {
         let tmp = tmp_dir("fix-punc");

@@ -171,6 +171,9 @@ Rules that currently produce auto-fixes:
   The "count" diagnostics (mid-string newline mismatches) are not auto-fixable.
 - **punc-start**: Replace the leading punctuation run in the translation with the source's run.
 - **punc-end**: Replace the trailing punctuation run in the translation with the source's run.
+- **punc-space-str**: Insert or replace spaces around punctuation in the translation to match
+  the target-language convention (NBSP before `:`, `;`, `!`, `?`, around `«` `»`, and between
+  a digit and `%` in French; regular space in Finnish).
 - **unicode-ctrl**: Remove every stray Unicode control or format character from the translation
   (NULL, soft hyphen, zero-width spaces, bidi overrides, BOM, …) that is not present in the source.
 - **whitespace-start**: Replace the leading whitespace run in the translation with the source's run.
