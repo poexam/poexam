@@ -22,7 +22,12 @@ use crate::{
     dict,
     dir::find_po_files,
     fix::{Edit, FixTarget, apply_msgstr_fixes},
-    po::{entry::Entry, escape::EscapePoExt, parser::Parser, writer::write_with_replacements},
+    po::{
+        entry::Entry,
+        parser::Parser,
+        wrap::{DEFAULT_PAGE_WIDTH, format_msgstr_block},
+        writer::write_with_replacements,
+    },
     result::display_result,
     rules::rule::{Rule, Rules, get_selected_rules},
 };
@@ -224,35 +229,6 @@ impl<'d> Checker<'d> {
     }
 }
 
-/// Build the replacement bytes for one msgstr block.
-///
-/// The original block is rewritten as a single `msgstr "..."` (or
-/// `msgstr[N] "..."`) line — the keyword form is copied from the original
-/// bytes so plural and obsolete-prefix variants are preserved. The pilot
-/// always emits the new value on a single line; existing line wrapping is
-/// not re-applied.
-fn format_msgstr_block(original_block: &[u8], new_value: &str) -> Vec<u8> {
-    let escaped = new_value.escape_po();
-    let quote_pos = original_block
-        .iter()
-        .position(|&b| b == b'"')
-        .unwrap_or(original_block.len());
-    // Strip trailing spaces/tabs between the keyword and the opening quote.
-    let mut head_end = quote_pos;
-    while head_end > 0 && matches!(original_block[head_end - 1], b' ' | b'\t') {
-        head_end -= 1;
-    }
-    let head = &original_block[..head_end];
-    let mut out = Vec::with_capacity(head.len() + escaped.len() + 4);
-    out.extend_from_slice(head);
-    out.push(b' ');
-    out.push(b'"');
-    out.extend_from_slice(escaped.as_bytes());
-    out.push(b'"');
-    out.push(b'\n');
-    out
-}
-
 /// Apply every fixable diagnostic to `data` and return the rewritten bytes
 /// together with the count of distinct msgstrs that were actually rewritten,
 /// or `None` if there is nothing to rewrite (no fixes, or every fix is in
@@ -298,7 +274,7 @@ fn apply_fixes_to_data(data: &[u8], diagnostics: &[Diagnostic]) -> Option<(Vec<u
         }
         let range = key.0..key.1;
         let original_block = &data[range.clone()];
-        let bytes = format_msgstr_block(original_block, &new_value);
+        let bytes = format_msgstr_block(original_block, &new_value, DEFAULT_PAGE_WIDTH);
         replacements.push((range, bytes));
     }
     if replacements.is_empty() {
