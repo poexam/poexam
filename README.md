@@ -161,6 +161,49 @@ examples/fr.po:42: [info:brackets] missing opening and closing square brackets '
         |
 ```
 
+### Spell checking
+
+You can check all words in a file by using one of these rules:
+
+- `spelling-ctxt`: check all words in context strings (`msgctxt`) with English `en_US` dictionary.
+- `spelling-id`: check all words in source strings (`msgid`) with English `en_US` dictionary.
+- `spelling-str`: check all words in translated strings (`msgstr`) with the language found in PO file header.
+
+The special rule `spelling` can be used to select these 3 rules at once.
+
+For rules `spelling-ctxt` and `spelling-id`, the default dictionary used is `en_US` and can be changed with the option `--lang-id`.
+
+The dictionaries are read from the hunspell directory (option `--path-dicts` to override it), in the following way:
+
+- Search the dictionary with the language name, e.g. files `en_US.aff` and `en_US.dic`
+- Search the dictionary with the language code and no country, e.g. files `en.aff` and `en.dic`.
+
+Personal words can be used, so that they are ignored by the spell checker (always considered good).\
+With the option `--path-words` you can specify a directory containing personal words files, one per language.
+
+For example this file `en_US.dic` can be used in such directory to ignore some words in English:
+
+```text
+charset
+hostname
+stdout
+uptime
+```
+
+The output `misspelled` displays all misspelled words and can be used to build such dictionary.
+
+For example, to build a dictionary for English (the English hunspell dictionary must be installed):
+
+```shell
+poexam check --select spelling-id --output misspelled fr.po > en_US.dic
+```
+
+And for the translated words in French (the French hunspell dictionary must be installed):
+
+```shell
+poexam check --select spelling-str --output misspelled fr.po > fr.dic
+```
+
 ### Auto-fix
 
 With the option `--fix`, poexam rewrites each PO file in place, applying every diagnostic that carries an auto-fix. The file is then re-checked, so the reported diagnostics reflect the post-fix state; any remaining diagnostic is annotated with `Note: no fix available.` since it could not be fixed.
@@ -224,49 +267,6 @@ For example pipe with less and keep colors:
 
 ```shell
 CLICOLOR_FORCE=1 poexam check | less -R
-```
-
-### Spell checking
-
-You can check all words in a file by using one of these rules:
-
-- `spelling-ctxt`: check all words in context strings (`msgctxt`) with English `en_US` dictionary.
-- `spelling-id`: check all words in source strings (`msgid`) with English `en_US` dictionary.
-- `spelling-str`: check all words in translated strings (`msgstr`) with the language found in PO file header.
-
-The special rule `spelling` can be used to select these 3 rules at once.
-
-For rules `spelling-ctxt` and `spelling-id`, the default dictionary used is `en_US` and can be changed with the option `--lang-id`.
-
-The dictionaries are read from the hunspell directory (option `--path-dicts` to override it), in the following way:
-
-- Search the dictionary with the language name, e.g. files `en_US.aff` and `en_US.dic`
-- Search the dictionary with the language code and no country, e.g. files `en.aff` and `en.dic`.
-
-Personal words can be used, so that they are ignored by the spell checker (always considered good).\
-With the option `--path-words` you can specify a directory containing personal words files, one per language.
-
-For example this file `en_US.dic` can be used in such directory to ignore some words in English:
-
-```text
-charset
-hostname
-stdout
-uptime
-```
-
-The output `misspelled` displays all misspelled words and can be used to build such dictionary.
-
-For example, to build a dictionary for English (the English hunspell dictionary must be installed):
-
-```shell
-poexam check --select spelling-id --output misspelled fr.po > en_US.dic
-```
-
-And for the translated words in French (the French hunspell dictionary must be installed):
-
-```shell
-poexam check --select spelling-str --output misspelled fr.po > fr.dic
 ```
 
 ### Statistics
