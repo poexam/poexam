@@ -169,6 +169,8 @@ Rules that currently produce auto-fixes:
 
 - **newlines**: Mirror the source's leading and trailing `\r`/`\n` runs in the translation.
   The "count" diagnostics (mid-string newline mismatches) are not auto-fixable.
+- **unicode-ctrl**: Remove every stray Unicode control or format character from the translation
+  (NULL, soft hyphen, zero-width spaces, bidi overrides, BOM, …) that is not present in the source.
 - **whitespace-start**: Replace the leading whitespace run in the translation with the source's run.
 - **whitespace-end**: Replace the trailing whitespace run in the translation with the source's run.
 

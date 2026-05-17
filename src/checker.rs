@@ -701,4 +701,50 @@ msgstr \"monde\"
             "file must be byte-identical when there is nothing to fix"
         );
     }
+
+    /// PO content with stray Unicode control characters in two translations:
+    /// a ZERO WIDTH SPACE inside "Save" and a SOFT HYPHEN inside "installation".
+    const PO_UNICODE_CTRL_ISSUES: &str = "msgid \"\"
+msgstr \"\"
+\"Language: fr\\n\"
+\"Content-Type: text/plain; charset=UTF-8\\n\"
+
+msgid \"Save\"
+msgstr \"Sa\u{200B}ve\"
+
+msgid \"installation\"
+msgstr \"instal\u{00AD}lation\"
+";
+
+    #[test]
+    fn test_fix_removes_stray_unicode_control_chars() {
+        let tmp = tmp_dir("fix-unicode-ctrl");
+        let po_path = write_po(tmp.path(), "fr.po", PO_UNICODE_CTRL_ISSUES);
+
+        let mut args = default_check_args();
+        args.no_config = true;
+        args.select = Some("unicode-ctrl".to_string());
+        args.fix = true;
+        let result = check_file(&po_path, &args);
+
+        // Both stray chars were fixable, so re-check reports no unicode-ctrl diagnostics.
+        let remaining = result
+            .diagnostics
+            .iter()
+            .filter(|d| d.rule == "unicode-ctrl")
+            .count();
+        assert_eq!(
+            remaining, 0,
+            "expected no unicode-ctrl diagnostics after --fix, got {:?}",
+            result.diagnostics
+        );
+
+        // The rewritten file must contain the cleaned msgstrs.
+        let fixed = std::fs::read_to_string(&po_path).expect("read fixed file");
+        assert!(fixed.contains("msgstr \"Save\""));
+        assert!(fixed.contains("msgstr \"installation\""));
+        // And must not contain the stray characters anywhere.
+        assert!(!fixed.contains('\u{200B}'));
+        assert!(!fixed.contains('\u{00AD}'));
+    }
 }

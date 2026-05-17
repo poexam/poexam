@@ -10,6 +10,7 @@ use std::collections::{BTreeMap, HashSet};
 
 use crate::checker::Checker;
 use crate::diagnostic::{Diagnostic, Severity};
+use crate::fix::{Edit, Fix, FixTarget};
 use crate::po::entry::Entry;
 use crate::po::message::Message;
 use crate::rules::rule::RuleChecker;
@@ -66,8 +67,8 @@ impl RuleChecker for UnicodeCtrlRule {
     /// ```
     ///
     /// Diagnostics reported:
-    /// - [`error`](Severity::Error): `extra control character U+0000 (NULL)` — truncates C strings, real correctness bug
-    /// - [`warning`](Severity::Warning): `extra control character U+XXXX (NAME)` — for every other flagged code point
+    /// - [`error`](Severity::Error): `extra control character U+0000 (NULL)` (auto-fixable)
+    /// - [`warning`](Severity::Warning): `extra control character U+XXXX (NAME)` (auto-fixable)
     fn check_msg(
         &self,
         checker: &Checker,
@@ -91,8 +92,21 @@ impl RuleChecker for UnicodeCtrlRule {
                     c as u32,
                     ctrl_char_name(c),
                 );
+                let edits: Vec<Edit> = positions
+                    .iter()
+                    .map(|&(start, end)| Edit {
+                        range: start..end,
+                        replacement: String::new(),
+                    })
+                    .collect();
+                let fix = Fix {
+                    target: FixTarget::Msgstr {
+                        file_byte_range: msgstr.byte_range.clone(),
+                    },
+                    edits,
+                };
                 self.new_diag(checker, ctrl_char_severity(c), msg)
-                    .map(|d| d.with_msgs_hl(msgid, [], msgstr, positions))
+                    .map(|d| d.with_msgs_hl(msgid, [], msgstr, positions).with_fix(fix))
             })
             .collect()
     }
@@ -866,6 +880,43 @@ msgstr "Bonjour, le monde"
         assert!(messages.iter().any(|m| m.contains("U+007F (DELETE)")));
         assert!(messages.iter().any(|m| m.contains("U+0080 (C1 CONTROL)")));
         assert!(messages.iter().any(|m| m.contains("U+009F (C1 CONTROL)")));
+    }
+
+    #[test]
+    fn test_fix_attached_for_single_stray_char() {
+        // msgstr is "Sa\u{200B}ve". ZWSP is at byte offset 2 and is 3 bytes (UTF-8).
+        let diags = check("msgid \"Save\"\nmsgstr \"Sa\u{200B}ve\"\n");
+        assert_eq!(diags.len(), 1);
+        let fix = diags[0].fix.as_ref().expect("fix attached");
+        assert_eq!(fix.edits.len(), 1);
+        assert_eq!(fix.edits[0].range, 2..5);
+        assert_eq!(fix.edits[0].replacement, "");
+    }
+
+    #[test]
+    fn test_fix_has_one_edit_per_occurrence() {
+        // Two ZWSPs in the translation: one diagnostic, two deletion edits.
+        let diags = check("msgid \"abc\"\nmsgstr \"a\u{200B}b\u{200B}c\"\n");
+        assert_eq!(diags.len(), 1);
+        let fix = diags[0].fix.as_ref().expect("fix attached");
+        assert_eq!(fix.edits.len(), 2);
+        // Edits are listed in document order; byte ranges cover each ZWSP.
+        assert_eq!(fix.edits[0].range, 1..4);
+        assert_eq!(fix.edits[0].replacement, "");
+        assert_eq!(fix.edits[1].range, 5..8);
+        assert_eq!(fix.edits[1].replacement, "");
+    }
+
+    #[test]
+    fn test_fix_distinct_chars_each_have_own_diagnostic() {
+        // Three different stray chars → three diagnostics, each with its own fix.
+        let diags = check("msgid \"a\"\nmsgstr \"a\u{200B}\u{202E}\u{00AD}\"\n");
+        assert_eq!(diags.len(), 3);
+        for d in &diags {
+            let fix = d.fix.as_ref().expect("fix on every diag");
+            assert_eq!(fix.edits.len(), 1);
+            assert_eq!(fix.edits[0].replacement, "");
+        }
     }
 
     #[test]
