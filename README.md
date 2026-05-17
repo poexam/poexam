@@ -169,9 +169,6 @@ Rules that currently produce auto-fixes:
 
 - **double-words**: Remove the second occurrence of any consecutive repeated word from the translation
   (along with the whitespace separating it from the first occurrence).
-  **Warning**: this fix can be wrong — a few constructions legitimately repeat a word (e.g. English
-  "had had", "that that"; French "que que" in subjunctive clauses; some proper names).
-  The translator must review every change produced by this fix before committing.
 - **emails**: When the translation has the same number of emails as the source but at least one
   differs, replace each translation email in place with the email at the same position in the source.
   The "missing" and "extra" diagnostics (count mismatch) are not auto-fixable.
@@ -200,6 +197,8 @@ Rules that currently produce auto-fixes:
 **Warning**: a few of these auto-fixes can be wrong in cases that look correct to the rule but
 were actually intentional. Review every change produced by these fixes before committing:
 
+- **double-words**: a few constructions legitimately repeat a word — English "had had", "that
+  that"; French "que que" in subjunctive clauses; some proper names.
 - **emails**: the translator may have intentionally used a localized contact address (e.g. a
   language-specific support inbox); the fix overwrites that choice with the source's email.
 - **paths**: the translator may have intentionally used a localized path (e.g. a directory
