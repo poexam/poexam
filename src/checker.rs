@@ -716,6 +716,49 @@ msgid \"installation\"
 msgstr \"instal\u{00AD}lation\"
 ";
 
+    /// PO content with inconsistent leading and trailing punctuation between
+    /// source and translation: msgid uses `;` and `.`, msgstr uses `,` and `!!!`.
+    const PO_PUNC_ISSUES: &str = "msgid \"\"
+msgstr \"\"
+\"Language: fr\\n\"
+\"Content-Type: text/plain; charset=UTF-8\\n\"
+
+msgid \";hello\"
+msgstr \",bonjour\"
+
+msgid \"tested.\"
+msgstr \"testé!!!\"
+";
+
+    #[test]
+    fn test_fix_replaces_inconsistent_punctuation() {
+        let tmp = tmp_dir("fix-punc");
+        let po_path = write_po(tmp.path(), "fr.po", PO_PUNC_ISSUES);
+
+        let mut args = default_check_args();
+        args.no_config = true;
+        args.select = Some("punc-start,punc-end".to_string());
+        args.fix = true;
+        let result = check_file(&po_path, &args);
+
+        // Re-checking the rewritten file must report zero punc diagnostics.
+        let remaining = result
+            .diagnostics
+            .iter()
+            .filter(|d| d.rule == "punc-start" || d.rule == "punc-end")
+            .count();
+        assert_eq!(
+            remaining, 0,
+            "expected no punc diagnostics after --fix, got {:?}",
+            result.diagnostics
+        );
+
+        // The file on disk should now contain the mirrored punctuation.
+        let fixed = std::fs::read_to_string(&po_path).expect("read fixed file");
+        assert!(fixed.contains("msgstr \";bonjour\""));
+        assert!(fixed.contains("msgstr \"testé.\""));
+    }
+
     #[test]
     fn test_fix_removes_stray_unicode_control_chars() {
         let tmp = tmp_dir("fix-unicode-ctrl");

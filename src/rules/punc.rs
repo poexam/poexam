@@ -10,6 +10,7 @@ use std::borrow::Cow;
 
 use crate::checker::Checker;
 use crate::diagnostic::{Diagnostic, Severity};
+use crate::fix::{Edit, Fix, FixTarget};
 use crate::po::entry::Entry;
 use crate::po::message::Message;
 use crate::rules::rule::RuleChecker;
@@ -62,7 +63,7 @@ impl RuleChecker for PuncStartRule {
     /// ```
     ///
     /// Diagnostics reported:
-    /// - [`info`](Severity::Info): `inconsistent leading punctuation ('…' / '…')`
+    /// - [`info`](Severity::Info): `inconsistent leading punctuation ('…' / '…')` (auto-fixable)
     fn check_msg(
         &self,
         checker: &Checker,
@@ -87,12 +88,24 @@ impl RuleChecker for PuncStartRule {
         if id_punc2 == str_punc2 {
             vec![]
         } else {
+            let fix = Fix {
+                target: FixTarget::Msgstr {
+                    file_byte_range: msgstr.byte_range.clone(),
+                },
+                edits: vec![Edit {
+                    range: 0..str_punc.len(),
+                    replacement: id_punc.to_string(),
+                }],
+            };
             self.new_diag(
                 checker,
                 Severity::Info,
                 format!("inconsistent leading punctuation ('{id_punc2}' / '{str_punc2}')"),
             )
-            .map(|d| d.with_msgs_hl(msgid, [(0, id_punc.len())], msgstr, [(0, str_punc.len())]))
+            .map(|d| {
+                d.with_msgs_hl(msgid, [(0, id_punc.len())], msgstr, [(0, str_punc.len())])
+                    .with_fix(fix)
+            })
             .into_iter()
             .collect()
         }
@@ -145,7 +158,7 @@ impl RuleChecker for PuncEndRule {
     /// ```
     ///
     /// Diagnostics reported:
-    /// - [`info`](Severity::Info): `inconsistent trailing punctuation ('…' / '…')`
+    /// - [`info`](Severity::Info): `inconsistent trailing punctuation ('…' / '…')` (auto-fixable)
     fn check_msg(
         &self,
         checker: &Checker,
@@ -162,6 +175,16 @@ impl RuleChecker for PuncEndRule {
         if id_punc2 == str_punc2 {
             vec![]
         } else {
+            let str_punc_start = msgstr.value.len() - str_punc.len();
+            let fix = Fix {
+                target: FixTarget::Msgstr {
+                    file_byte_range: msgstr.byte_range.clone(),
+                },
+                edits: vec![Edit {
+                    range: str_punc_start..msgstr.value.len(),
+                    replacement: id_punc.to_string(),
+                }],
+            };
             self.new_diag(
                 checker,
                 Severity::Info,
@@ -172,8 +195,9 @@ impl RuleChecker for PuncEndRule {
                     msgid,
                     [(msgid.value.len() - id_punc.len(), msgid.value.len())],
                     msgstr,
-                    [(msgstr.value.len() - str_punc.len(), msgstr.value.len())],
+                    [(str_punc_start, msgstr.value.len())],
                 )
+                .with_fix(fix)
             })
             .into_iter()
             .collect()
@@ -468,5 +492,71 @@ msgstr ",testé !!!"
             diag.message,
             "inconsistent trailing punctuation ('!' / '!!!')"
         );
+    }
+
+    #[test]
+    fn test_punc_start_fix_replaces_leading_punc() {
+        // msgstr leads with ',', msgid with ':'. Fix swaps ',' → ':'.
+        let diags = check_punc_start(
+            r#"
+msgid ":tested"
+msgstr ",testé"
+"#,
+        );
+        assert_eq!(diags.len(), 1);
+        let fix = diags[0].fix.as_ref().expect("fix attached");
+        assert_eq!(fix.edits.len(), 1);
+        assert_eq!(fix.edits[0].range, 0..1);
+        assert_eq!(fix.edits[0].replacement, ":");
+    }
+
+    #[test]
+    fn test_punc_start_fix_inserts_when_missing() {
+        // msgstr has no leading punctuation; fix inserts msgid's run at offset 0.
+        let diags = check_punc_start(
+            r#"
+msgid ";tested"
+msgstr "testé"
+"#,
+        );
+        assert_eq!(diags.len(), 1);
+        let fix = diags[0].fix.as_ref().expect("fix attached");
+        assert_eq!(fix.edits.len(), 1);
+        assert_eq!(fix.edits[0].range, 0..0);
+        assert_eq!(fix.edits[0].replacement, ";");
+    }
+
+    #[test]
+    fn test_punc_end_fix_replaces_trailing_run() {
+        // msgstr trails with '!!!'; msgid with '!'. Fix collapses to a single '!'.
+        let diags = check_punc_end(
+            r#"
+msgid "tested!"
+msgstr "testé!!!"
+"#,
+        );
+        assert_eq!(diags.len(), 1);
+        let fix = diags[0].fix.as_ref().expect("fix attached");
+        assert_eq!(fix.edits.len(), 1);
+        // "testé" is 6 bytes; trailing run "!!!" is at 6..9.
+        assert_eq!(fix.edits[0].range, 6..9);
+        assert_eq!(fix.edits[0].replacement, "!");
+    }
+
+    #[test]
+    fn test_punc_end_fix_appends_when_missing() {
+        // msgstr has no trailing punctuation; fix appends msgid's run.
+        let diags = check_punc_end(
+            r#"
+msgid "tested."
+msgstr "testé"
+"#,
+        );
+        assert_eq!(diags.len(), 1);
+        let fix = diags[0].fix.as_ref().expect("fix attached");
+        assert_eq!(fix.edits.len(), 1);
+        // "testé" is 6 bytes; insertion at the end (6..6).
+        assert_eq!(fix.edits[0].range, 6..6);
+        assert_eq!(fix.edits[0].replacement, ".");
     }
 }
