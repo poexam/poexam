@@ -322,6 +322,7 @@ mod tests {
             output: args::CheckOutputFormat::default(),
             quiet: false,
             fix: false,
+            width: None,
         }
     }
 

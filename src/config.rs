@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 use crate::args;
 use crate::diagnostic::Severity;
 use crate::dict;
+use crate::po::wrap::DEFAULT_PAGE_WIDTH;
 
 pub const DEFAULT_PATH_MSGFMT: &str = "/usr/bin/msgfmt";
 
@@ -68,6 +69,9 @@ pub struct CheckConfig {
 
     #[serde(default)]
     pub punc_ignore_ellipsis: bool,
+
+    #[serde(default = "default_check_width")]
+    pub width: usize,
 }
 
 /// Default value for `check.select`.
@@ -100,6 +104,11 @@ fn default_check_long_factor() -> u16 {
     8
 }
 
+/// Default value for `check.width`.
+const fn default_check_width() -> usize {
+    DEFAULT_PAGE_WIDTH
+}
+
 impl Default for CheckConfig {
     fn default() -> Self {
         Self {
@@ -117,6 +126,7 @@ impl Default for CheckConfig {
             long_factor: default_check_long_factor(),
             severity: vec![],
             punc_ignore_ellipsis: false,
+            width: default_check_width(),
         }
     }
 }
@@ -203,6 +213,9 @@ impl Config {
         if args.punc_ignore_ellipsis {
             self.check.punc_ignore_ellipsis = true;
         }
+        if let Some(width) = args.width {
+            self.check.width = width;
+        }
         self
     }
 }
@@ -279,6 +292,7 @@ mod tests {
             output: args::CheckOutputFormat::default(),
             quiet: false,
             fix: false,
+            width: None,
         }
     }
 

@@ -80,6 +80,7 @@ The following options are available in the `check` section (each option can be o
 | long_factor          | Integer          | Min ratio translation/source length to flag "too long" (min: 2).  |
 | severity             | Array of strings | Show diagnostics with these severities (info/warning/error).      |
 | punc_ignore_ellipsis | Boolean          | Ignore ellipsis differences (`...` vs `…`) in punc rules.         |
+| width                | Integer          | Output page width for `--fix` (default: 79); 0 disables wrapping. |
 
 See configuration file example: [poexam.toml](examples/poexam.toml).
 
@@ -163,6 +164,8 @@ examples/fr.po:42: [info:brackets] missing opening and closing square brackets '
 ### Auto-fix
 
 With the option `--fix`, poexam rewrites each PO file in place, applying every diagnostic that carries an auto-fix. The file is then re-checked, so the reported diagnostics reflect the post-fix state; any remaining diagnostic is annotated with `Note: no fix available.` since it could not be fixed.
+
+The rewriter wraps each replaced `msgstr` block the same way GNU `msgcat` does (Unicode Line Breaking + display width, default page width 79), so running `msgcat` on a fixed file is a no-op. The page width is configurable with `--width N` (or `check.width` in the config file); `--width 0` disables wrapping entirely (matches `msgcat --width=0` / `msgcat --no-wrap`).
 
 Example:
 

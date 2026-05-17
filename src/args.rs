@@ -139,6 +139,11 @@ pub struct CheckArgs {
     /// Rewrite files in place, applying every diagnostic that carries an auto-fix
     #[arg(long)]
     pub fix: bool,
+
+    /// Output page width used by `--fix` when rewriting msgstr blocks (default: 79);
+    /// 0 disables wrapping (matches `msgcat --width=0` / `msgcat --no-wrap`)
+    #[arg(long)]
+    pub width: Option<usize>,
 }
 
 /// Sort of errors.

@@ -11,6 +11,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ### Added
 
 - Add option `--fix` to rewrite files in place, applying auto-fixable diagnostics
+- Add option `--width` to set the page width used by `--fix` when wrapping msgstr blocks (default: 79, 0 disables wrapping)
 
 ## Version 0.0.10 (2026-05-13)
 

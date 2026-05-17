@@ -23,10 +23,7 @@ use crate::{
     dir::find_po_files,
     fix::{Edit, FixTarget, apply_msgstr_fixes},
     po::{
-        entry::Entry,
-        parser::Parser,
-        wrap::{DEFAULT_PAGE_WIDTH, format_msgstr_block},
-        writer::write_with_replacements,
+        entry::Entry, parser::Parser, wrap::format_msgstr_block, writer::write_with_replacements,
     },
     result::display_result,
     rules::rule::{Rule, Rules, get_selected_rules},
@@ -233,7 +230,11 @@ impl<'d> Checker<'d> {
 /// together with the count of distinct msgstrs that were actually rewritten,
 /// or `None` if there is nothing to rewrite (no fixes, or every fix is in
 /// conflict and skipped).
-fn apply_fixes_to_data(data: &[u8], diagnostics: &[Diagnostic]) -> Option<(Vec<u8>, usize)> {
+fn apply_fixes_to_data(
+    data: &[u8],
+    diagnostics: &[Diagnostic],
+    page_width: usize,
+) -> Option<(Vec<u8>, usize)> {
     // Group all msgstr edits by the file byte range they target.
     let mut edits_by_range: BTreeMap<(usize, usize), Vec<Edit>> = BTreeMap::new();
     for diag in diagnostics {
@@ -274,7 +275,7 @@ fn apply_fixes_to_data(data: &[u8], diagnostics: &[Diagnostic]) -> Option<(Vec<u
         }
         let range = key.0..key.1;
         let original_block = &data[range.clone()];
-        let bytes = format_msgstr_block(original_block, &new_value, DEFAULT_PAGE_WIDTH);
+        let bytes = format_msgstr_block(original_block, &new_value, page_width);
         replacements.push((range, bytes));
     }
     if replacements.is_empty() {
@@ -404,7 +405,9 @@ fn check_file(path: &PathBuf, args: &args::CheckArgs) -> CheckFileResult {
     let mut checker = Checker::new(&data).with_path(path).with_config(config);
     checker.do_all_checks(&rules);
     if args.fix {
-        if let Some((new_data, fixes_applied)) = apply_fixes_to_data(&data, &checker.diagnostics) {
+        if let Some((new_data, fixes_applied)) =
+            apply_fixes_to_data(&data, &checker.diagnostics, checker.config.check.width)
+        {
             let config = std::mem::take(&mut checker.config);
             let diagnostics = std::mem::take(&mut checker.diagnostics);
             drop(checker);
@@ -466,6 +469,7 @@ mod tests {
             output: args::CheckOutputFormat::default(),
             quiet: true,
             fix: false,
+            width: None,
         }
     }
 

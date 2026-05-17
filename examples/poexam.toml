@@ -39,3 +39,6 @@ path_words = "."
 
 # perform only checks with these severities
 # severity = ["error", "warning", "info"]
+
+# output page width used by --fix when rewriting msgstr blocks (0 disables wrapping)
+# width = 79
