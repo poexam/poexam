@@ -37,11 +37,13 @@ impl RuleChecker for PuncStartRule {
     /// Check for inconsistent leading punctuation between source and translation.
     ///
     /// The following characters are considered as punctuation for this check
-    /// (half-width and full-width):
+    /// (Latin half-width and full-width, plus several script-specific marks):
     /// - colon: `:`, `：`
     /// - semicolon: `;`, `；`, U+061B (Arabic semicolon)
-    /// - full stop (period): `.`, `。`, `…`
-    /// - comma: `,`, `，`, `،`
+    /// - full stop (period): `.`, `。`, `…`, U+0964 (Devanagari danda),
+    ///   U+0965 (Devanagari double danda), U+17D4 (Khmer khan),
+    ///   U+104B (Myanmar section), `։` (Armenian full stop)
+    /// - comma: `,`, `，`, `،`, `、` (Japanese/Chinese ideographic comma)
     /// - exclamation mark: `!`, `！`
     /// - question mark: `?`, `？`, U+061F (Arabic question mark)
     ///
@@ -134,11 +136,13 @@ impl RuleChecker for PuncEndRule {
     /// Check for inconsistent trailing punctuation between source and translation.
     ///
     /// The following characters are considered as punctuation for this check
-    /// (half-width and full-width):
+    /// (Latin half-width and full-width, plus several script-specific marks):
     /// - colon: `:`, `：`
     /// - semicolon: `;`, `；`, U+061B (Arabic semicolon)
-    /// - full stop (period): `.`, `。`, `…`
-    /// - comma: `,`, `，`, `،`
+    /// - full stop (period): `.`, `。`, `…`, U+0964 (Devanagari danda),
+    ///   U+0965 (Devanagari double danda), U+17D4 (Khmer khan),
+    ///   U+104B (Myanmar section), `։` (Armenian full stop)
+    /// - comma: `,`, `，`, `،`, `、` (Japanese/Chinese ideographic comma)
     /// - exclamation mark: `!`, `！`
     /// - question mark: `?`, `？`, U+061F (Arabic question mark)
     ///
@@ -206,6 +210,10 @@ impl RuleChecker for PuncEndRule {
 }
 
 /// Check if a character is considered as punctuation for this rule.
+///
+/// Covers Latin (ASCII and full-width), CJK ideographic, Arabic, and several
+/// other scripts whose punctuation regularly appears at sentence boundaries
+/// in PO translations.
 const fn is_punc(c: char) -> bool {
     c == ':'
         || c == '：'
@@ -216,9 +224,21 @@ const fn is_punc(c: char) -> bool {
         || c == '.'
         || c == '。'
         || c == '…'
+        // Devanagari danda (period for Hindi, Bengali, Marathi, Nepali, …).
+        || c == '\u{0964}'
+        // Devanagari double danda (verse / section end).
+        || c == '\u{0965}'
+        // Khmer "khan" (period).
+        || c == '\u{17D4}'
+        // Myanmar (Burmese) section (period).
+        || c == '\u{104B}'
+        // Armenian full stop.
+        || c == '։'
         || c == ','
         || c == '，'
         || c == '،'
+        // Japanese / Chinese ideographic comma.
+        || c == '、'
         || c == '!'
         || c == '！'
         || c == '?'
@@ -282,7 +302,20 @@ fn punc_normalize<'a>(s: &'a str, language: &str, ignore_ellipsis: bool) -> Cow<
     let needs_substitution = s.chars().any(|c| {
         matches!(
             c,
-            '：' | '；' | '\u{061B}' | '。' | '，' | '،' | '！' | '？' | '\u{061F}'
+            '：' | '；'
+                | '\u{061B}'
+                | '。'
+                | '，'
+                | '،'
+                | '！'
+                | '？'
+                | '\u{061F}'
+                | '、'
+                | '\u{0964}'
+                | '\u{0965}'
+                | '\u{17D4}'
+                | '\u{104B}'
+                | '։'
         ) || (c == '?' && language == "el")
     });
     let needs_ellipsis = ignore_ellipsis && s.contains("...");
@@ -297,8 +330,8 @@ fn punc_normalize<'a>(s: &'a str, language: &str, ignore_ellipsis: bool) -> Cow<
             // General punctuation normalization.
             '：' => ':',
             '；' | '\u{061B}' => ';',
-            '。' => '.',
-            '，' | '،' => ',',
+            '。' | '\u{0964}' | '\u{0965}' | '\u{17D4}' | '\u{104B}' | '։' => '.',
+            '，' | '،' | '、' => ',',
             '！' => '!',
             '？' | '\u{061F}' => '?',
             _ => c,
@@ -341,8 +374,13 @@ mod tests {
 
     #[test]
     fn test_is_punc() {
-        // Characters that should be recognized as punctuation.
-        let punc_chars = [':', ';', '.', ',', '!', '?'];
+        // Characters that should be recognized as punctuation: ASCII,
+        // full-width / CJK, ellipsis, Arabic, Devanagari / Indic, Khmer,
+        // Myanmar, Armenian.
+        let punc_chars = [
+            ':', ';', '.', ',', '!', '?', '：', '；', '。', '，', '！', '？', '、', '…',
+            '\u{061B}', '\u{061F}', '،', '\u{0964}', '\u{0965}', '\u{17D4}', '\u{104B}', '։',
+        ];
         for &c in &punc_chars {
             assert!(is_punc(c), "{c} should be punctuation");
         }
@@ -407,6 +445,13 @@ mod tests {
         // Test ellipsis normalization.
         assert_eq!(punc_normalize("...test...", "fr", false), "...test...");
         assert_eq!(punc_normalize("...test...", "fr", true), "…test…");
+        // Script-specific punctuation normalizes to its Latin equivalent.
+        assert_eq!(punc_normalize("、", "ja", false), ",");
+        assert_eq!(punc_normalize("\u{0964}", "hi", false), ".");
+        assert_eq!(punc_normalize("\u{0965}", "hi", false), ".");
+        assert_eq!(punc_normalize("\u{17D4}", "km", false), ".");
+        assert_eq!(punc_normalize("\u{104B}", "my", false), ".");
+        assert_eq!(punc_normalize("։", "hy", false), ".");
     }
 
     #[test]
