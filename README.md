@@ -181,6 +181,9 @@ Rules that currently produce auto-fixes:
   on per-file context (language, encoding, contacts, dates).
 - **newlines**: Mirror the source's leading and trailing `\r`/`\n` runs in the translation.
   The "count" diagnostics (mid-string newline mismatches) are not auto-fixable.
+- **paths**: When the translation has the same number of paths as the source but at least one
+  differs, replace each translation path in place with the path at the same position in the source.
+  The "missing" and "extra" diagnostics (count mismatch) are not auto-fixable.
 - **punc-start**: Replace the leading punctuation run in the translation with the source's run.
 - **punc-end**: Replace the trailing punctuation run in the translation with the source's run.
 - **punc-space-str**: Insert or replace spaces around punctuation in the translation to match
@@ -196,6 +199,9 @@ were actually intentional. Review every change produced by these fixes before co
 
 - **emails**: the translator may have intentionally used a localized contact address (e.g. a
   language-specific support inbox); the fix overwrites that choice with the source's email.
+- **paths**: the translator may have intentionally used a localized path (e.g. a directory
+  name that is part of an example string rather than a real filesystem reference); the fix
+  overwrites that choice with the source's path.
 
 The rewriter wraps each replaced `msgstr` block the same way GNU `msgcat` does (Unicode Line Breaking + display width, default page width 79), so running `msgcat` on a fixed file is a no-op. The page width is configurable with `--width N` (or `check.width` in the config file); `--width 0` disables wrapping entirely (matches `msgcat --width=0` / `msgcat --no-wrap`).
 

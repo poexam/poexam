@@ -8,6 +8,7 @@ use std::collections::HashSet;
 
 use crate::checker::Checker;
 use crate::diagnostic::{Diagnostic, Severity};
+use crate::fix::{Edit, Fix, FixTarget};
 use crate::po::entry::Entry;
 use crate::po::format::iter::FormatPathPos;
 use crate::po::message::Message;
@@ -52,7 +53,14 @@ impl RuleChecker for PathsRule {
     /// Diagnostics reported:
     /// - [`warning`](Severity::Warning): `missing paths (# / #)`
     /// - [`warning`](Severity::Warning): `extra paths (# / #)`
-    /// - [`warning`](Severity::Warning): `different paths`
+    /// - [`warning`](Severity::Warning): `different paths` (auto-fixable)
+    ///
+    /// Only the `different paths` diagnostic carries an auto-fix: each
+    /// translation path is replaced in place with the path at the same
+    /// position in the source. The `missing` and `extra` cases are left
+    /// unfixed because inserting a missing path at the right position in
+    /// the prose or choosing which extra to drop both require translator
+    /// judgement.
     fn check_msg(
         &self,
         checker: &Checker,
@@ -104,6 +112,21 @@ impl RuleChecker for PathsRule {
                 if id_paths_hash == str_paths_hash {
                     vec![]
                 } else {
+                    let edits: Vec<Edit> = id_paths
+                        .iter()
+                        .zip(str_paths.iter())
+                        .filter(|(id, str)| trim_quotes(id.s) != trim_quotes(str.s))
+                        .map(|(id, str)| Edit {
+                            range: str.start..str.end,
+                            replacement: id.s.to_string(),
+                        })
+                        .collect();
+                    let fix = (!edits.is_empty()).then(|| Fix {
+                        target: FixTarget::Msgstr {
+                            file_byte_range: msgstr.byte_range.clone(),
+                        },
+                        edits,
+                    });
                     self.new_diag(checker, Severity::Warning, "different paths")
                         .map(|d| {
                             d.with_msgs_hl(
@@ -112,6 +135,7 @@ impl RuleChecker for PathsRule {
                                 msgstr,
                                 str_paths.iter().map(|m| (m.start, m.end)),
                             )
+                            .with_optional_fix(fix)
                         })
                         .into_iter()
                         .collect()
@@ -181,5 +205,57 @@ msgstr "chemins différents : /tmp/output.txt -- ./relative/path"
         let diag = &diags[2];
         assert_eq!(diag.severity, Severity::Warning);
         assert_eq!(diag.message, "different paths");
+    }
+
+    #[test]
+    fn test_different_paths_fix_replaces_each_in_place() {
+        let diags = check_paths(
+            r#"
+msgid "Files at /tmp/a and /tmp/b"
+msgstr "Fichiers à /var/a et /var/b"
+"#,
+        );
+        assert_eq!(diags.len(), 1);
+        assert_eq!(diags[0].message, "different paths");
+        let fix = diags[0].fix.as_ref().expect("fix attached");
+        assert_eq!(fix.edits.len(), 2);
+        assert_eq!(fix.edits[0].replacement, "/tmp/a");
+        assert_eq!(fix.edits[1].replacement, "/tmp/b");
+    }
+
+    #[test]
+    fn test_different_paths_fix_skips_positions_already_equal() {
+        let diags = check_paths(
+            r#"
+msgid "Files at /tmp/a and /tmp/b"
+msgstr "Fichiers à /tmp/a et /var/b"
+"#,
+        );
+        assert_eq!(diags.len(), 1);
+        let fix = diags[0].fix.as_ref().expect("fix attached");
+        assert_eq!(fix.edits.len(), 1);
+        assert_eq!(fix.edits[0].replacement, "/tmp/b");
+    }
+
+    #[test]
+    fn test_missing_and_extra_paths_have_no_fix() {
+        let diags = check_paths(
+            r#"
+msgid "Files at /tmp/a and /tmp/b"
+msgstr "Fichiers à /tmp/a"
+
+msgid "Files at /tmp/a"
+msgstr "Fichiers à /tmp/a and /tmp/b"
+"#,
+        );
+        assert_eq!(diags.len(), 2);
+        assert!(
+            diags[0].fix.is_none(),
+            "missing paths diagnostic must not carry a fix"
+        );
+        assert!(
+            diags[1].fix.is_none(),
+            "extra paths diagnostic must not carry a fix"
+        );
     }
 }
