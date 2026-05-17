@@ -191,6 +191,9 @@ Rules that currently produce auto-fixes:
   a digit and `%` in French; regular space in Finnish).
 - **unicode-ctrl**: Remove every stray Unicode control or format character from the translation
   (NULL, soft hyphen, zero-width spaces, bidi overrides, BOM, …) that is not present in the source.
+- **urls**: When the translation has the same number of URLs as the source but at least one
+  differs, replace each translation URL in place with the URL at the same position in the source.
+  The "missing" and "extra" diagnostics (count mismatch) are not auto-fixable.
 - **whitespace-start**: Replace the leading whitespace run in the translation with the source's run.
 - **whitespace-end**: Replace the trailing whitespace run in the translation with the source's run.
 
@@ -202,6 +205,9 @@ were actually intentional. Review every change produced by these fixes before co
 - **paths**: the translator may have intentionally used a localized path (e.g. a directory
   name that is part of an example string rather than a real filesystem reference); the fix
   overwrites that choice with the source's path.
+- **urls**: the translator may have intentionally used a localized URL (e.g. a page with a
+  language prefix such as `/fr/about` instead of `/about`); the fix overwrites that choice
+  with the source's URL.
 
 The rewriter wraps each replaced `msgstr` block the same way GNU `msgcat` does (Unicode Line Breaking + display width, default page width 79), so running `msgcat` on a fixed file is a no-op. The page width is configurable with `--width N` (or `check.width` in the config file); `--width 0` disables wrapping entirely (matches `msgcat --width=0` / `msgcat --no-wrap`).
 
