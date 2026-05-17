@@ -227,45 +227,50 @@ const fn is_punc(c: char) -> bool {
         || c == '\u{061F}'
 }
 
-/// Get the leading punctuation of a string (it includes whitespace).
+/// Get the leading punctuation of a string. The returned slice includes any
+/// whitespace surrounding the punctuation run on both sides (any whitespace
+/// except `\n`), stopping at the first non-punctuation non-whitespace
+/// character.
+///
+/// Returns an empty slice if no punctuation character is present in the
+/// leading region — pure leading whitespace is not considered "punctuation".
 fn get_punc_start(s: &str) -> &str {
-    let mut whitespace_ended: bool = false;
-    let pos = s
-        .chars()
-        .take_while(|c| {
-            if is_punc(*c) {
-                whitespace_ended = true;
-                true
-            } else if c.is_whitespace() && *c != '\n' {
-                !whitespace_ended
-            } else {
-                false
-            }
-        })
-        .map(char::len_utf8)
-        .sum::<usize>();
-    &s[..pos]
+    let mut saw_punc = false;
+    let mut idx = 0;
+    for c in s.chars() {
+        if is_punc(c) {
+            saw_punc = true;
+            idx += c.len_utf8();
+        } else if c.is_whitespace() && c != '\n' {
+            idx += c.len_utf8();
+        } else {
+            break;
+        }
+    }
+    if saw_punc { &s[..idx] } else { "" }
 }
 
-/// Get the trailing punctuation of a string (it includes whitespace).
+/// Get the trailing punctuation of a string. The returned slice includes any
+/// whitespace surrounding the punctuation run on both sides (any whitespace
+/// except `\n`), stopping at the first non-punctuation non-whitespace
+/// character.
+///
+/// Returns an empty slice if no punctuation character is present in the
+/// trailing region.
 fn get_punc_end(s: &str) -> &str {
-    let mut whitespace_ended: bool = false;
-    let pos = s
-        .chars()
-        .rev()
-        .take_while(|c| {
-            if is_punc(*c) {
-                whitespace_ended = true;
-                true
-            } else if c.is_whitespace() && *c != '\n' {
-                !whitespace_ended
-            } else {
-                false
-            }
-        })
-        .map(char::len_utf8)
-        .sum::<usize>();
-    &s[s.len() - pos..]
+    let mut saw_punc = false;
+    let mut pos = 0;
+    for c in s.chars().rev() {
+        if is_punc(c) {
+            saw_punc = true;
+            pos += c.len_utf8();
+        } else if c.is_whitespace() && c != '\n' {
+            pos += c.len_utf8();
+        } else {
+            break;
+        }
+    }
+    if saw_punc { &s[s.len() - pos..] } else { "" }
 }
 
 /// Normalize punctuation to English symbols: full-width to half-width and take care
@@ -354,7 +359,14 @@ mod tests {
     fn test_get_punc_start() {
         assert_eq!(get_punc_start(""), "");
         assert_eq!(get_punc_start("test"), "");
-        assert_eq!(get_punc_start(", test"), ",");
+        // Leading whitespace without any punctuation returns empty.
+        assert_eq!(get_punc_start(" test"), "");
+        assert_eq!(get_punc_start("  test"), "");
+        // Punctuation pulls in whitespace on both sides.
+        assert_eq!(get_punc_start(", test"), ", ");
+        assert_eq!(get_punc_start(" , test"), " , ");
+        assert_eq!(get_punc_start(" :test"), " :");
+        assert_eq!(get_punc_start("  :  test"), "  :  ");
         assert_eq!(get_punc_start("...test"), "...");
         assert_eq!(get_punc_start("…test"), "…");
         assert_eq!(get_punc_start("テスト済み"), "");
@@ -366,7 +378,14 @@ mod tests {
     fn test_get_punc_end() {
         assert_eq!(get_punc_end(""), "");
         assert_eq!(get_punc_end("test"), "");
+        // Trailing whitespace without any punctuation returns empty.
+        assert_eq!(get_punc_end("test "), "");
+        assert_eq!(get_punc_end("test  "), "");
+        // Punctuation pulls in whitespace on both sides.
         assert_eq!(get_punc_end("test, "), ", ");
+        assert_eq!(get_punc_end("test , "), " , ");
+        assert_eq!(get_punc_end("test :"), " :");
+        assert_eq!(get_punc_end("test  :  "), "  :  ");
         assert_eq!(get_punc_end("test..."), "...");
         assert_eq!(get_punc_end("test…"), "…");
         assert_eq!(get_punc_end("テスト済み"), "");
@@ -412,14 +431,14 @@ msgstr "testé"
     fn test_punc_ok() {
         let diags = check_punc_end(
             r#"
-msgid "tested, ..."
+msgid "tested..."
 msgstr "testé..."
 "#,
         );
         assert!(diags.is_empty());
         let diags = check_punc_end_ignore_ellipsis(
             r#"
-msgid "tested, ..."
+msgid "tested..."
 msgstr "testé…"
 "#,
         );

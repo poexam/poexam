@@ -8,6 +8,10 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 ## Version 0.0.11 (under dev)
 
+### Changed
+
+- Treat surrounding whitespace as part of the leading/trailing punctuation run in rules "punc-start" and "punc-end"
+
 ### Added
 
 - Add option `--fix` to rewrite files in place, applying auto-fixable diagnostics
