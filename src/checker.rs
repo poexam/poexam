@@ -730,6 +730,56 @@ msgid \"tested.\"
 msgstr \"testé!!!\"
 ";
 
+    /// PO content with a header missing both `Content-Type` and
+    /// `Content-Transfer-Encoding`. Other required fields are present so the
+    /// fix exercises only the auto-fixable subset.
+    const PO_HEADER_MISSING_CONTENT_TYPE: &str = "msgid \"\"
+msgstr \"\"
+\"Project-Id-Version: poexam\\n\"
+\"Last-Translator: Sébastien Helleu <flashcode@flashtux.org>\\n\"
+\"Language-Team: French <translators-fr@example.com>\\n\"
+\"Language: fr\\n\"
+\"Report-Msgid-Bugs-To: flashcode@flashtux.org\\n\"
+\"POT-Creation-Date: 2026-02-01 18:12:08+0100\\n\"
+\"PO-Revision-Date: 2026-02-01 18:12:08+0100\\n\"
+
+msgid \"hello\"
+msgstr \"bonjour\"
+";
+
+    #[test]
+    fn test_fix_appends_default_content_type_and_transfer_encoding_to_header() {
+        let tmp = tmp_dir("fix-header");
+        let po_path = write_po(tmp.path(), "fr.po", PO_HEADER_MISSING_CONTENT_TYPE);
+
+        let mut args = default_check_args();
+        args.no_config = true;
+        args.select = Some("header".to_string());
+        args.fix = true;
+        let result = check_file(&po_path, &args);
+
+        // Both fixable header diagnostics should be gone after --fix.
+        let remaining = result
+            .diagnostics
+            .iter()
+            .filter(|d| {
+                d.message.contains("'Content-Type'")
+                    || d.message.contains("'Content-Transfer-Encoding'")
+            })
+            .count();
+        assert_eq!(
+            remaining, 0,
+            "expected no Content-Type/Content-Transfer-Encoding diagnostics after --fix, \
+             got {:?}",
+            result.diagnostics
+        );
+
+        // The rewritten file must include both new header fields.
+        let fixed = std::fs::read_to_string(&po_path).expect("read fixed file");
+        assert!(fixed.contains("Content-Type: text/plain; charset=UTF-8"));
+        assert!(fixed.contains("Content-Transfer-Encoding: 8bit"));
+    }
+
     /// PO content with French-typography violations the punc-space-str rule
     /// flags: regular space before `:` and `!`, missing space before `%`,
     /// regular spaces around `« »`.

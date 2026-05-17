@@ -167,6 +167,10 @@ With the option `--fix`, poexam rewrites each PO file in place, applying every d
 
 Rules that currently produce auto-fixes:
 
+- **header**: Append a default value to the header for `Content-Type` (`text/plain; charset=UTF-8`)
+  and `Content-Transfer-Encoding` (`8bit`) when those fields are missing. Other missing fields
+  and all "invalid value" diagnostics are not auto-fixable because the correct value depends
+  on per-file context (language, encoding, contacts, dates).
 - **newlines**: Mirror the source's leading and trailing `\r`/`\n` runs in the translation.
   The "count" diagnostics (mid-string newline mismatches) are not auto-fixable.
 - **punc-start**: Replace the leading punctuation run in the translation with the source's run.

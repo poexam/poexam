@@ -10,6 +10,7 @@ use std::collections::HashSet;
 
 use crate::checker::Checker;
 use crate::diagnostic::{Diagnostic, Severity};
+use crate::fix::{Edit, Fix, FixTarget};
 use crate::po::entry::Entry;
 use crate::po::format::iter::{FormatEmailPos, FormatUrlPos};
 use crate::po::format::language::Language;
@@ -35,6 +36,42 @@ const REQUIRED_FIELDS: &[(&str, Severity)] = &[
     ("Content-Type", Severity::Warning),
     ("Content-Transfer-Encoding", Severity::Warning),
 ];
+
+/// Default value to use when auto-fixing a missing header field. Only fields
+/// whose value is universally safe (any gettext consumer accepts them and the
+/// value matches the parser's implicit default) appear here; the other
+/// required fields (language, contact info, dates, version) cannot be
+/// inferred and must be filled in by the translator.
+fn default_value_for_fix(field: &str) -> Option<&'static str> {
+    match field {
+        "Content-Type" => Some("text/plain; charset=UTF-8"),
+        "Content-Transfer-Encoding" => Some("8bit"),
+        _ => None,
+    }
+}
+
+/// Build a `FixTarget::Msgstr` fix that appends `"<field>: <value>\n"` to
+/// the end of the header `msgstr` value. A leading `\n` is added when the
+/// existing value is non-empty and does not already end with a newline,
+/// so two fields never collide on the same line.
+fn append_header_field_fix(msgstr: &Message, field: &str, value: &str) -> Fix {
+    let end = msgstr.value.len();
+    let needs_separator = !msgstr.value.is_empty() && !msgstr.value.ends_with('\n');
+    let replacement = if needs_separator {
+        format!("\n{field}: {value}\n")
+    } else {
+        format!("{field}: {value}\n")
+    };
+    Fix {
+        target: FixTarget::Msgstr {
+            file_byte_range: msgstr.byte_range.clone(),
+        },
+        edits: vec![Edit {
+            range: end..end,
+            replacement,
+        }],
+    }
+}
 
 pub struct HeaderRule;
 
@@ -88,12 +125,20 @@ impl RuleChecker for HeaderRule {
     /// - [`error`](Severity::Error): `invalid value '…' for field 'Content-Type' in header`
     /// - [`error`](Severity::Error): `invalid value '…' for field 'Plural-Forms' in header`
     /// - [`error`](Severity::Error): `invalid value '…' for field 'Language' in header`
-    /// - [`warning`](Severity::Warning): `missing field 'Content-Type' in header`
-    /// - [`warning`](Severity::Warning): `missing field 'Content-Transfer-Encoding' in header`
+    /// - [`warning`](Severity::Warning): `missing field 'Content-Type' in header` (auto-fixable)
+    /// - [`warning`](Severity::Warning): `missing field 'Content-Transfer-Encoding' in header` (auto-fixable)
     /// - [`info`](Severity::Info): `missing field '…' in header` (for any other required field)
     /// - [`info`](Severity::Info): `invalid value '…' for field 'Report-Msgid-Bugs-To' in header`
     /// - [`info`](Severity::Info): `invalid value '…' for field 'Last-Translator' in header`
     /// - [`info`](Severity::Info): `invalid value '…' for field 'Language-Team' in header`
+    ///
+    /// Only the two missing-field diagnostics for `Content-Type` and
+    /// `Content-Transfer-Encoding` are auto-fixable: the fix appends the
+    /// canonical default value (`text/plain; charset=UTF-8` and `8bit`
+    /// respectively). Every other diagnostic either depends on translator
+    /// knowledge (language, contacts, dates, project version) or on the
+    /// actual file encoding, so no safe default exists.
+    #[allow(clippy::too_many_lines)]
     fn check_header(&self, checker: &Checker, _entry: &Entry, msgstr: &Message) -> Vec<Diagnostic> {
         let fields: Vec<(String, &str)> = msgstr
             .value
@@ -107,12 +152,21 @@ impl RuleChecker for HeaderRule {
             .iter()
             .filter(|(field, _)| !present.contains(field.to_ascii_lowercase().as_str()))
             .filter_map(|(field, severity)| {
+                let fix = default_value_for_fix(field)
+                    .map(|value| append_header_field_fix(msgstr, field, value));
                 self.new_diag(
                     checker,
                     *severity,
                     format!("missing field '{field}' in header"),
                 )
-                .map(|d| d.with_msg(msgstr))
+                .map(|d| {
+                    let d = d.with_msg(msgstr);
+                    if let Some(fix) = fix {
+                        d.with_fix(fix)
+                    } else {
+                        d
+                    }
+                })
             })
             .collect();
 
@@ -930,6 +984,95 @@ msgstr \"\"
         assert_eq!(
             diags[0].message,
             "invalid value '' for field 'Plural-Forms' in header"
+        );
+    }
+
+    fn diag_with_message<'a>(diags: &'a [Diagnostic], message: &str) -> &'a Diagnostic {
+        diags
+            .iter()
+            .find(|d| d.message == message)
+            .unwrap_or_else(|| panic!("no diagnostic with message {message:?} in {diags:#?}"))
+    }
+
+    #[test]
+    fn test_missing_content_type_fix_appends_default() {
+        let header =
+            COMPLETE_HEADER.replace("\"Content-Type: text/plain; charset=UTF-8\\n\"\n", "");
+        let diags = check(&header);
+        let d = diag_with_message(&diags, "missing field 'Content-Type' in header");
+        let fix = d.fix.as_ref().expect("fix attached");
+        assert_eq!(fix.edits.len(), 1);
+        // Inserted at end of the existing msgstr value (the header is non-empty
+        // and already ends with `\n`, so no extra separator is needed).
+        let edit = &fix.edits[0];
+        assert_eq!(edit.range.start, edit.range.end);
+        assert_eq!(
+            edit.replacement,
+            "Content-Type: text/plain; charset=UTF-8\n"
+        );
+    }
+
+    #[test]
+    fn test_missing_content_transfer_encoding_fix_appends_default() {
+        let header = COMPLETE_HEADER.replace("\"Content-Transfer-Encoding: 8bit\\n\"\n", "");
+        let diags = check(&header);
+        let d = diag_with_message(
+            &diags,
+            "missing field 'Content-Transfer-Encoding' in header",
+        );
+        let fix = d.fix.as_ref().expect("fix attached");
+        assert_eq!(fix.edits.len(), 1);
+        assert_eq!(
+            fix.edits[0].replacement,
+            "Content-Transfer-Encoding: 8bit\n"
+        );
+    }
+
+    #[test]
+    fn test_other_missing_field_diagnostics_have_no_fix() {
+        // None of the other required fields have a safe default to insert.
+        let diags = check("msgid \"\"\nmsgstr \"\"\n");
+        for d in &diags {
+            if !d.message.contains("'Content-Type'")
+                && !d.message.contains("'Content-Transfer-Encoding'")
+            {
+                assert!(
+                    d.fix.is_none(),
+                    "expected no fix on diagnostic {:?}",
+                    d.message
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_invalid_value_diagnostics_have_no_fix() {
+        // The correct replacement depends on per-file context (language,
+        // encoding, contact info) so no auto-fix is offered.
+        let diags = check_language("FR");
+        assert_eq!(diags.len(), 1);
+        assert!(diags[0].fix.is_none());
+
+        let diags = check_content_type("text/html; charset=UTF-8");
+        assert_eq!(diags.len(), 1);
+        assert!(diags[0].fix.is_none());
+
+        let diags = check_plural_forms("nplurals=0; plural=0;");
+        assert_eq!(diags.len(), 1);
+        assert!(diags[0].fix.is_none());
+    }
+
+    #[test]
+    fn test_missing_content_type_fix_on_empty_header_works() {
+        // Empty header → msgstr value is "" → fix replacement has no
+        // leading `\n` and the result is well-formed.
+        let diags = check("msgid \"\"\nmsgstr \"\"\n");
+        let d = diag_with_message(&diags, "missing field 'Content-Type' in header");
+        let fix = d.fix.as_ref().expect("fix attached");
+        assert_eq!(fix.edits[0].range, 0..0);
+        assert_eq!(
+            fix.edits[0].replacement,
+            "Content-Type: text/plain; charset=UTF-8\n"
         );
     }
 }
