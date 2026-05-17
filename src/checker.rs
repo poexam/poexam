@@ -730,6 +730,45 @@ msgid \"tested.\"
 msgstr \"testé!!!\"
 ";
 
+    /// PO content with consecutive repeated words ("un un" and "et et") in
+    /// the same translation.
+    const PO_DOUBLE_WORDS_ISSUES: &str = "msgid \"\"
+msgstr \"\"
+\"Language: fr\\n\"
+\"Content-Type: text/plain; charset=UTF-8\\n\"
+
+msgid \"test\"
+msgstr \"ceci est un un test et et\"
+";
+
+    #[test]
+    fn test_fix_removes_consecutive_repeated_words() {
+        let tmp = tmp_dir("fix-double-words");
+        let po_path = write_po(tmp.path(), "fr.po", PO_DOUBLE_WORDS_ISSUES);
+
+        let mut args = default_check_args();
+        args.no_config = true;
+        args.select = Some("double-words".to_string());
+        args.fix = true;
+        let result = check_file(&po_path, &args);
+
+        let remaining = result
+            .diagnostics
+            .iter()
+            .filter(|d| d.rule == "double-words")
+            .count();
+        assert_eq!(
+            remaining, 0,
+            "expected no double-words diagnostics after --fix, got {:?}",
+            result.diagnostics
+        );
+
+        let fixed = std::fs::read_to_string(&po_path).expect("read fixed file");
+        assert!(fixed.contains("\"ceci est un test et\""));
+        assert!(!fixed.contains("un un"));
+        assert!(!fixed.contains("et et"));
+    }
+
     /// PO content with a header missing both `Content-Type` and
     /// `Content-Transfer-Encoding`. Other required fields are present so the
     /// fix exercises only the auto-fixable subset.

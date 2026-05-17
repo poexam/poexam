@@ -167,6 +167,11 @@ With the option `--fix`, poexam rewrites each PO file in place, applying every d
 
 Rules that currently produce auto-fixes:
 
+- **double-words**: Remove the second occurrence of any consecutive repeated word from the translation
+  (along with the whitespace separating it from the first occurrence).
+  **Warning**: this fix can be wrong — a few constructions legitimately repeat a word (e.g. English
+  "had had", "that that"; French "que que" in subjunctive clauses; some proper names).
+  The translator must review every change produced by this fix before committing.
 - **header**: Append a default value to the header for `Content-Type` (`text/plain; charset=UTF-8`)
   and `Content-Transfer-Encoding` (`8bit`) when those fields are missing. Other missing fields
   and all "invalid value" diagnostics are not auto-fixable because the correct value depends
