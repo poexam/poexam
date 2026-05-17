@@ -8,6 +8,7 @@
 
 use crate::checker::Checker;
 use crate::diagnostic::{Diagnostic, Severity};
+use crate::fix::{Edit, Fix, FixTarget};
 use crate::po::entry::Entry;
 use crate::po::message::Message;
 use crate::rules::rule::RuleChecker;
@@ -46,7 +47,7 @@ impl RuleChecker for WhitespaceStartRule {
     /// ```
     ///
     /// Diagnostics reported:
-    /// - [`info`](Severity::Info): `inconsistent leading whitespace ('…' / '…')`
+    /// - [`info`](Severity::Info): `inconsistent leading whitespace ('…' / '…')` (auto-fixable)
     fn check_msg(
         &self,
         checker: &Checker,
@@ -62,12 +63,24 @@ impl RuleChecker for WhitespaceStartRule {
         if id_ws == str_ws {
             vec![]
         } else {
+            let fix = Fix {
+                target: FixTarget::Msgstr {
+                    file_byte_range: msgstr.byte_range.clone(),
+                },
+                edits: vec![Edit {
+                    range: 0..str_ws.len(),
+                    replacement: id_ws.to_string(),
+                }],
+            };
             self.new_diag(
                 checker,
                 Severity::Info,
                 format!("inconsistent leading whitespace ('{id_ws}' / '{str_ws}')"),
             )
-            .map(|d| d.with_msgs_hl(msgid, [(0, id_ws.len())], msgstr, [(0, str_ws.len())]))
+            .map(|d| {
+                d.with_msgs_hl(msgid, [(0, id_ws.len())], msgstr, [(0, str_ws.len())])
+                    .with_fix(fix)
+            })
             .into_iter()
             .collect()
         }
@@ -108,7 +121,7 @@ impl RuleChecker for WhitespaceEndRule {
     /// ```
     ///
     /// Diagnostics reported:
-    /// - [`info`](Severity::Info): `inconsistent trailing whitespace ('…' / '…')`
+    /// - [`info`](Severity::Info): `inconsistent trailing whitespace ('…' / '…')` (auto-fixable)
     fn check_msg(
         &self,
         checker: &Checker,
@@ -124,6 +137,16 @@ impl RuleChecker for WhitespaceEndRule {
         if id_ws == str_ws {
             vec![]
         } else {
+            let str_ws_start = msgstr.value.len() - str_ws.len();
+            let fix = Fix {
+                target: FixTarget::Msgstr {
+                    file_byte_range: msgstr.byte_range.clone(),
+                },
+                edits: vec![Edit {
+                    range: str_ws_start..msgstr.value.len(),
+                    replacement: id_ws.to_string(),
+                }],
+            };
             self.new_diag(
                 checker,
                 Severity::Info,
@@ -134,8 +157,9 @@ impl RuleChecker for WhitespaceEndRule {
                     msgid,
                     [(msgid.value.len() - id_ws.len(), msgid.value.len())],
                     msgstr,
-                    [(msgstr.value.len() - str_ws.len(), msgstr.value.len())],
+                    [(str_ws_start, msgstr.value.len())],
                 )
+                .with_fix(fix)
             })
             .into_iter()
             .collect()
@@ -284,5 +308,46 @@ msgstr "testé  "
             diag.message,
             "inconsistent trailing whitespace (' ' / '  ')"
         );
+    }
+
+    #[test]
+    fn test_whitespace_start_fix() {
+        // msgstr is missing the leading space the msgid has.
+        let diags = check_whitespace_start(
+            r#"
+msgid " tested"
+msgstr "testé"
+"#,
+        );
+        assert_eq!(diags.len(), 1);
+        let fix = diags[0].fix.as_ref().expect("fix should be attached");
+        let FixTarget::Msgstr { file_byte_range } = &fix.target;
+        // The fix replaces the leading whitespace run (currently empty, 0..0)
+        // of msgstr with " ".
+        assert_eq!(fix.edits.len(), 1);
+        assert_eq!(fix.edits[0].range, 0..0);
+        assert_eq!(fix.edits[0].replacement, " ");
+        // The target byte range must point at the msgstr block in the file.
+        assert!(file_byte_range.start < file_byte_range.end);
+    }
+
+    #[test]
+    fn test_whitespace_end_fix() {
+        // msgstr has two trailing spaces; msgid has one.
+        let diags = check_whitespace_end(
+            r#"
+msgid "tested "
+msgstr "testé  "
+"#,
+        );
+        assert_eq!(diags.len(), 1);
+        let fix = diags[0].fix.as_ref().expect("fix should be attached");
+        let FixTarget::Msgstr { file_byte_range } = &fix.target;
+        // Decoded msgstr value is "testé  " (= 7 bytes: t-e-s-t-é(2)-space-space).
+        // The fix replaces the trailing 2-byte whitespace run with " ".
+        assert_eq!(fix.edits.len(), 1);
+        assert_eq!(fix.edits[0].range, 6..8);
+        assert_eq!(fix.edits[0].replacement, " ");
+        assert!(file_byte_range.start < file_byte_range.end);
     }
 }

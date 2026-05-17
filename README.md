@@ -165,6 +165,13 @@ examples/fr.po:42: [info:brackets] missing opening and closing square brackets '
 
 With the option `--fix`, poexam rewrites each PO file in place, applying every diagnostic that carries an auto-fix. The file is then re-checked, so the reported diagnostics reflect the post-fix state; any remaining diagnostic is annotated with `Note: no fix available.` since it could not be fixed.
 
+Rules that currently produce auto-fixes:
+
+| Rule             | Fix performed                                                                 |
+|------------------|-------------------------------------------------------------------------------|
+| whitespace-start | Replace the leading whitespace run in the translation with the source's run.  |
+| whitespace-end   | Replace the trailing whitespace run in the translation with the source's run. |
+
 The rewriter wraps each replaced `msgstr` block the same way GNU `msgcat` does (Unicode Line Breaking + display width, default page width 79), so running `msgcat` on a fixed file is a no-op. The page width is configurable with `--width N` (or `check.width` in the config file); `--width 0` disables wrapping entirely (matches `msgcat --width=0` / `msgcat --no-wrap`).
 
 Example:
