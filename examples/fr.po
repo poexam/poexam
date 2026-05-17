@@ -95,7 +95,7 @@ msgstr "test de ponctuation au début"
 msgid "Extra space before exclamation mark in source !"
 msgstr "Espace supplémentaire avant le point d'exclamation dans le source !"
 
-# rule: punc-space-id
+# rule: punc-space-str
 msgid "Space must be a non-breaking space before exclamation mark in translation!"
 msgstr "L'espace doit être un espace insécable avant le point d'exclamation dans la traduction !"
 
