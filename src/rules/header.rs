@@ -138,7 +138,6 @@ impl RuleChecker for HeaderRule {
     /// respectively). Every other diagnostic either depends on translator
     /// knowledge (language, contacts, dates, project version) or on the
     /// actual file encoding, so no safe default exists.
-    #[allow(clippy::too_many_lines)]
     fn check_header(&self, checker: &Checker, _entry: &Entry, msgstr: &Message) -> Vec<Diagnostic> {
         let fields: Vec<(String, &str)> = msgstr
             .value
@@ -159,14 +158,7 @@ impl RuleChecker for HeaderRule {
                     *severity,
                     format!("missing field '{field}' in header"),
                 )
-                .map(|d| {
-                    let d = d.with_msg(msgstr);
-                    if let Some(fix) = fix {
-                        d.with_fix(fix)
-                    } else {
-                        d
-                    }
-                })
+                .map(|d| d.with_msg(msgstr).with_optional_fix(fix))
             })
             .collect();
 

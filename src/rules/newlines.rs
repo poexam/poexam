@@ -164,10 +164,6 @@ impl NewlinesRule {
                 replacement: id_run.to_string(),
             }],
         });
-        let attach = |d: Diagnostic| match &fix {
-            Some(f) => d.with_fix(f.clone()),
-            None => d,
-        };
         // Check CR ('\r') at beginning.
         let id_starts_with_cr = msgid.value.starts_with('\r');
         let str_starts_with_cr = msgstr.value.starts_with('\r');
@@ -179,7 +175,7 @@ impl NewlinesRule {
                         Severity::Error,
                         "missing carriage return '\\r' at the beginning".to_string(),
                     )
-                    .map(|d| attach(d.with_msgs(msgid, msgstr))),
+                    .map(|d| d.with_msgs(msgid, msgstr).with_optional_fix(fix.clone())),
                 );
             }
             std::cmp::Ordering::Less => {
@@ -189,7 +185,7 @@ impl NewlinesRule {
                         Severity::Error,
                         "extra carriage return '\\r' at the beginning".to_string(),
                     )
-                    .map(|d| attach(d.with_msgs(msgid, msgstr))),
+                    .map(|d| d.with_msgs(msgid, msgstr).with_optional_fix(fix.clone())),
                 );
             }
             std::cmp::Ordering::Equal => {}
@@ -205,7 +201,7 @@ impl NewlinesRule {
                         Severity::Error,
                         "missing line feed '\\n' at the beginning".to_string(),
                     )
-                    .map(|d| attach(d.with_msgs(msgid, msgstr))),
+                    .map(|d| d.with_msgs(msgid, msgstr).with_optional_fix(fix.clone())),
                 );
             }
             std::cmp::Ordering::Less => {
@@ -215,7 +211,7 @@ impl NewlinesRule {
                         Severity::Error,
                         "extra line feed '\\n' at the beginning".to_string(),
                     )
-                    .map(|d| attach(d.with_msgs(msgid, msgstr))),
+                    .map(|d| d.with_msgs(msgid, msgstr).with_optional_fix(fix.clone())),
                 );
             }
             std::cmp::Ordering::Equal => {}
@@ -247,10 +243,6 @@ impl NewlinesRule {
                 replacement: id_run.to_string(),
             }],
         });
-        let attach = |d: Diagnostic| match &fix {
-            Some(f) => d.with_fix(f.clone()),
-            None => d,
-        };
         // Check CR ('\r') at end.
         let id_ends_with_cr = msgid.value.ends_with('\r');
         let str_ends_with_cr = msgstr.value.ends_with('\r');
@@ -262,7 +254,7 @@ impl NewlinesRule {
                         Severity::Error,
                         "missing carriage return '\\r' at the end".to_string(),
                     )
-                    .map(|d| attach(d.with_msgs(msgid, msgstr))),
+                    .map(|d| d.with_msgs(msgid, msgstr).with_optional_fix(fix.clone())),
                 );
             }
             std::cmp::Ordering::Less => {
@@ -272,7 +264,7 @@ impl NewlinesRule {
                         Severity::Error,
                         "extra carriage return '\\r' at the end".to_string(),
                     )
-                    .map(|d| attach(d.with_msgs(msgid, msgstr))),
+                    .map(|d| d.with_msgs(msgid, msgstr).with_optional_fix(fix.clone())),
                 );
             }
             std::cmp::Ordering::Equal => {}
@@ -288,13 +280,13 @@ impl NewlinesRule {
                         Severity::Error,
                         "missing line feed '\\n' at the end",
                     )
-                    .map(|d| attach(d.with_msgs(msgid, msgstr))),
+                    .map(|d| d.with_msgs(msgid, msgstr).with_optional_fix(fix.clone())),
                 );
             }
             std::cmp::Ordering::Less => {
                 diags.extend(
                     self.new_diag(checker, Severity::Error, "extra line feed '\\n' at the end")
-                        .map(|d| attach(d.with_msgs(msgid, msgstr))),
+                        .map(|d| d.with_msgs(msgid, msgstr).with_optional_fix(fix.clone())),
                 );
             }
             std::cmp::Ordering::Equal => {}

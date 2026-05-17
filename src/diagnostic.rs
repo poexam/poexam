@@ -234,6 +234,13 @@ impl Diagnostic {
         self
     }
 
+    /// Attach an auto-fix to the diagnostic if one is provided. Convenience
+    /// wrapper around [`with_fix`](Self::with_fix) that keeps builder chains
+    /// flat when the caller has an `Option<Fix>` instead of a `Fix`.
+    pub fn with_optional_fix(self, fix: Option<Fix>) -> Self {
+        fix.into_iter().fold(self, Self::with_fix)
+    }
+
     /// Add a line message to the diagnostic with the given line number and highlights.
     pub fn add_line<I>(&mut self, line: usize, message: impl Into<String>, highlights: I)
     where
