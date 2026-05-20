@@ -5,6 +5,7 @@
 //! Configuration options.
 
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use std::error::Error;
 use std::fs::read_to_string;
 use std::path::{Path, PathBuf};
@@ -51,6 +52,12 @@ pub struct CheckConfig {
 
     #[serde(default)]
     pub path_words: Option<PathBuf>,
+
+    #[serde(default)]
+    pub force_trans_file: Option<PathBuf>,
+
+    #[serde(default)]
+    pub no_trans_file: Option<PathBuf>,
 
     #[serde(default = "default_check_lang_id")]
     pub lang_id: String,
@@ -120,6 +127,8 @@ impl Default for CheckConfig {
             path_msgfmt: default_check_path_msgfmt(),
             path_dicts: default_check_path_dicts(),
             path_words: None,
+            force_trans_file: None,
+            no_trans_file: None,
             lang_id: default_check_lang_id(),
             langs: vec![],
             short_factor: default_check_short_factor(),
@@ -195,6 +204,26 @@ impl Config {
             let path = PathBuf::from(config_dir).join(path_words);
             self.check.path_words = path.canonicalize().map_or(Some(path), Some);
         }
+        if let Some(force_trans_file) = &args.force_trans_file {
+            self.check.force_trans_file = Some(PathBuf::from(force_trans_file));
+        } else if let Some(force_trans_file) = &self.check.force_trans_file
+            && force_trans_file.is_relative()
+            && let Some(config_path) = &self.path
+            && let Some(config_dir) = config_path.parent()
+        {
+            let path = PathBuf::from(config_dir).join(force_trans_file);
+            self.check.force_trans_file = path.canonicalize().map_or(Some(path), Some);
+        }
+        if let Some(no_trans_file) = &args.no_trans_file {
+            self.check.no_trans_file = Some(PathBuf::from(no_trans_file));
+        } else if let Some(no_trans_file) = &self.check.no_trans_file
+            && no_trans_file.is_relative()
+            && let Some(config_path) = &self.path
+            && let Some(config_dir) = config_path.parent()
+        {
+            let path = PathBuf::from(config_dir).join(no_trans_file);
+            self.check.no_trans_file = path.canonicalize().map_or(Some(path), Some);
+        }
         if let Some(lang_id) = &args.lang_id {
             self.check.lang_id = String::from(lang_id);
         }
@@ -218,6 +247,20 @@ impl Config {
         }
         self
     }
+}
+
+/// Load a word list from a file: one word per line, lines starting with `#`
+/// are comments, blank lines are ignored, and words are lowercased so that
+/// callers can match case-insensitively. Used by the `force-trans` and
+/// `no-trans` rules.
+pub fn load_word_list(path: &Path) -> Result<HashSet<String>, std::io::Error> {
+    let content = read_to_string(path)?;
+    Ok(content
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty() && !line.starts_with('#'))
+        .map(str::to_lowercase)
+        .collect())
 }
 
 /// Find the configuration file for a PO file.
@@ -279,6 +322,8 @@ mod tests {
             path_msgfmt: None,
             path_dicts: None,
             path_words: None,
+            force_trans_file: None,
+            no_trans_file: None,
             lang_id: None,
             langs: None,
             short_factor: None,
@@ -570,5 +615,90 @@ punc_ignore_ellipsis = true
     fn test_find_config_path_returns_none_for_nonexistent_input() {
         let missing = PathBuf::from("/this/path/should/not/exist/file.po");
         assert!(find_config_path(&missing).is_none());
+    }
+
+    /// Write a temporary word-list file with the given content and return its path.
+    fn write_word_list(label: &str, content: &str) -> (tempfile::TempDir, PathBuf) {
+        let (tmp, root) = tmp_dir(label);
+        let path = root.join("words.txt");
+        std::fs::write(&path, content).expect("write word-list file");
+        (tmp, path)
+    }
+
+    #[test]
+    fn test_load_word_list_basic_one_per_line() {
+        let (_tmp, path) = write_word_list("words-basic", "alpha\nbeta\ngamma\n");
+        let words = load_word_list(&path).expect("load");
+        assert_eq!(words.len(), 3);
+        assert!(words.contains("alpha"));
+        assert!(words.contains("beta"));
+        assert!(words.contains("gamma"));
+    }
+
+    #[test]
+    fn test_load_word_list_lowercases_entries() {
+        // Mixed-case input is normalized so callers can match case-insensitively.
+        let (_tmp, path) = write_word_list("words-case", "Linux\nFOO\nBaR\n");
+        let words = load_word_list(&path).expect("load");
+        assert_eq!(words.len(), 3);
+        assert!(words.contains("linux"));
+        assert!(words.contains("foo"));
+        assert!(words.contains("bar"));
+        // Original case is not retained.
+        assert!(!words.contains("Linux"));
+        assert!(!words.contains("FOO"));
+    }
+
+    #[test]
+    fn test_load_word_list_skips_blank_lines_and_comments() {
+        let (_tmp, path) = write_word_list(
+            "words-comments",
+            "# leading comment\n\nalpha\n\n   # indented comment\nbeta\n\n",
+        );
+        let words = load_word_list(&path).expect("load");
+        assert_eq!(words.len(), 2);
+        assert!(words.contains("alpha"));
+        assert!(words.contains("beta"));
+    }
+
+    #[test]
+    fn test_load_word_list_trims_surrounding_whitespace() {
+        let (_tmp, path) = write_word_list("words-trim", "  alpha  \n\t beta\t\n");
+        let words = load_word_list(&path).expect("load");
+        assert_eq!(words.len(), 2);
+        assert!(words.contains("alpha"));
+        assert!(words.contains("beta"));
+    }
+
+    #[test]
+    fn test_load_word_list_deduplicates() {
+        // The same word repeated (and across cases) collapses into one entry.
+        let (_tmp, path) = write_word_list("words-dup", "alpha\nALPHA\nalpha\nbeta\n");
+        let words = load_word_list(&path).expect("load");
+        assert_eq!(words.len(), 2);
+        assert!(words.contains("alpha"));
+        assert!(words.contains("beta"));
+    }
+
+    #[test]
+    fn test_load_word_list_empty_file_yields_empty_set() {
+        let (_tmp, path) = write_word_list("words-empty", "");
+        let words = load_word_list(&path).expect("load");
+        assert!(words.is_empty());
+    }
+
+    #[test]
+    fn test_load_word_list_only_comments_and_blanks_yields_empty_set() {
+        let (_tmp, path) =
+            write_word_list("words-only-comments", "# header\n\n\n# trailing\n   \n");
+        let words = load_word_list(&path).expect("load");
+        assert!(words.is_empty());
+    }
+
+    #[test]
+    fn test_load_word_list_missing_file_returns_io_error() {
+        let missing = PathBuf::from("/this/path/should/not/exist/words.txt");
+        let err = load_word_list(&missing).expect_err("missing file is an error");
+        assert_eq!(err.kind(), std::io::ErrorKind::NotFound);
     }
 }

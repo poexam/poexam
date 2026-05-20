@@ -309,6 +309,8 @@ mod tests {
             path_msgfmt: None,
             path_dicts: None,
             path_words: None,
+            force_trans_file: None,
+            no_trans_file: None,
             lang_id: None,
             langs: None,
             short_factor: None,

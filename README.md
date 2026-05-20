@@ -74,6 +74,8 @@ The following options are available in the `check` section (each option can be o
 | path_msgfmt          | String (path)    | Path to `msgfmt` for PO file compilation.                         |
 | path_dicts           | String (path)    | Path to the Hunspell dictionaries.                                |
 | path_words           | String (path)    | Path with custom words (absolute or relative to the config file). |
+| force_trans_file     | String (path)    | Path to a word list for the `force-trans` rule.                   |
+| no_trans_file        | String (path)    | Path to a word list for the `no-trans` rule.                      |
 | lang_id              | String           | Language used to check source strings.                            |
 | langs                | Array of strings | Check spelling only for these languages.                          |
 | short_factor         | Integer          | Min ratio source/translation length to flag "too short" (min: 2). |
@@ -130,8 +132,10 @@ You can enable them on-demand:
 | changed        | Translation is different from the source string. |
 | compilation    | Compilation with `msgfmt`.                       |
 | double-words   | Translation has consecutive repeated words.      |
+| force-trans    | Words that must be translated.                   |
 | fuzzy          | Fuzzy entry.                                     |
 | html-tags      | Missing/extra/different HTML tags.               |
+| no-trans       | Words that must not be translated.               |
 | noqa           | Entry has `noqa` comment.                        |
 | obsolete       | Obsolete entry.                                  |
 | paths          | Missing/extra/different paths.                   |
@@ -202,6 +206,33 @@ And for the translated words in French (the French hunspell dictionary must be i
 
 ```shell
 poexam check --select spelling-str --output misspelled fr.po > fr.dic
+```
+
+### Force / forbid translation of specific words
+
+Two non-default rules consult external word lists to enforce, for a given vocabulary, whether words found in the source must (or must not) be translated:
+
+- `force-trans` (option `--force-trans-file` or `force_trans_file`): every word from the list that appears in the source (`msgid`) must NOT appear in the translation (`msgstr`) with the **same case as used in the source**. A translation that reuses the source word with a different case is considered a deliberate variant and is not flagged.
+- `no-trans` (option `--no-trans-file` or `no_trans_file`): every word from the list that appears in the source must also appear in the translation, the same number of times — and with the **same case as used in the source**, regardless of the case in which the word is stored in the list file. The position of the word in the translation does not matter.
+
+Both word-list files share the same format: one word per line, blank lines and lines starting with `#` are ignored. Matching of source words against the list is case-insensitive (so `LINUX`, `Linux` and `linux` in the list are equivalent).
+
+For example, with `linux` in a no-trans file:
+
+```text
+msgid "Linux is great"
+msgstr "Linux est génial"  # ok, source case is preserved
+msgstr "linux est génial"  # flagged: source uses "Linux", not "linux"
+msgstr "ceci est génial"   # flagged: missing "Linux"
+```
+
+And with `forbidden` in a force-trans file:
+
+```text
+msgid "this is forbidden"
+msgstr "ceci est interdit"   # ok, "forbidden" was translated
+msgstr "ceci est forbidden"  # flagged: source case-form "forbidden" reused verbatim
+msgstr "ceci est Forbidden"  # ok, different case from the source — counts as a variant
 ```
 
 ### Auto-fix

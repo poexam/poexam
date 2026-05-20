@@ -14,9 +14,9 @@ use crate::{
     po::{entry::Entry, message::Message},
     rules::{
         blank, brackets, changed, compilation, double_quotes, double_spaces, double_words, emails,
-        encoding, escapes, formats, fuzzy, header, html_tags, long, newlines, noqa, obsolete,
-        paths, pipes, plurals, punc, punc_space, short, spelling, tabs, unchanged, unicode_ctrl,
-        untranslated, urls, whitespace,
+        encoding, escapes, force_trans, formats, fuzzy, header, html_tags, long, newlines,
+        no_trans, noqa, obsolete, paths, pipes, plurals, punc, punc_space, short, spelling, tabs,
+        unchanged, unicode_ctrl, untranslated, urls, whitespace,
     },
     table::render_table,
 };
@@ -36,6 +36,8 @@ pub struct Rules {
     pub spelling_ctxt_rule: bool,
     pub spelling_id_rule: bool,
     pub spelling_str_rule: bool,
+    pub force_trans_rule: bool,
+    pub no_trans_rule: bool,
 }
 
 impl std::fmt::Display for Rule {
@@ -53,6 +55,8 @@ impl Rules {
         let spelling_ctxt_rule = rules.iter().any(|r| r.name() == "spelling-ctxt");
         let spelling_id_rule = rules.iter().any(|r| r.name() == "spelling-id");
         let spelling_str_rule = rules.iter().any(|r| r.name() == "spelling-str");
+        let force_trans_rule = rules.iter().any(|r| r.name() == "force-trans");
+        let no_trans_rule = rules.iter().any(|r| r.name() == "no-trans");
         Self {
             enabled: rules,
             fuzzy_rule,
@@ -62,6 +66,8 @@ impl Rules {
             spelling_ctxt_rule,
             spelling_id_rule,
             spelling_str_rule,
+            force_trans_rule,
+            no_trans_rule,
         }
     }
 }
@@ -157,12 +163,14 @@ fn get_all_rules() -> Vec<Rule> {
         Box::new(emails::EmailsRule {}),
         Box::new(encoding::EncodingRule {}),
         Box::new(escapes::EscapesRule {}),
+        Box::new(force_trans::ForceTransRule {}),
         Box::new(formats::FormatsRule {}),
         Box::new(fuzzy::FuzzyRule {}),
         Box::new(header::HeaderRule {}),
         Box::new(html_tags::HtmlTagsRule {}),
         Box::new(long::LongRule {}),
         Box::new(newlines::NewlinesRule {}),
+        Box::new(no_trans::NoTransRule {}),
         Box::new(noqa::NoqaRule {}),
         Box::new(obsolete::ObsoleteRule {}),
         Box::new(paths::PathsRule {}),

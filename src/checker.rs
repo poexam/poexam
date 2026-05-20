@@ -5,7 +5,7 @@
 //! Checker for PO files.
 
 use std::{
-    collections::{BTreeMap, BTreeSet, HashMap},
+    collections::{BTreeMap, BTreeSet, HashMap, HashSet},
     fs::File,
     io::Read,
     ops::Range,
@@ -17,7 +17,7 @@ use spellbook::Dictionary;
 
 use crate::{
     args,
-    config::{Config, find_config_path},
+    config::{self, Config, find_config_path},
     diagnostic::{Diagnostic, Severity},
     dict,
     dir::find_po_files,
@@ -46,6 +46,12 @@ pub struct Checker<'d> {
     pub config: Config,
     pub dict_id: Option<Dictionary>,
     pub dict_str: Option<Dictionary>,
+    /// Lowercase words loaded from `check.force_trans_file` (one per line).
+    /// Used by the `force-trans` rule.
+    pub force_trans_words: Option<HashSet<String>>,
+    /// Lowercase words loaded from `check.no_trans_file` (one per line).
+    /// Used by the `no-trans` rule.
+    pub no_trans_words: Option<HashSet<String>>,
     pub diagnostics: Vec<Diagnostic>,
     parser: Parser<'d>,
 }
@@ -96,6 +102,33 @@ impl<'d> Checker<'d> {
         self.parser.nplurals()
     }
 
+    /// Load the word list for a `force-trans` / `no-trans` rule via
+    /// [`config::load_word_list`], or emit a warning diagnostic when the file
+    /// can not be read (mirrors the behavior of the spelling rules when a
+    /// dictionary is missing).
+    fn load_rule_word_list(
+        &mut self,
+        rule_name: &'static str,
+        path: Option<PathBuf>,
+    ) -> Option<HashSet<String>> {
+        let path = path?;
+        match config::load_word_list(&path) {
+            Ok(words) => Some(words),
+            Err(err) => {
+                self.diagnostics.push(Diagnostic::new(
+                    &self.path,
+                    rule_name,
+                    Severity::Warning,
+                    format!(
+                        "words file not found for rule '{rule_name}' (path: {}): {err}, {rule_name} rule ignored",
+                        path.display()
+                    ),
+                ));
+                None
+            }
+        }
+    }
+
     /// Check the PO entry using the given rule.
     ///
     /// This function calls the following functions defined in the rule that implements
@@ -136,6 +169,17 @@ impl<'d> Checker<'d> {
     /// Then, for each entry, it calls the function [`check_entry`](crate::checker::Checker::check_entry)
     /// to check the entry with the given rule.
     pub(crate) fn do_all_checks(&mut self, rules: &Rules) {
+        // Load word lists for `force-trans` / `no-trans` rules if enabled. These
+        // lists are independent of the PO file's header, so we load them up
+        // front and surface any file-read error as a single diagnostic.
+        if rules.force_trans_rule {
+            self.force_trans_words =
+                self.load_rule_word_list("force-trans", self.config.check.force_trans_file.clone());
+        }
+        if rules.no_trans_rule {
+            self.no_trans_words =
+                self.load_rule_word_list("no-trans", self.config.check.no_trans_file.clone());
+        }
         // Run rules for the entire file (e.g. check compilation of the file with msgfmt command).
         for rule in &rules.enabled {
             self.diagnostics.extend(rule.check_file(self));
@@ -473,6 +517,8 @@ mod tests {
             path_msgfmt: None,
             path_dicts: None,
             path_words: None,
+            force_trans_file: None,
+            no_trans_file: None,
             lang_id: None,
             langs: None,
             short_factor: None,

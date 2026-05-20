@@ -88,6 +88,14 @@ pub struct CheckArgs {
     #[arg(long)]
     pub path_words: Option<PathBuf>,
 
+    /// Path to a file with words that must NOT appear in translation when present in source (one word per line, case insensitive)
+    #[arg(long)]
+    pub force_trans_file: Option<PathBuf>,
+
+    /// Path to a file with words that must appear in translation when present in source, preserving the case used in source (one word per line, case insensitive)
+    #[arg(long)]
+    pub no_trans_file: Option<PathBuf>,
+
     /// Language used to check source strings (default: `en_US`)
     #[arg(long)]
     pub lang_id: Option<String>,
