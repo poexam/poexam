@@ -133,6 +133,7 @@ You can enable them on-demand:
 | compilation    | Compilation with `msgfmt`.                       |
 | double-words   | Translation has consecutive repeated words.      |
 | force-trans    | Words that must be translated.                   |
+| functions      | Missing/extra/different function names.          |
 | fuzzy          | Fuzzy entry.                                     |
 | html-tags      | Missing/extra/different HTML tags.               |
 | no-trans       | Words that must not be translated.               |

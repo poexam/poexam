@@ -27,7 +27,8 @@ impl FormatParser for FormatNull {
 mod tests {
     use crate::po::format::{
         iter::{
-            FormatEmailPos, FormatHtmlTagPos, FormatPathPos, FormatPos, FormatUrlPos, FormatWordPos,
+            FormatEmailPos, FormatFunctionPos, FormatHtmlTagPos, FormatPathPos, FormatPos,
+            FormatUrlPos, FormatWordPos,
         },
         language::Language,
         strip_formats,
@@ -117,6 +118,38 @@ mod tests {
                 .map(|m| (m.s, m.start, m.end))
                 .collect::<Vec<_>>(),
             vec![("/home/%s/file.txt", 6, 23)]
+        );
+    }
+
+    #[test]
+    fn test_function_pos() {
+        assert!(FormatFunctionPos::new("", Language::Null).next().is_none());
+        assert!(
+            FormatFunctionPos::new("Hello, world!", Language::Null)
+                .next()
+                .is_none()
+        );
+        assert_eq!(
+            FormatFunctionPos::new(
+                "Use foo() and bar.baz() and Class::method() and ptr->m() here",
+                Language::Null
+            )
+            .map(|m| (m.s, m.start, m.end))
+            .collect::<Vec<_>>(),
+            vec![
+                ("foo()", 4, 9),
+                ("bar.baz()", 14, 23),
+                ("Class::method()", 28, 43),
+                ("ptr->m()", 48, 56),
+            ]
+        );
+        // Not a function: invalid char inside parens, space before `()`. Leading
+        // `.` is not part of the name since names must start with `\w`.
+        assert_eq!(
+            FormatFunctionPos::new("foo(bar) and foo () and .bar() here", Language::Null)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("bar()", 25, 30)]
         );
     }
 

@@ -122,7 +122,8 @@ impl FormatParser for FormatPythonBrace {
 mod tests {
     use crate::po::format::{
         iter::{
-            FormatEmailPos, FormatHtmlTagPos, FormatPathPos, FormatPos, FormatUrlPos, FormatWordPos,
+            FormatEmailPos, FormatFunctionPos, FormatHtmlTagPos, FormatPathPos, FormatPos,
+            FormatUrlPos, FormatWordPos,
         },
         language::Language,
         strip_formats,
@@ -388,6 +389,72 @@ mod tests {
                 .map(|m| (m.s, m.start, m.end))
                 .collect::<Vec<_>>(),
             vec![("/home/{0}/file.txt", 6, 24)]
+        );
+    }
+
+    #[test]
+    fn test_function_pos() {
+        assert!(
+            FormatFunctionPos::new("", Language::Python)
+                .next()
+                .is_none()
+        );
+        assert!(
+            FormatFunctionPos::new("", Language::PythonBrace)
+                .next()
+                .is_none()
+        );
+        assert!(
+            FormatFunctionPos::new("Hello, world!", Language::Python)
+                .next()
+                .is_none()
+        );
+        assert!(
+            FormatFunctionPos::new("Hello, world!", Language::PythonBrace)
+                .next()
+                .is_none()
+        );
+        assert_eq!(
+            FormatFunctionPos::new(
+                "Use foo() and bar.baz() and Class::method() and ptr->m() here",
+                Language::Python
+            )
+            .map(|m| (m.s, m.start, m.end))
+            .collect::<Vec<_>>(),
+            vec![
+                ("foo()", 4, 9),
+                ("bar.baz()", 14, 23),
+                ("Class::method()", 28, 43),
+                ("ptr->m()", 48, 56),
+            ]
+        );
+        assert_eq!(
+            FormatFunctionPos::new(
+                "Use foo() and bar.baz() and Class::method() and ptr->m() here",
+                Language::PythonBrace
+            )
+            .map(|m| (m.s, m.start, m.end))
+            .collect::<Vec<_>>(),
+            vec![
+                ("foo()", 4, 9),
+                ("bar.baz()", 14, 23),
+                ("Class::method()", 28, 43),
+                ("ptr->m()", 48, 56),
+            ]
+        );
+        // Python `%` format strings inside a function name are transparent.
+        assert_eq!(
+            FormatFunctionPos::new("call func_%s() now", Language::Python)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("func_%s()", 5, 14)]
+        );
+        // Python brace format strings inside a function name are transparent.
+        assert_eq!(
+            FormatFunctionPos::new("call func_{0}() now", Language::PythonBrace)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("func_{0}()", 5, 15)]
         );
     }
 

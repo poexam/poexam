@@ -14,9 +14,9 @@ use crate::{
     po::{entry::Entry, message::Message},
     rules::{
         blank, brackets, changed, compilation, double_quotes, double_spaces, double_words, emails,
-        encoding, escapes, force_trans, formats, fuzzy, header, html_tags, long, newlines,
-        no_trans, noqa, obsolete, paths, pipes, plurals, punc, punc_space, short, spelling, tabs,
-        unchanged, unicode_ctrl, untranslated, urls, whitespace,
+        encoding, escapes, force_trans, formats, functions, fuzzy, header, html_tags, long,
+        newlines, no_trans, noqa, obsolete, paths, pipes, plurals, punc, punc_space, short,
+        spelling, tabs, unchanged, unicode_ctrl, untranslated, urls, whitespace,
     },
     table::render_table,
 };
@@ -165,6 +165,7 @@ fn get_all_rules() -> Vec<Rule> {
         Box::new(escapes::EscapesRule {}),
         Box::new(force_trans::ForceTransRule {}),
         Box::new(formats::FormatsRule {}),
+        Box::new(functions::FunctionsRule {}),
         Box::new(fuzzy::FuzzyRule {}),
         Box::new(header::HeaderRule {}),
         Box::new(html_tags::HtmlTagsRule {}),

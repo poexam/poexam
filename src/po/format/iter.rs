@@ -465,3 +465,99 @@ impl FormatHtmlTagPos<'_> {
         None
     }
 }
+
+pub struct FormatFunctionPos<'a> {
+    s: &'a str,
+    len: usize,
+    pos: usize,
+    fmt: Language,
+}
+
+impl<'a> FormatFunctionPos<'a> {
+    pub fn new(s: &'a str, language: Language) -> Self {
+        Self {
+            s,
+            len: s.len(),
+            pos: 0,
+            fmt: language,
+        }
+    }
+}
+
+/// Iterator returning function calls of a string, according to the given language,
+/// skipping format strings.
+///
+/// A function call is a name (ASCII word characters and dots), optionally with
+/// `::` or `->` separators followed by more name parts, ending with `()`.
+///
+/// For example with the string `Use foo() and bar.baz() and Class::method()`,
+/// it will return `foo()`, `bar.baz()` and `Class::method()` with their
+/// positions in the string.
+impl<'a> Iterator for FormatFunctionPos<'a> {
+    type Item = MatchFmtPos<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        'outer: loop {
+            // Find the start: the first ASCII word character (alphanumeric or `_`).
+            // Skip format strings and any other characters.
+            let start;
+            loop {
+                let (c, new_pos, is_format) = self.fmt.next_char(self.s, self.pos)?;
+                if is_format {
+                    self.pos = self.fmt.find_end_format(self.s, new_pos, self.len);
+                    continue;
+                }
+                if c.is_ascii_alphanumeric() || c == '_' {
+                    start = self.pos;
+                    self.pos = new_pos;
+                    break;
+                }
+                self.pos = new_pos;
+            }
+
+            // Walk forward, accepting name characters (`\w`, `.`), separators (`::`, `->`)
+            // and format strings (transparent: included in the match span but not in the
+            // syntactic name). Stop at `()` (success) or any other character (failure).
+            loop {
+                let bytes = self.s.as_bytes();
+                // Try separator `::` or `->`.
+                if self.pos + 2 <= self.len {
+                    let two = &bytes[self.pos..self.pos + 2];
+                    if two == b"::" || two == b"->" {
+                        self.pos += 2;
+                        continue;
+                    }
+                }
+                // Try `()`.
+                if self.pos + 2 <= self.len
+                    && bytes[self.pos] == b'('
+                    && bytes[self.pos + 1] == b')'
+                {
+                    let end = self.pos + 2;
+                    self.pos = end;
+                    return Some(MatchFmtPos {
+                        s: &self.s[start..end],
+                        start,
+                        end,
+                    });
+                }
+                // Get the next char (may be the start of a format string).
+                let Some((c, new_pos, is_format)) = self.fmt.next_char(self.s, self.pos) else {
+                    // End of string reached without finding `()`.
+                    return None;
+                };
+                if is_format {
+                    self.pos = self.fmt.find_end_format(self.s, new_pos, self.len);
+                    continue;
+                }
+                if c.is_ascii_alphanumeric() || c == '_' || c == '.' {
+                    self.pos = new_pos;
+                    continue;
+                }
+                // Not a valid character in a function name: abandon the current attempt
+                // and resume scanning for a new start from the same position.
+                continue 'outer;
+            }
+        }
+    }
+}

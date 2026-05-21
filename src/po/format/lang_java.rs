@@ -95,7 +95,8 @@ impl FormatParser for FormatJava {
 mod tests {
     use crate::po::format::{
         iter::{
-            FormatEmailPos, FormatHtmlTagPos, FormatPathPos, FormatPos, FormatUrlPos, FormatWordPos,
+            FormatEmailPos, FormatFunctionPos, FormatHtmlTagPos, FormatPathPos, FormatPos,
+            FormatUrlPos, FormatWordPos,
         },
         language::Language,
         strip_formats,
@@ -274,6 +275,37 @@ mod tests {
                 .map(|m| (m.s, m.start, m.end))
                 .collect::<Vec<_>>(),
             vec![("/home/{0}/data.txt", 6, 24)]
+        );
+    }
+
+    #[test]
+    fn test_function_pos() {
+        assert!(FormatFunctionPos::new("", Language::Java).next().is_none());
+        assert!(
+            FormatFunctionPos::new("Hello, world!", Language::Java)
+                .next()
+                .is_none()
+        );
+        assert_eq!(
+            FormatFunctionPos::new(
+                "Use foo() and bar.baz() and Class::method() and ptr->m() here",
+                Language::Java
+            )
+            .map(|m| (m.s, m.start, m.end))
+            .collect::<Vec<_>>(),
+            vec![
+                ("foo()", 4, 9),
+                ("bar.baz()", 14, 23),
+                ("Class::method()", 28, 43),
+                ("ptr->m()", 48, 56),
+            ]
+        );
+        // Java `MessageFormat` placeholders inside a function name are transparent.
+        assert_eq!(
+            FormatFunctionPos::new("call func_{0}() now", Language::Java)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("func_{0}()", 5, 15)]
         );
     }
 

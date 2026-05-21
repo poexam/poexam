@@ -16,6 +16,7 @@ pub mod encoding;
 pub mod escapes;
 pub mod force_trans;
 pub mod formats;
+pub mod functions;
 pub mod fuzzy;
 pub mod header;
 pub mod html_tags;
