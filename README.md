@@ -267,6 +267,17 @@ Rules that currently produce auto-fixes:
 - **Caveats**: the translator may have intentionally used a localized contact address (e.g. a
   language-specific support inbox); the fix overwrites that choice with the source's email.
 
+#### functions
+
+- **Fix**: When the translation has the same number of function names as the source but at least
+  one differs, replace each translation function name in place with the function name at the same
+  position in the source. The "missing" and "extra" diagnostics (count mismatch) are not
+  auto-fixable.
+- **Safe**: no.
+- **Caveats**: the translator may have reordered function references in the prose; positional
+  pairing then maps a translation name to a different source name and the fix renames it
+  incorrectly.
+
 #### header
 
 - **Fix**: Append a default value to the header for `Content-Type` (`text/plain; charset=UTF-8`)
