@@ -8,6 +8,7 @@ version = 1
 path = [
     "Cargo.lock",
     "examples/*.dic",
+    "poexam.png",
     "resources/**",
 ]
 precedence = "override"

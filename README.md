@@ -4,11 +4,22 @@ SPDX-FileCopyrightText: 2026 Sébastien Helleu <flashcode@flashtux.org>
 SPDX-License-Identifier: GPL-3.0-or-later
 -->
 
-# Poexam
+<p align="center">
+  <img src="poexam.png" alt="Poexam lgoo">
+</p>
+<p align="center">
+  <a href="https://crates.io/crates/poexam">
+    <img src="https://img.shields.io/crates/v/poexam.svg" alt="Crates.io">
+  </a>
+  <a href="https://github.com/poexam/poexam/actions?query=workflow%3A%22CI%22">
+    <img src="https://github.com/poexam/poexam/workflows/CI/badge.svg" alt="Build status">
+  </a>
+  <a href="https://api.reuse.software/info/github.com/poexam/poexam">
+    <img src="https://api.reuse.software/badge/github.com/poexam/poexam" alt="REUSE status">
+  </a>
+</p>
 
-[![Crates.io](https://img.shields.io/crates/v/poexam.svg)](https://crates.io/crates/poexam)
-[![Build status](https://github.com/poexam/poexam/workflows/CI/badge.svg)](https://github.com/poexam/poexam/actions?query=workflow%3A%22CI%22)
-[![REUSE status](https://api.reuse.software/badge/github.com/poexam/poexam)](https://api.reuse.software/info/github.com/poexam/poexam)
+# Poexam
 
 **Poexam** is a blazingly fast PO file linter with a comprehensive diagnostic report and auto-fix feature.
 
