@@ -8,7 +8,7 @@
 //!
 //! The following sub-commands are available:
 //!
-//! - [`check`](#check-files): check files
+//! - [`check`](#check-files): check and fix files
 //! - [`rules`](#rules): display rules used to check files
 //! - [`stats`](#stats): display statistics about files
 //!
@@ -18,6 +18,8 @@
 //! in the provided directories.
 //!
 //! The .gitignore rules are respected: ignored files are skipped.
+//!
+//! The `check` command can also fix some issues in-place, and it can generate a SARIF report for CI jobs.
 //!
 //! # Rules
 //!
