@@ -12,6 +12,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 - Treat surrounding whitespace as part of the leading/trailing punctuation run in rules "punc-start" and "punc-end"
 - Ignore whitespace when comparing leading/trailing punctuation in rules "punc-start" and "punc-end"
+- Recognize script-specific punctuation in rules "punc-start" and "punc-end": Japanese/Chinese ideographic comma `、`, Devanagari danda and double danda, Khmer "khan", Myanmar section, Armenian full stop
 
 ### Added
 
@@ -20,7 +21,6 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - Add non-default rule "force-trans" with option `--force-trans-file` and config key `force_trans_file`
 - Add non-default rule "no-trans" with option `--no-trans-file` and config key `no_trans_file`
 - Add non-default rule "functions" to check for missing, extra or different function names
-- Recognize script-specific punctuation in rules "punc-start" and "punc-end": Japanese/Chinese ideographic comma `、`, Devanagari danda and double danda, Khmer "khan", Myanmar section, Armenian full stop
 
 ## Version 0.0.10 (2026-05-13)
 
