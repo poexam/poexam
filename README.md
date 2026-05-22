@@ -5,7 +5,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 -->
 
 <p align="center">
-  <img src="poexam.png" alt="Poexam lgoo">
+  <img src="poexam.png" alt="Poexam logo">
 </p>
 <p align="center">
   <a href="https://crates.io/crates/poexam">
