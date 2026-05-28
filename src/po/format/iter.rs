@@ -122,6 +122,92 @@ impl<'a> Iterator for FormatWordPos<'a> {
     }
 }
 
+pub struct FormatAcronymPos<'a> {
+    s: &'a str,
+    len: usize,
+    pos: usize,
+    fmt: Language,
+}
+
+impl<'a> FormatAcronymPos<'a> {
+    pub fn new(s: &'a str, language: Language) -> Self {
+        Self {
+            s,
+            len: s.len(),
+            pos: 0,
+            fmt: language,
+        }
+    }
+}
+
+/// Iterator returning acronyms of a string, according to the given language,
+/// skipping format strings.
+///
+/// An acronym is a word of length ≥ 2 chars whose Python-equivalent
+/// `str.isupper()` returns true: at least one cased character is present and
+/// none is lowercase. Caseless characters (digits, etc.) are allowed.
+///
+/// Words are alphanumeric runs (boundaries: any non-alphanumeric character
+/// including apostrophes, hyphens, spaces and punctuation), so `API` in
+/// `l'API` is recognized as well as `MP3` and `B2B`. `URLs` and `Json` are
+/// not acronyms (they contain a lowercase letter).
+///
+/// For example with the string `Use the HTTP API for %s and l'API`, it will
+/// return `HTTP`, `API` and `API` with their positions in the string.
+impl<'a> Iterator for FormatAcronymPos<'a> {
+    type Item = MatchFmtPos<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let mut idx_start = None;
+            let mut idx_end = None;
+            let mut has_upper = false;
+            let mut has_lower = false;
+            while let Some((c, new_pos, is_format)) = self.fmt.next_char(self.s, self.pos) {
+                if is_format {
+                    if idx_start.is_some() {
+                        break;
+                    }
+                    self.pos = self.fmt.find_end_format(self.s, new_pos, self.len);
+                    continue;
+                }
+                if c.is_alphanumeric() {
+                    if idx_start.is_none() {
+                        idx_start = Some(self.pos);
+                        has_upper = false;
+                        has_lower = false;
+                    }
+                    if c.is_uppercase() {
+                        has_upper = true;
+                    } else if c.is_lowercase() {
+                        has_lower = true;
+                    }
+                    idx_end = Some(new_pos);
+                    self.pos = new_pos;
+                } else if idx_start.is_some() {
+                    break;
+                } else {
+                    self.pos = new_pos;
+                }
+            }
+            match (idx_start, idx_end) {
+                (Some(start), Some(end)) => {
+                    let word = &self.s[start..end];
+                    if has_upper && !has_lower && word.chars().count() >= 2 {
+                        return Some(MatchFmtPos {
+                            s: word,
+                            start,
+                            end,
+                        });
+                    }
+                    // Not an all-uppercase word, or too short — keep scanning.
+                }
+                _ => return None,
+            }
+        }
+    }
+}
+
 pub struct FormatUrlPos<'a> {
     s: &'a str,
     len: usize,

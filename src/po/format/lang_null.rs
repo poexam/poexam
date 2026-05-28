@@ -27,8 +27,8 @@ impl FormatParser for FormatNull {
 mod tests {
     use crate::po::format::{
         iter::{
-            FormatEmailPos, FormatFunctionPos, FormatHtmlTagPos, FormatPathPos, FormatPos,
-            FormatUrlPos, FormatWordPos,
+            FormatAcronymPos, FormatEmailPos, FormatFunctionPos, FormatHtmlTagPos, FormatPathPos,
+            FormatPos, FormatUrlPos, FormatWordPos,
         },
         language::Language,
         strip_formats,
@@ -61,6 +61,45 @@ mod tests {
                 .map(|m| (m.s, m.start, m.end))
                 .collect::<Vec<_>>(),
             vec![("Hello", 0, 5), ("s", 8, 9), ("world", 10, 15)]
+        );
+    }
+
+    #[test]
+    fn test_acronym_pos() {
+        assert!(FormatAcronymPos::new("", Language::Null).next().is_none());
+        // No acronyms when every word has at least one lowercase character.
+        assert!(
+            FormatAcronymPos::new("Hello, %s world!", Language::Null)
+                .next()
+                .is_none()
+        );
+        // All-uppercase words of length ≥ 2 are returned with their positions.
+        assert_eq!(
+            FormatAcronymPos::new("Use the HTTP API for %s and skip A", Language::Null)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("HTTP", 8, 12), ("API", 13, 16)]
+        );
+        // Caseless characters (digits) inside a word are allowed, as long as
+        // the word has at least one uppercase letter and no lowercase letter
+        // (mirrors Python's `str.isupper()`).
+        assert_eq!(
+            FormatAcronymPos::new("Play MP3 and B2B files", Language::Null)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("MP3", 5, 8), ("B2B", 13, 16)]
+        );
+        // Words with any lowercase letter are not acronyms.
+        assert!(
+            FormatAcronymPos::new("Url URLs and Json", Language::Null)
+                .next()
+                .is_none()
+        );
+        // Pure-digit words and single-character words are excluded.
+        assert!(
+            FormatAcronymPos::new("123 A B C", Language::Null)
+                .next()
+                .is_none()
         );
     }
 

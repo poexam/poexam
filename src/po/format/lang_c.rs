@@ -127,8 +127,8 @@ mod tests {
     use super::*;
     use crate::po::format::{
         iter::{
-            FormatEmailPos, FormatFunctionPos, FormatHtmlTagPos, FormatPathPos, FormatPos,
-            FormatUrlPos, FormatWordPos,
+            FormatAcronymPos, FormatEmailPos, FormatFunctionPos, FormatHtmlTagPos, FormatPathPos,
+            FormatPos, FormatUrlPos, FormatWordPos,
         },
         language::Language,
         strip_formats,
@@ -223,6 +223,19 @@ mod tests {
                 ("é", 54, 56),
                 ("world", 57, 62),
             ]
+        );
+    }
+
+    #[test]
+    fn test_acronym_pos() {
+        assert!(FormatAcronymPos::new("", Language::C).next().is_none());
+        // Format strings are skipped: `%s` is not a candidate, and the surrounding
+        // acronyms (HTTP, API) are returned with their original positions.
+        assert_eq!(
+            FormatAcronymPos::new("HTTP %s API and %d JSON", Language::C)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("HTTP", 0, 4), ("API", 8, 11), ("JSON", 19, 23)]
         );
     }
 

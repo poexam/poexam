@@ -140,6 +140,7 @@ You can enable them on-demand:
 
 | Rule name      | Diagnostic reported                              |
 |----------------|--------------------------------------------------|
+| acronyms       | Acronyms from the source missing in translation. |
 | changed        | Translation is different from the source string. |
 | compilation    | Compilation with `msgfmt`.                       |
 | double-words   | Translation has consecutive repeated words.      |
@@ -219,6 +220,20 @@ And for the translated words in French (the French hunspell dictionary must be i
 ```shell
 poexam check --select spelling-str --output misspelled fr.po > fr.dic
 ```
+
+### Acronyms
+
+The non-default rule `acronyms` checks that every acronym found in the source (`msgid`) is also present verbatim in the translation (`msgstr`). An acronym is an alphanumeric word of length ≥ 2 for which Python's `str.isupper()` returns true: at least one cased character is uppercase and no character is lowercase. So `URL`, `HTTP`, `API`, `JSON`, `MP3` and `B2B` are acronyms; `Url`, `URLs`, `Json` and pure-digit words like `123` are not. Format strings are skipped (e.g. `%s`, `{0}`).
+
+For example, for an English-to-French translation:
+
+```text
+msgid "Use the HTTP API"
+msgstr "Utiliser l'API HTTP"  # ok, both acronyms are preserved
+msgstr "Utiliser l'interface"  # flagged: HTTP and API are missing
+```
+
+When the `force-trans` rule is also enabled and a `force-trans-file` is configured, any acronym whose lowercase form is listed in that file is ignored by the `acronyms` rule, because the force-trans rule requires it to be translated (the two rules would otherwise contradict each other).
 
 ### Force / forbid translation of specific words
 
