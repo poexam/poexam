@@ -40,5 +40,8 @@ path_words = "."
 # perform only checks with these severities
 # severity = ["error", "warning", "info"]
 
+# marker character for keyboard accelerators in rule "accelerators"
+# accelerator = "&"
+
 # output page width used by --fix when rewriting msgstr blocks (0 disables wrapping)
 # width = 79

@@ -21,6 +21,10 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
+# rule: accelerators
+msgid "&Save"
+msgstr "Enregistrer"
+
 # rule: acronyms
 msgid "Open the URL"
 msgstr "Ouvrir le lien"

@@ -208,6 +208,75 @@ impl<'a> Iterator for FormatAcronymPos<'a> {
     }
 }
 
+pub struct FormatAcceleratorPos<'a> {
+    s: &'a str,
+    len: usize,
+    pos: usize,
+    fmt: Language,
+    marker: char,
+}
+
+impl<'a> FormatAcceleratorPos<'a> {
+    pub fn new(s: &'a str, language: Language, marker: char) -> Self {
+        Self {
+            s,
+            len: s.len(),
+            pos: 0,
+            fmt: language,
+            marker,
+        }
+    }
+}
+
+/// Iterator returning keyboard accelerator markers of a string, according to the
+/// given language, skipping format strings.
+///
+/// An accelerator is the `marker` character (e.g. `&`) immediately followed by an
+/// alphanumeric character. A doubled marker (e.g. `&&`) is an escaped literal and
+/// is not an accelerator: both characters are skipped. A trailing marker, or a
+/// marker followed by whitespace or punctuation, is treated as a literal and
+/// ignored (this avoids false positives on prose such as "Drag & drop"). Only the
+/// marker character is returned, not the accelerated character, so its span is
+/// always one character wide.
+///
+/// For example with marker `&` and the string `&File and E&xit`, it will return
+/// the `&` at positions 0 and 11.
+impl<'a> Iterator for FormatAcceleratorPos<'a> {
+    type Item = MatchFmtPos<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some((c, new_pos, is_format)) = self.fmt.next_char(self.s, self.pos) {
+            if is_format {
+                self.pos = self.fmt.find_end_format(self.s, new_pos, self.len);
+                continue;
+            }
+            if c == self.marker {
+                let start = self.pos;
+                match self.s[new_pos..].chars().next() {
+                    // Doubled marker is an escaped literal: skip both characters.
+                    Some(next) if next == self.marker => {
+                        self.pos = new_pos + self.marker.len_utf8();
+                    }
+                    // Marker before an alphanumeric character: an accelerator.
+                    Some(next) if next.is_alphanumeric() => {
+                        self.pos = new_pos;
+                        return Some(MatchFmtPos {
+                            s: &self.s[start..new_pos],
+                            start,
+                            end: new_pos,
+                        });
+                    }
+                    // Trailing marker, or marker before whitespace/punctuation: literal.
+                    _ => self.pos = new_pos,
+                }
+                continue;
+            }
+            self.pos = new_pos;
+        }
+        None
+    }
+}
+
 pub struct FormatUrlPos<'a> {
     s: &'a str,
     len: usize,

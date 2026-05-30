@@ -93,6 +93,7 @@ The following options are available in the `check` section (each option can be o
 | long_factor          | Integer          | Min ratio translation/source length to flag "too long" (min: 2).  |
 | severity             | Array of strings | Show diagnostics with these severities (info/warning/error).      |
 | punc_ignore_ellipsis | Boolean          | Ignore ellipsis differences (`...` vs `…`) in punc rules.         |
+| accelerator          | String (char)    | Marker for keyboard accelerators (default: `&`).                  |
 | width                | Integer          | Output page width for `--fix` (default: 79); 0 disables wrapping. |
 
 See configuration file example: [poexam.toml](examples/poexam.toml).
@@ -103,6 +104,7 @@ It can perform a lot of checks via the default rules:
 
 | Rule name        | Diagnostic reported                                |
 |------------------|----------------------------------------------------|
+| accelerators     | Missing/extra keyboard accelerators.               |
 | blank            | Blank translation (only whitespace).               |
 | brackets         | Missing/extra brackets.                            |
 | double-quotes    | Missing/extra double quotes.                       |

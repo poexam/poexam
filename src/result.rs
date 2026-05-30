@@ -317,6 +317,7 @@ mod tests {
             long_factor: None,
             severity: vec![],
             punc_ignore_ellipsis: false,
+            accelerator: None,
             no_errors: false,
             sort: args::CheckSort::default(),
             rule_stats: false,

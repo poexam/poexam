@@ -13,10 +13,11 @@ use crate::{
     diagnostic::{Diagnostic, Severity},
     po::{entry::Entry, message::Message},
     rules::{
-        acronyms, blank, brackets, changed, compilation, double_quotes, double_spaces,
-        double_words, emails, encoding, escapes, force_trans, formats, functions, fuzzy, header,
-        html_tags, long, newlines, no_trans, noqa, obsolete, paths, pipes, plurals, punc,
-        punc_space, short, spelling, tabs, unchanged, unicode_ctrl, untranslated, urls, whitespace,
+        accelerators, acronyms, blank, brackets, changed, compilation, double_quotes,
+        double_spaces, double_words, emails, encoding, escapes, force_trans, formats, functions,
+        fuzzy, header, html_tags, long, newlines, no_trans, noqa, obsolete, paths, pipes, plurals,
+        punc, punc_space, short, spelling, tabs, unchanged, unicode_ctrl, untranslated, urls,
+        whitespace,
     },
     table::render_table,
 };
@@ -153,6 +154,7 @@ pub trait RuleChecker {
 /// Get all available rules.
 fn get_all_rules() -> Vec<Rule> {
     vec![
+        Box::new(accelerators::AcceleratorsRule {}),
         Box::new(acronyms::AcronymsRule {}),
         Box::new(blank::BlankRule {}),
         Box::new(brackets::BracketsRule {}),

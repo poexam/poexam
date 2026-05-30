@@ -122,8 +122,8 @@ impl FormatParser for FormatPythonBrace {
 mod tests {
     use crate::po::format::{
         iter::{
-            FormatEmailPos, FormatFunctionPos, FormatHtmlTagPos, FormatPathPos, FormatPos,
-            FormatUrlPos, FormatWordPos,
+            FormatAcceleratorPos, FormatEmailPos, FormatFunctionPos, FormatHtmlTagPos,
+            FormatPathPos, FormatPos, FormatUrlPos, FormatWordPos,
         },
         language::Language,
         strip_formats,
@@ -194,6 +194,34 @@ mod tests {
             .map(|m| (m.s, m.start, m.end))
             .collect::<Vec<_>>(),
             vec![("{0!r:20}", 14, 22), ("{1}", 22, 25), ("{2}", 25, 28)]
+        );
+    }
+
+    #[test]
+    fn test_accelerator_pos() {
+        assert!(
+            FormatAcceleratorPos::new("", Language::Python, '&')
+                .next()
+                .is_none()
+        );
+        assert!(
+            FormatAcceleratorPos::new("", Language::PythonBrace, '&')
+                .next()
+                .is_none()
+        );
+        // Markers around a Python %-format; "&&" is an escaped literal ampersand.
+        assert_eq!(
+            FormatAcceleratorPos::new("&File %s && E&xit", Language::Python, '&')
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("&", 0, 1), ("&", 13, 14)]
+        );
+        // Markers around a Python-brace format element.
+        assert_eq!(
+            FormatAcceleratorPos::new("&File {0} E&xit", Language::PythonBrace, '&')
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("&", 0, 1), ("&", 11, 12)]
         );
     }
 

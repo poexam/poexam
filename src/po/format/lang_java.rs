@@ -95,8 +95,8 @@ impl FormatParser for FormatJava {
 mod tests {
     use crate::po::format::{
         iter::{
-            FormatEmailPos, FormatFunctionPos, FormatHtmlTagPos, FormatPathPos, FormatPos,
-            FormatUrlPos, FormatWordPos,
+            FormatAcceleratorPos, FormatEmailPos, FormatFunctionPos, FormatHtmlTagPos,
+            FormatPathPos, FormatPos, FormatUrlPos, FormatWordPos,
         },
         language::Language,
         strip_formats,
@@ -183,6 +183,29 @@ mod tests {
                 .map(|m| (m.s, m.start, m.end))
                 .collect::<Vec<_>>(),
             vec![("{0,number,'#'#}", 0, 15)]
+        );
+    }
+
+    #[test]
+    fn test_accelerator_pos() {
+        assert!(
+            FormatAcceleratorPos::new("", Language::Java, '&')
+                .next()
+                .is_none()
+        );
+        // No accelerator before a Java format element.
+        assert!(
+            FormatAcceleratorPos::new("Hello {0} world!", Language::Java, '&')
+                .next()
+                .is_none()
+        );
+        // Markers around a Java format element; the format is transparent and
+        // "&&" is an escaped literal ampersand.
+        assert_eq!(
+            FormatAcceleratorPos::new("&File {0} && E&xit", Language::Java, '&')
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("&", 0, 1), ("&", 14, 15)]
         );
     }
 

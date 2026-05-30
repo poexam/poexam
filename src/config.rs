@@ -77,6 +77,9 @@ pub struct CheckConfig {
     #[serde(default)]
     pub punc_ignore_ellipsis: bool,
 
+    #[serde(default = "default_check_accelerator")]
+    pub accelerator: char,
+
     #[serde(default = "default_check_width")]
     pub width: usize,
 }
@@ -111,6 +114,11 @@ fn default_check_long_factor() -> u16 {
     8
 }
 
+/// Default value for `check.accelerator`.
+const fn default_check_accelerator() -> char {
+    '&'
+}
+
 /// Default value for `check.width`.
 const fn default_check_width() -> usize {
     DEFAULT_PAGE_WIDTH
@@ -135,6 +143,7 @@ impl Default for CheckConfig {
             long_factor: default_check_long_factor(),
             severity: vec![],
             punc_ignore_ellipsis: false,
+            accelerator: default_check_accelerator(),
             width: default_check_width(),
         }
     }
@@ -242,6 +251,9 @@ impl Config {
         if args.punc_ignore_ellipsis {
             self.check.punc_ignore_ellipsis = true;
         }
+        if let Some(accelerator) = args.accelerator {
+            self.check.accelerator = accelerator;
+        }
         if let Some(width) = args.width {
             self.check.width = width;
         }
@@ -330,6 +342,7 @@ mod tests {
             long_factor: None,
             severity: vec![],
             punc_ignore_ellipsis: false,
+            accelerator: None,
             no_errors: false,
             sort: args::CheckSort::default(),
             rule_stats: false,
@@ -370,6 +383,7 @@ mod tests {
         assert!(c.langs.is_empty());
         assert!(c.severity.is_empty());
         assert!(!c.punc_ignore_ellipsis);
+        assert_eq!(c.accelerator, '&');
     }
 
     #[test]
@@ -410,6 +424,23 @@ punc_ignore_ellipsis = true
         // Unspecified fields fall back to defaults.
         assert!(!c.check.noqa);
         assert_eq!(c.check.path_msgfmt, PathBuf::from(DEFAULT_PATH_MSGFMT));
+    }
+
+    #[test]
+    fn test_config_new_reads_accelerator() {
+        let (_tmp, root) = tmp_dir("cfg-accel");
+        let cfg_path = root.join("poexam.toml");
+        std::fs::write(&cfg_path, "[check]\naccelerator = \"_\"\n").expect("write config");
+        let c = Config::new(Some(&cfg_path)).expect("parse config");
+        assert_eq!(c.check.accelerator, '_');
+    }
+
+    #[test]
+    fn test_with_args_check_accelerator_overrides() {
+        let mut args = default_check_args();
+        args.accelerator = Some('_');
+        let cfg = Config::default().with_args_check(&args);
+        assert_eq!(cfg.check.accelerator, '_');
     }
 
     #[test]

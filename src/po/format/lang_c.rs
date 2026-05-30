@@ -127,8 +127,8 @@ mod tests {
     use super::*;
     use crate::po::format::{
         iter::{
-            FormatAcronymPos, FormatEmailPos, FormatFunctionPos, FormatHtmlTagPos, FormatPathPos,
-            FormatPos, FormatUrlPos, FormatWordPos,
+            FormatAcceleratorPos, FormatAcronymPos, FormatEmailPos, FormatFunctionPos,
+            FormatHtmlTagPos, FormatPathPos, FormatPos, FormatUrlPos, FormatWordPos,
         },
         language::Language,
         strip_formats,
@@ -198,6 +198,37 @@ mod tests {
                 ("%zd", 46, 49),
                 ("%", 53, 54),
             ]
+        );
+    }
+
+    #[test]
+    fn test_accelerator_pos() {
+        assert!(
+            FormatAcceleratorPos::new("", Language::C, '&')
+                .next()
+                .is_none()
+        );
+        // No accelerator in plain prose or before a format string.
+        assert!(
+            FormatAcceleratorPos::new("Hello, %s world!", Language::C, '&')
+                .next()
+                .is_none()
+        );
+        // Markers around a C format string; the format is transparent and "&&"
+        // is an escaped literal ampersand (not an accelerator).
+        assert_eq!(
+            FormatAcceleratorPos::new("&File %s && E&xit", Language::C, '&')
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("&", 0, 1), ("&", 13, 14)]
+        );
+        // A marker that falls inside a format run is skipped: marker 'd' inside
+        // "%d" is part of the format, while the leading "dX" is an accelerator.
+        assert_eq!(
+            FormatAcceleratorPos::new("dX %dY", Language::C, 'd')
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("d", 0, 1)]
         );
     }
 

@@ -27,8 +27,8 @@ impl FormatParser for FormatNull {
 mod tests {
     use crate::po::format::{
         iter::{
-            FormatAcronymPos, FormatEmailPos, FormatFunctionPos, FormatHtmlTagPos, FormatPathPos,
-            FormatPos, FormatUrlPos, FormatWordPos,
+            FormatAcceleratorPos, FormatAcronymPos, FormatEmailPos, FormatFunctionPos,
+            FormatHtmlTagPos, FormatPathPos, FormatPos, FormatUrlPos, FormatWordPos,
         },
         language::Language,
         strip_formats,
@@ -50,6 +50,43 @@ mod tests {
             FormatPos::new("Hello, %s world!", Language::Null)
                 .next()
                 .is_none()
+        );
+    }
+
+    #[test]
+    fn test_accelerator_pos() {
+        assert!(
+            FormatAcceleratorPos::new("", Language::Null, '&')
+                .next()
+                .is_none()
+        );
+        // No accelerator: marker before a space, and a trailing marker.
+        assert!(
+            FormatAcceleratorPos::new("Drag & drop, ends with &", Language::Null, '&')
+                .next()
+                .is_none()
+        );
+        // Accelerators, an escaped "&&", and a tight literal "AT&T" (counted as
+        // an accelerator since the marker sits between alphanumerics).
+        assert_eq!(
+            FormatAcceleratorPos::new("&File && E&xit AT&T", Language::Null, '&')
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("&", 0, 1), ("&", 10, 11), ("&", 17, 18)]
+        );
+        // An escaped literal immediately followed by a real accelerator.
+        assert_eq!(
+            FormatAcceleratorPos::new("&&&File", Language::Null, '&')
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("&", 2, 3)]
+        );
+        // Custom marker '_' (GTK style); "__" is the escaped literal.
+        assert_eq!(
+            FormatAcceleratorPos::new("_File and __literal", Language::Null, '_')
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("_", 0, 1)]
         );
     }
 

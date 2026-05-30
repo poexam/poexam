@@ -120,6 +120,10 @@ pub struct CheckArgs {
     #[arg(long)]
     pub punc_ignore_ellipsis: bool,
 
+    /// Marker character for keyboard accelerators in rule "accelerators" (default: `&`)
+    #[arg(long)]
+    pub accelerator: Option<char>,
+
     /// Do not display errors found
     #[arg(short, long)]
     pub no_errors: bool,

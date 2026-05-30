@@ -4,6 +4,7 @@
 
 //! Implementation of all rules.
 
+pub mod accelerators;
 pub mod acronyms;
 pub mod blank;
 pub mod brackets;
