@@ -11,6 +11,7 @@
 //! - [`check`](#check-files): check and fix files
 //! - [`rules`](#rules): display rules used to check files
 //! - [`stats`](#stats): display statistics about files
+//! - [`lsp`](#lsp): run the language server for editor integration
 //!
 //! # Check files
 //!
@@ -31,6 +32,11 @@
 //!
 //! The `stats` command displays statistics about gettext files (*.po) and can compute
 //! detailed statistics with the number of entries, words and characters.
+//!
+//! # LSP
+//!
+//! The `lsp` command runs a Language Server Protocol server over stdin/stdout, so editors
+//! can show poexam diagnostics in real time while editing PO files.
 
 mod args;
 mod checker;
@@ -39,6 +45,7 @@ mod diagnostic;
 mod dict;
 mod dir;
 mod fix;
+mod lsp;
 mod po;
 mod result;
 mod rules;
@@ -50,6 +57,7 @@ use clap::Parser;
 
 use crate::args::{Cli, Command};
 use crate::checker::run_check;
+use crate::lsp::run_lsp;
 use crate::rules::rule::run_rules;
 use crate::stats::run_stats;
 
@@ -59,6 +67,7 @@ fn main() {
         Command::Check(args) => run_check(args),
         Command::Rules(args) => run_rules(args),
         Command::Stats(args) => run_stats(args),
+        Command::Lsp(args) => run_lsp(args),
     };
     std::process::exit(rc);
 }

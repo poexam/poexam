@@ -34,6 +34,9 @@ pub enum Command {
 
     /// Display statistics about files
     Stats(StatsArgs),
+
+    /// Run the language server (LSP) over stdin/stdout
+    Lsp(LspArgs),
 }
 
 /// Arguments for the `check` command.
@@ -175,6 +178,10 @@ pub enum CheckSort {
 /// Arguments for the `rules` command.
 #[derive(Debug, Args)]
 pub struct RulesArgs;
+
+/// Arguments for the `lsp` command.
+#[derive(Debug, Args)]
+pub struct LspArgs;
 
 /// Arguments for the `stats` command.
 #[derive(Debug, Args)]
