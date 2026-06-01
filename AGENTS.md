@@ -46,6 +46,7 @@ The project is REUSE-compliant. Run `pre-commit run --all-files` (or rely on the
 - `src/rules/` — All lint rules, one file per rule, or per closely related rule group.
 - `src/rules/rule.rs` — `RuleChecker` trait and rule loading.
 - `src/rules/mod.rs` — Module declarations for all rules.
+- `editors/zed/` — Zed editor extension (standalone WASM crate, excluded from the package): launches `poexam lsp` and registers the `PO` language + tree-sitter grammar. Not part of the main `cargo` build.
 
 ## Adding a new rule
 

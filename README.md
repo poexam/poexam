@@ -461,11 +461,15 @@ Rules that inspect the file on disk rather than the buffer (only `compilation`, 
 run when the file is opened and saved, and are skipped while there are unsaved changes so they never
 report on stale content.
 
+A [Zed](https://zed.dev) extension built on this language server lives in
+[`editors/zed`](editors/zed); it adds PO syntax highlighting and real-time diagnostics. See its
+[README](editors/zed/README.md) for installation.
+
 ## Roadmap
 
 - [ ] Add new rules.
 - [ ] Add support for custom rules and checks.
-- [ ] Add a Zed editor extension on top of the `poexam lsp` language server.
+- [x] Add a Zed editor extension on top of the `poexam lsp` language server.
 
 ## Copyright
 

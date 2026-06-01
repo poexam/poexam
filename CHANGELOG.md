@@ -11,6 +11,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ### Added
 
 - Add command "lsp" to run a language server (LSP) over stdin/stdout, reporting diagnostics in real time for editor integration
+- Add a Zed editor extension providing PO syntax highlighting and real-time diagnostics via `poexam lsp`
 
 ## Version 0.0.11 (2026-06-07)
 
