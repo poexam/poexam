@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2026 Sébastien Helleu <flashcode@flashtux.org>
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+name = "PO"
+grammar = "po"
+path_suffixes = ["po", "pot"]
+line_comments = ["# "]

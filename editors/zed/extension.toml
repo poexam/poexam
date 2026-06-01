@@ -1,0 +1,19 @@
+# SPDX-FileCopyrightText: 2026 Sébastien Helleu <flashcode@flashtux.org>
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+id = "poexam"
+name = "poexam"
+description = "Real-time PO (gettext) linting and syntax highlighting via the poexam language server."
+version = "0.0.1"
+schema_version = 1
+authors = ["Sébastien Helleu <flashcode@flashtux.org>"]
+repository = "https://github.com/poexam/poexam"
+
+[language_servers.poexam]
+name = "poexam"
+language = "PO"
+
+[grammars.po]
+repository = "https://github.com/tree-sitter-grammars/tree-sitter-po"
+commit = "bd860a0f57f697162bf28e576674be9c1500db5e"
