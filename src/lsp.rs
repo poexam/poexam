@@ -191,13 +191,17 @@ fn to_lsp_diagnostic(diag: &PoDiagnostic, file_lines: &[&str]) -> Diagnostic {
 /// poexam locates a diagnostic by line number; the per-line `highlights` index
 /// into the *decoded* message value rather than the raw PO source line, so they
 /// can't be mapped to file columns reliably. We therefore underline the whole
-/// anchor line — the first line carrying a real (non-zero) line number, falling
-/// back to the top of the file. The end column is the line's length in UTF-16
-/// code units, which is the unit LSP positions use by default.
+/// anchor line — the *last* line carrying a real (non-zero) line number. In the
+/// usual `msgid` → `msgstr` layout a diagnostic lists the source first and the
+/// translation last, and rules almost always flag the translation, so the last
+/// numbered line is the one to highlight. Falls back to the top of the file.
+/// The end column is the line's length in UTF-16 code units, which is the unit
+/// LSP positions use by default.
 fn diagnostic_range(diag: &PoDiagnostic, file_lines: &[&str]) -> Range {
     let line_index = diag
         .lines
         .iter()
+        .rev()
         .map(|line| line.line_number)
         .find(|&number| number > 0)
         .map_or(0, |number| number - 1);
@@ -291,15 +295,16 @@ mod tests {
     }
 
     #[test]
-    fn test_diagnostic_range_anchors_on_first_numbered_line_in_utf16() {
-        // A synthetic separator (line 0) precedes the real line 6.
-        let diag = po_diag(&[(0, ""), (6, "value")]);
-        // Line 6 is index 5; it contains a non-BMP char counted as 2 UTF-16 units:
+    fn test_diagnostic_range_anchors_on_last_numbered_line_in_utf16() {
+        // The msgid → separator → msgstr layout: the diagnostic must anchor on
+        // the msgstr (line 8), not the msgid (line 6).
+        let diag = po_diag(&[(6, "source"), (0, ""), (8, "translation")]);
+        // Line 8 is index 7; it contains a non-BMP char counted as 2 UTF-16 units:
         // `msgstr "` (8) + 😀 (2) + `"` (1) = 11.
-        let file_lines = ["a", "b", "c", "d", "e", "msgstr \"😀\""];
+        let file_lines = ["a", "b", "c", "d", "e", "msgid \"x\"", "", "msgstr \"😀\""];
         let range = diagnostic_range(&diag, &file_lines);
-        assert_eq!(range.start, Position::new(5, 0));
-        assert_eq!(range.end, Position::new(5, 11));
+        assert_eq!(range.start, Position::new(7, 0));
+        assert_eq!(range.end, Position::new(7, 11));
     }
 
     #[test]
