@@ -457,6 +457,10 @@ saved), discovers the closest `poexam.toml` from the file path, and publishes in
 diagnostics with the rule name as the diagnostic code. Point your editor's language-server client at
 `poexam lsp` and associate it with `*.po` files.
 
+Rules that inspect the file on disk rather than the buffer (only `compilation`, which runs `msgfmt`)
+run when the file is opened and saved, and are skipped while there are unsaved changes so they never
+report on stale content.
+
 ## Roadmap
 
 - [ ] Add new rules.

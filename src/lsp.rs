@@ -9,6 +9,10 @@
 //! unsaved) is checked with [`check_bytes`](crate::checker::check_bytes), and
 //! every poexam [`Diagnostic`](crate::diagnostic::Diagnostic) is mapped to an
 //! LSP diagnostic.
+//!
+//! Rules that read the PO file from disk rather than the buffer (see
+//! [`DISK_CONTENT_RULES`]) are skipped while the buffer has unsaved changes, so
+//! they never report on stale content; they run on open and on save.
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -44,8 +48,11 @@ impl Backend {
     }
 
     /// Store `text` for `uri`, check it and publish the resulting diagnostics.
-    async fn upsert_and_publish(&self, uri: Url, text: String) {
-        let diagnostics = analyze(&uri, &text);
+    ///
+    /// `include_disk_rules` is forwarded to [`analyze`]: it is `true` only when
+    /// the buffer is known to match the file on disk (open/save).
+    async fn upsert_and_publish(&self, uri: Url, text: String, include_disk_rules: bool) {
+        let diagnostics = analyze(&uri, &text, include_disk_rules);
         if let Ok(mut documents) = self.documents.write() {
             documents.insert(uri.clone(), text);
         }
@@ -85,14 +92,17 @@ impl LanguageServer for Backend {
     }
 
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
-        self.upsert_and_publish(params.text_document.uri, params.text_document.text)
+        // A freshly opened buffer matches the file on disk, so disk-content
+        // rules (e.g. compilation) are accurate.
+        self.upsert_and_publish(params.text_document.uri, params.text_document.text, true)
             .await;
     }
 
     async fn did_change(&self, mut params: DidChangeTextDocumentParams) {
-        // With FULL sync the last change carries the entire buffer.
+        // With FULL sync the last change carries the entire buffer. The buffer
+        // may now differ from disk, so disk-content rules are skipped.
         if let Some(change) = params.content_changes.pop() {
-            self.upsert_and_publish(params.text_document.uri, change.text)
+            self.upsert_and_publish(params.text_document.uri, change.text, false)
                 .await;
         }
     }
@@ -105,7 +115,8 @@ impl LanguageServer for Backend {
             .ok()
             .and_then(|documents| documents.get(&uri).cloned());
         if let Some(text) = text {
-            let diagnostics = analyze(&uri, &text);
+            // The buffer now matches the file on disk: run disk-content rules.
+            let diagnostics = analyze(&uri, &text, true);
             self.client
                 .publish_diagnostics(uri, diagnostics, None)
                 .await;
@@ -122,22 +133,45 @@ impl LanguageServer for Backend {
     }
 }
 
+/// Rules that inspect the PO file *on disk* rather than the in-memory buffer,
+/// so their result is stale while the buffer has unsaved changes. They are
+/// skipped on `did_change` and run only when the buffer matches the file on
+/// disk (`did_open` / `did_save`).
+///
+/// Only `compilation` qualifies: it runs `msgfmt` on the file path. Other rules
+/// that touch the filesystem (`spelling-*`, `force-trans`, `no-trans`) read
+/// external dictionaries/word-lists and check the in-memory buffer, so they
+/// stay accurate while editing.
+const DISK_CONTENT_RULES: &[&str] = &["compilation"];
+
 /// Check the buffer `text` of `uri` and return LSP diagnostics.
 ///
 /// The PO configuration is discovered from the file on disk (walking up from
 /// the document path); if none is found or it is invalid, defaults are used.
-fn analyze(uri: &Url, text: &str) -> Vec<Diagnostic> {
+/// When `include_disk_rules` is `false` the [`DISK_CONTENT_RULES`] are skipped.
+fn analyze(uri: &Url, text: &str, include_disk_rules: bool) -> Vec<Diagnostic> {
     let path = uri
         .to_file_path()
         .unwrap_or_else(|()| PathBuf::from("untitled.po"));
-    let config = find_config_path(&path)
+    let mut config = find_config_path(&path)
         .and_then(|config_path| Config::new(Some(&config_path)).ok())
         .unwrap_or_default();
+    apply_buffer_rule_policy(&mut config, include_disk_rules);
     let file_lines: Vec<&str> = text.lines().collect();
     check_bytes(text.as_bytes(), &path, config)
         .iter()
         .map(|diag| to_lsp_diagnostic(diag, &file_lines))
         .collect()
+}
+
+/// When the buffer may differ from disk (`include_disk_rules == false`), add the
+/// [`DISK_CONTENT_RULES`] to the config's ignore list so they are skipped.
+fn apply_buffer_rule_policy(config: &mut Config, include_disk_rules: bool) {
+    if !include_disk_rules {
+        for rule in DISK_CONTENT_RULES {
+            config.check.ignore.push((*rule).to_string());
+        }
+    }
 }
 
 /// Map a poexam [`Diagnostic`](PoDiagnostic) to an LSP [`Diagnostic`].
@@ -208,10 +242,17 @@ pub fn run_lsp(_args: &LspArgs) -> i32 {
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
 
     use super::*;
     use crate::diagnostic::DiagnosticLine;
+
+    /// Build a default config restricted to the given selected rules.
+    fn config_select(select: &[&str]) -> Config {
+        let mut config = Config::default();
+        config.check.select = select.iter().map(|s| (*s).to_string()).collect();
+        config
+    }
 
     /// Build a poexam diagnostic from a list of `(line_number, message)` lines.
     fn po_diag(lines: &[(usize, &str)]) -> PoDiagnostic {
@@ -289,5 +330,47 @@ mod tests {
         assert_eq!(lsp.severity, Some(DiagnosticSeverity::WARNING));
         assert_eq!(lsp.message, "blank translation");
         assert_eq!(lsp.range.start, Position::new(1, 0));
+    }
+
+    #[test]
+    fn test_apply_buffer_rule_policy_skips_disk_rules_when_dirty() {
+        let mut config = Config::default();
+        apply_buffer_rule_policy(&mut config, false);
+        assert!(config.check.ignore.iter().any(|rule| rule == "compilation"));
+    }
+
+    #[test]
+    fn test_apply_buffer_rule_policy_keeps_disk_rules_when_clean() {
+        let mut config = Config::default();
+        apply_buffer_rule_policy(&mut config, true);
+        assert!(config.check.ignore.is_empty());
+    }
+
+    #[test]
+    fn test_dirty_buffer_skips_compilation_rule() {
+        // Compilation selected, but the buffer is dirty: the rule is removed, so
+        // msgfmt is never run and no compilation diagnostic is produced.
+        let mut config = config_select(&["compilation"]);
+        apply_buffer_rule_policy(&mut config, false);
+        let diags = check_bytes(
+            b"msgid \"\"\nmsgstr \"\"\n",
+            Path::new("/no/such/fr.po"),
+            config,
+        );
+        assert!(diags.iter().all(|d| d.rule != "compilation"));
+    }
+
+    #[test]
+    fn test_clean_buffer_runs_compilation_rule() {
+        // Compilation selected and the buffer is clean: the rule runs against the
+        // (missing) path and reports a compilation diagnostic.
+        let mut config = config_select(&["compilation"]);
+        apply_buffer_rule_policy(&mut config, true);
+        let diags = check_bytes(
+            b"msgid \"\"\nmsgstr \"\"\n",
+            Path::new("/no/such/fr.po"),
+            config,
+        );
+        assert!(diags.iter().any(|d| d.rule == "compilation"));
     }
 }
