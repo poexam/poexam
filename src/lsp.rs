@@ -188,16 +188,20 @@ fn to_lsp_diagnostic(diag: &PoDiagnostic, file_lines: &[&str]) -> Diagnostic {
 
 /// Compute the LSP range for a diagnostic.
 ///
-/// poexam locates a diagnostic by line number; the per-line `highlights` index
-/// into the *decoded* message value rather than the raw PO source line, so they
-/// can't be mapped to file columns reliably. We therefore underline the whole
-/// anchor line — the *last* line carrying a real (non-zero) line number. In the
-/// usual `msgid` → `msgstr` layout a diagnostic lists the source first and the
-/// translation last, and rules almost always flag the translation, so the last
-/// numbered line is the one to highlight. Falls back to the top of the file.
-/// The end column is the line's length in UTF-16 code units, which is the unit
-/// LSP positions use by default.
+/// When the diagnostic carries a non-empty highlight we underline exactly that
+/// span ([`highlighted_range`]); the highlighted line's `message` is always the
+/// decoded string value (only `with_msg_hl` / `with_msgs_hl` attach highlights),
+/// so the offsets can be mapped onto the raw line when the value appears
+/// verbatim in it (no escapes, single line).
+///
+/// Otherwise we underline the whole *last* line carrying a real (non-zero) line
+/// number — the `msgstr` in the usual `msgid` → `msgstr` layout — falling back
+/// to the top of the file. Columns are in UTF-16 code units (the default LSP
+/// position unit).
 fn diagnostic_range(diag: &PoDiagnostic, file_lines: &[&str]) -> Range {
+    if let Some(range) = highlighted_range(diag, file_lines) {
+        return range;
+    }
     let line_index = diag
         .lines
         .iter()
@@ -205,11 +209,65 @@ fn diagnostic_range(diag: &PoDiagnostic, file_lines: &[&str]) -> Range {
         .map(|line| line.line_number)
         .find(|&number| number > 0)
         .map_or(0, |number| number - 1);
-    let line = u32::try_from(line_index).unwrap_or(u32::MAX);
+    whole_line_range(line_index, file_lines)
+}
+
+/// Map the last numbered line that has a non-empty (width > 0) highlight to a
+/// precise LSP range, or `None` when there is no such highlight or the decoded
+/// value can not be located verbatim in the raw line (escaped or multi-line
+/// string).
+fn highlighted_range(diag: &PoDiagnostic, file_lines: &[&str]) -> Option<Range> {
+    let line = diag
+        .lines
+        .iter()
+        .rev()
+        .find(|line| line.line_number > 0 && line.highlights.iter().any(|(s, e)| e > s))?;
+    let line_index = line.line_number - 1;
+    let file_line = file_lines.get(line_index)?;
+    // Span covering every non-empty highlight on the line.
+    let span_start = line
+        .highlights
+        .iter()
+        .filter(|(s, e)| e > s)
+        .map(|(s, _)| *s)
+        .min()?;
+    let span_end = line
+        .highlights
+        .iter()
+        .filter(|(s, e)| e > s)
+        .map(|(_, e)| *e)
+        .max()?;
+    // The decoded value sits right after the opening quote of the string; map
+    // the offsets onto the raw line only when it appears there verbatim.
+    let content_start = file_line.find('"')? + 1;
+    if !file_line
+        .get(content_start..)?
+        .starts_with(line.message.as_str())
+    {
+        return None;
+    }
+    let row = u32::try_from(line_index).unwrap_or(u32::MAX);
+    let start = utf16_col(file_line, content_start + span_start);
+    let end = utf16_col(file_line, content_start + span_end);
+    Some(Range::new(
+        Position::new(row, start),
+        Position::new(row, end),
+    ))
+}
+
+/// Range covering the whole line at `line_index`.
+fn whole_line_range(line_index: usize, file_lines: &[&str]) -> Range {
+    let row = u32::try_from(line_index).unwrap_or(u32::MAX);
     let end_column = file_lines
         .get(line_index)
         .map_or(0, |text| line_len_utf16(text));
-    Range::new(Position::new(line, 0), Position::new(line, end_column))
+    Range::new(Position::new(row, 0), Position::new(row, end_column))
+}
+
+/// UTF-16 column of byte offset `byte` within `line`.
+fn utf16_col(line: &str, byte: usize) -> u32 {
+    let prefix = line.get(..byte).unwrap_or(line);
+    u32::try_from(prefix.encode_utf16().count()).unwrap_or(u32::MAX)
 }
 
 /// Length of a line in UTF-16 code units (the default LSP position unit).
@@ -323,6 +381,42 @@ mod tests {
         let range = diagnostic_range(&diag, &file_lines);
         assert_eq!(range.start, Position::new(98, 0));
         assert_eq!(range.end, Position::new(98, 0));
+    }
+
+    #[test]
+    fn test_diagnostic_range_uses_highlight_span_on_value() {
+        // msgid (line 6) + separator + msgstr (line 8); the trailing space of the
+        // msgstr value is highlighted, so the range must cover just that char.
+        let mut diag = po_diag(&[(6, "hello"), (0, ""), (8, "bonjour ")]);
+        diag.lines[2].highlights = vec![(7, 8)];
+        let file_lines = [
+            "a",
+            "b",
+            "c",
+            "d",
+            "e",
+            "msgid \"hello\"",
+            "",
+            "msgstr \"bonjour \"",
+        ];
+        // Line 8 is index 7; the value starts at byte 8 (after the opening quote),
+        // so highlight (7, 8) maps to file columns (15, 16) — the trailing space.
+        let range = diagnostic_range(&diag, &file_lines);
+        assert_eq!(range.start, Position::new(7, 15));
+        assert_eq!(range.end, Position::new(7, 16));
+    }
+
+    #[test]
+    fn test_diagnostic_range_falls_back_to_whole_line_for_escaped_value() {
+        // The decoded value holds a real newline; the raw line escapes it as `\n`,
+        // so the value is not verbatim and the whole line is underlined.
+        let mut diag = po_diag(&[(1, "a\nb")]);
+        diag.lines[0].highlights = vec![(0, 3)];
+        let raw = "msgstr \"a\\nb\"";
+        let file_lines = [raw];
+        let range = diagnostic_range(&diag, &file_lines);
+        assert_eq!(range.start, Position::new(0, 0));
+        assert_eq!(range.end, Position::new(0, line_len_utf16(raw)));
     }
 
     #[test]
