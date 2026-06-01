@@ -495,6 +495,34 @@ pub fn run_check(args: &args::CheckArgs) -> i32 {
     display_result(&result, args, &elapsed)
 }
 
+/// Check in-memory PO `data` and return the diagnostics found, without reading
+/// the file content from disk.
+///
+/// Unlike [`check_file`], the bytes that are linted are the ones passed in
+/// `data`; `path` is used only to label diagnostics and to give disk-dependent
+/// opt-in rules (e.g. `compilation`, `spelling-*`) a location to work from. This
+/// is the entry point used by the language server, which lints the editor's
+/// in-memory (possibly unsaved) buffer rather than the file on disk.
+///
+/// A rule-selection error (an unknown rule in the configuration) is surfaced as
+/// a single `rules-error` diagnostic, so the caller always receives a list.
+pub fn check_bytes(data: &[u8], path: &Path, config: Config) -> Vec<Diagnostic> {
+    let rules = match get_selected_rules(&config) {
+        Ok(rules) => rules,
+        Err(err) => {
+            return vec![Diagnostic::new(
+                path,
+                "rules-error",
+                Severity::Error,
+                err.to_string(),
+            )];
+        }
+    };
+    let mut checker = Checker::new(data).with_path(path).with_config(config);
+    checker.do_all_checks(&rules);
+    checker.diagnostics
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1038,5 +1066,47 @@ msgstr \"Guillemets : « test »\"
         // And must not contain the stray characters anywhere.
         assert!(!fixed.contains('\u{200B}'));
         assert!(!fixed.contains('\u{00AD}'));
+    }
+
+    /// Build a default config restricted to the given selected rules.
+    fn config_with_select(select: &[&str]) -> Config {
+        let mut config = Config::default();
+        config.check.select = select.iter().map(|s| (*s).to_string()).collect();
+        config
+    }
+
+    #[test]
+    fn test_check_bytes_reports_whitespace_issues() {
+        let config = config_with_select(&["whitespace-start", "whitespace-end"]);
+        let diags = check_bytes(PO_WHITESPACE_ISSUES.as_bytes(), Path::new("fr.po"), config);
+        assert!(diags.iter().any(|d| d.rule == "whitespace-end"));
+        assert!(diags.iter().any(|d| d.rule == "whitespace-start"));
+    }
+
+    #[test]
+    fn test_check_bytes_lints_buffer_not_disk() {
+        // A path that does not exist on disk: `check_bytes` must still lint the
+        // in-memory bytes — it never opens the file.
+        let missing = Path::new("/this/path/does/not/exist/fr.po");
+        let config = config_with_select(&["whitespace-end"]);
+        let diags = check_bytes(PO_WHITESPACE_ISSUES.as_bytes(), missing, config);
+        assert!(diags.iter().any(|d| d.rule == "whitespace-end"));
+    }
+
+    #[test]
+    fn test_check_bytes_clean_file_has_no_diagnostics() {
+        // Selecting a rule that does not fire on a clean, non-fuzzy file yields nothing.
+        let config = config_with_select(&["fuzzy"]);
+        let diags = check_bytes(PO_PT_BR.as_bytes(), Path::new("fr.po"), config);
+        assert!(diags.is_empty(), "expected no diagnostics, got {diags:?}");
+    }
+
+    #[test]
+    fn test_check_bytes_invalid_rule_returns_rules_error() {
+        let config = config_with_select(&["does-not-exist-rule"]);
+        let diags = check_bytes(PO_PT_BR.as_bytes(), Path::new("fr.po"), config);
+        assert_eq!(diags.len(), 1);
+        assert_eq!(diags[0].rule, "rules-error");
+        assert_eq!(diags[0].severity, Severity::Error);
     }
 }
