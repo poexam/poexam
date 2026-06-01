@@ -6,6 +6,12 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 # Poexam ChangeLog
 
+## Version 0.0.12 (under dev)
+
+### Added
+
+- Add command "lsp" to run a language server (LSP) over stdin/stdout, reporting diagnostics in real time for editor integration
+
 ## Version 0.0.11 (2026-06-07)
 
 ### Changed

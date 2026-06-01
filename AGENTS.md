@@ -31,7 +31,7 @@ The project is REUSE-compliant. Run `pre-commit run --all-files` (or rely on the
 
 ## Project structure
 
-- `src/main.rs` — Entry point, dispatches to subcommands (`check`, `rules`, `stats`).
+- `src/main.rs` — Entry point, dispatches to subcommands (`check`, `rules`, `stats`, `lsp`).
 - `src/args.rs` — CLI argument parsing with `clap` derive.
 - `src/checker.rs` — Core checking logic, runs rules against PO entries.
 - `src/config.rs` — TOML configuration file handling.
@@ -40,6 +40,7 @@ The project is REUSE-compliant. Run `pre-commit run --all-files` (or rely on the
 - `src/dir.rs` — Directory traversal (respects `.gitignore`).
 - `src/result.rs` — Display check results (human/JSON/SARIF/misspelled) and compute exit code.
 - `src/sarif.rs` — SARIF v2.1.0 output format.
+- `src/lsp.rs` — Language server (LSP) over stdin/stdout for editor integration (`poexam lsp`).
 - `src/stats.rs` — Statistics command implementation.
 - `src/po/` — PO file parser (entry, escape, message, format strings).
 - `src/rules/` — All lint rules, one file per rule, or per closely related rule group.
@@ -112,7 +113,7 @@ Performance matters: poexam is meant to lint large PO trees in milliseconds. Hot
 ## Dependencies
 
 Avoid adding new dependencies unless strictly necessary. Current key dependencies:
-`clap`, `colored`, `rayon`, `spellbook`, `encoding_rs`, `ignore`, `serde`, `serde_json`, `toml`, `memchr`, `path-absolutize`.
+`clap`, `colored`, `rayon`, `spellbook`, `encoding_rs`, `ignore`, `serde`, `serde_json`, `toml`, `memchr`, `path-absolutize`, `tower-lsp` and `tokio` (used only by the `lsp` command).
 
 ## Changelog
 

@@ -35,6 +35,7 @@ It reports very few false positives and can be used in CI jobs and pre-commit ho
 - 🔎 **Rules**: a lot of checks performed with very few false positives.
 - 🎯 **Clear results**: tricky errors in strings are highlighted with colors.
 - 🔧 **Auto-fix**: rewrite files in place to clear auto-fixable diagnostics.
+- 📝 **Editor integration**: a built-in language server (`poexam lsp`) reports diagnostics as you type.
 - 📊 **Statistics**: detailed statistics including progress, count of messages/words/characters.
 - 💻 **Multi-platform**: available wherever the Rust compiler is available.
 - 🎁 **Free software**: released under [GPLv3](https://gnu.org/licenses/gpl-3.0.html).
@@ -442,11 +443,25 @@ Obsolete                0 (  0%)          0 (  0%)          0          0 (  0%) 
 Total                7706             81268             56175     369832            276747
 ```
 
+### Editor integration
+
+Poexam ships a language server (LSP) so editors can show diagnostics in real time while you edit
+PO files:
+
+```shell
+poexam lsp
+```
+
+The server speaks LSP over stdin/stdout. It checks the editor's in-memory buffer (even before it is
+saved), discovers the closest `poexam.toml` from the file path, and publishes info/warning/error
+diagnostics with the rule name as the diagnostic code. Point your editor's language-server client at
+`poexam lsp` and associate it with `*.po` files.
+
 ## Roadmap
 
 - [ ] Add new rules.
 - [ ] Add support for custom rules and checks.
-- [ ] Add a server mode to integrate with IDEs and text editors.
+- [ ] Add a Zed editor extension on top of the `poexam lsp` language server.
 
 ## Copyright
 
