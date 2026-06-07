@@ -16,9 +16,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 ### Added
 
-- Add default rule "accelerators" to check that keyboard accelerators are preserved in the translation, with option `--accelerator` and config key `accelerator` to set the marker character (default: `&`)
 - Add option `--fix` to rewrite files in place, applying auto-fixable diagnostics
 - Add option `--width` to set the page width used by `--fix` when wrapping msgstr blocks (default: 79, 0 disables wrapping)
+- Add default rule "accelerators" to check that keyboard accelerators are preserved in the translation, with option `--accelerator` and config key `accelerator` to set the marker character (default: `&`)
 - Add non-default rule "acronyms" to check that source acronyms are preserved in the translation
 - Add non-default rule "force-trans" with option `--force-trans-file` and config key `force_trans_file`
 - Add non-default rule "no-trans" with option `--no-trans-file` and config key `no_trans_file`
