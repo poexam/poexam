@@ -326,7 +326,7 @@ impl std::fmt::Display for Diagnostic {
         write!(
             f,
             "{}{str_first_line}: [{}:{}] {}{}",
-            self.path.display().to_string().white().bold(),
+            self.path.display(),
             self.severity,
             self.rule,
             self.build_message(),
