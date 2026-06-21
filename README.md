@@ -461,6 +461,24 @@ Rules that inspect the file on disk rather than the buffer (only `compilation`, 
 run when the file is opened and saved, and are skipped while there are unsaved changes so they never
 report on stale content.
 
+#### Emacs
+
+Using gettext's `po-mode` together with
+[Eglot](https://www.gnu.org/software/emacs/manual/html_mono/eglot.html), the LSP client built into
+Emacs 29+, add to your `init.el`:
+
+```elisp
+;; Run poexam as the language server for PO files
+(with-eval-after-load 'eglot
+  (add-to-list 'eglot-server-programs '(po-mode . ("poexam" "lsp"))))
+(add-hook 'po-mode-hook #'eglot-ensure)
+```
+
+`poexam` must be on the `PATH` that Emacs sees (use an absolute path otherwise). Diagnostics appear
+as Flymake overlays; `M-g n` / `M-g p` jump between them.
+
+#### Zed
+
 A [Zed](https://zed.dev) extension built on this language server lives in
 [`editors/zed`](editors/zed); it adds PO syntax highlighting and real-time diagnostics. See its
 [README](editors/zed/README.md) for installation.
