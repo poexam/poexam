@@ -15,7 +15,7 @@
 //! they never report on stale content; they run on open and on save.
 
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::RwLock;
 
 use tower_lsp::jsonrpc::Result as RpcResult;
@@ -147,21 +147,63 @@ const DISK_CONTENT_RULES: &[&str] = &["compilation"];
 /// Check the buffer `text` of `uri` and return LSP diagnostics.
 ///
 /// The PO configuration is discovered from the file on disk (walking up from
-/// the document path); if none is found or it is invalid, defaults are used.
-/// When `include_disk_rules` is `false` the [`DISK_CONTENT_RULES`] are skipped.
+/// the document path); if none is found, defaults are used. When the discovered
+/// config file can not be parsed, a single `config-error` diagnostic is returned
+/// instead of silently reverting to defaults. When `include_disk_rules` is
+/// `false` the [`DISK_CONTENT_RULES`] are skipped.
 fn analyze(uri: &Url, text: &str, include_disk_rules: bool) -> Vec<Diagnostic> {
     let path = uri
         .to_file_path()
         .unwrap_or_else(|()| PathBuf::from("untitled.po"));
-    let mut config = find_config_path(&path)
-        .and_then(|config_path| Config::new(Some(&config_path)).ok())
-        .unwrap_or_default();
-    apply_buffer_rule_policy(&mut config, include_disk_rules);
     let file_lines: Vec<&str> = text.lines().collect();
+    let mut config = match load_config(&path) {
+        Ok(config) => config,
+        Err(message) => return vec![config_error_diagnostic(&message, &file_lines)],
+    };
+    apply_buffer_rule_policy(&mut config, include_disk_rules);
     check_bytes(text.as_bytes(), &path, config)
         .iter()
         .map(|diag| to_lsp_diagnostic(diag, &file_lines))
         .collect()
+}
+
+/// Discover and load the poexam config for the PO file at `path`.
+///
+/// Returns the loaded config (with config-relative word-list paths resolved), or
+/// defaults when no config file is found. When a config file *is* found but fails
+/// to parse, returns an `Err` carrying the error message so the caller can show
+/// *why* the config was not applied — mirroring the CLI, which reports the same
+/// error rather than running with defaults.
+fn load_config(path: &Path) -> Result<Config, String> {
+    let Some(config_path) = find_config_path(path) else {
+        return Ok(Config::default());
+    };
+    match Config::new(Some(&config_path)) {
+        Ok(mut config) => {
+            config.resolve_relative_paths();
+            Ok(config)
+        }
+        Err(err) => Err(format!(
+            "invalid config file (path: {}): {err}",
+            config_path.display()
+        )),
+    }
+}
+
+/// Build a `config-error` LSP diagnostic for a config that failed to parse.
+///
+/// It is anchored on the whole first line of the buffer rather than an empty
+/// range at `(0, 0)`: Emacs Flymake (and other clients) do not render a
+/// zero-width range, so an empty range would be silently invisible.
+fn config_error_diagnostic(message: &str, file_lines: &[&str]) -> Diagnostic {
+    Diagnostic {
+        range: whole_line_range(0, file_lines),
+        severity: Some(DiagnosticSeverity::ERROR),
+        code: Some(NumberOrString::String("config-error".to_string())),
+        source: Some("poexam".to_string()),
+        message: message.to_string(),
+        ..Diagnostic::default()
+    }
 }
 
 /// When the buffer may differ from disk (`include_disk_rules == false`), add the
@@ -443,6 +485,79 @@ mod tests {
         let mut config = Config::default();
         apply_buffer_rule_policy(&mut config, true);
         assert!(config.check.ignore.is_empty());
+    }
+
+    /// Create a temp directory with a PO file and an optional config file,
+    /// returning the directory handle and the PO file path.
+    fn tmp_repo(label: &str, config: Option<&str>) -> (tempfile::TempDir, PathBuf) {
+        let tmp = tempfile::TempDir::with_prefix(format!("poexam-lsp-{label}-"))
+            .expect("create temp dir");
+        if let Some(content) = config {
+            std::fs::write(tmp.path().join("poexam.toml"), content).expect("write config");
+        }
+        let po = tmp.path().join("fr.po");
+        std::fs::write(&po, "msgid \"\"\nmsgstr \"\"\n").expect("write po file");
+        (tmp, po)
+    }
+
+    #[test]
+    fn test_load_config_invalid_config_yields_error_message() {
+        // A config that fails validation must surface as an error rather than
+        // silently reverting to defaults.
+        let (_tmp, po) = tmp_repo("bad-cfg", Some("[check]\nshort_factor = 1\n"));
+        let message = load_config(&po).expect_err("invalid config is an error");
+        assert!(message.contains("invalid config file"));
+        assert!(message.contains("check.short_factor"));
+    }
+
+    #[test]
+    fn test_config_error_diagnostic_anchors_on_non_empty_first_line() {
+        // The diagnostic must span the first line, not an empty range at (0, 0):
+        // Emacs Flymake does not render a zero-width range, so an empty range
+        // would be invisible.
+        let file_lines = ["msgid \"x\"", "msgstr \"y\""];
+        let diag = config_error_diagnostic("invalid config file (path: x): boom", &file_lines);
+        assert_eq!(
+            diag.code,
+            Some(NumberOrString::String("config-error".to_string()))
+        );
+        assert_eq!(diag.severity, Some(DiagnosticSeverity::ERROR));
+        assert_eq!(diag.range.start, Position::new(0, 0));
+        assert!(
+            diag.range.end.character > 0,
+            "config-error range must be non-empty so editors render it, got {:?}",
+            diag.range,
+        );
+    }
+
+    #[test]
+    fn test_load_config_no_config_file_yields_defaults() {
+        let (_tmp, po) = tmp_repo("no-cfg", None);
+        let config = load_config(&po).expect("defaults when no config found");
+        assert_eq!(config.check.select, vec!["default".to_string()]);
+    }
+
+    #[test]
+    fn test_load_config_valid_config_is_applied() {
+        let (_tmp, po) = tmp_repo(
+            "valid-cfg",
+            Some("[check]\nselect = [\"whitespace-end\"]\n"),
+        );
+        let config = load_config(&po).expect("valid config loads");
+        assert_eq!(config.check.select, vec!["whitespace-end".to_string()]);
+    }
+
+    #[test]
+    fn test_analyze_invalid_config_returns_only_config_error() {
+        let (_tmp, po) = tmp_repo("analyze-bad", Some("[check]\nlong_factor = 0\n"));
+        let uri = Url::from_file_path(&po).expect("file url");
+        let diags = analyze(&uri, "msgid \"x\"\nmsgstr \"y \"\n", true);
+        assert_eq!(diags.len(), 1);
+        assert_eq!(
+            diags[0].code,
+            Some(NumberOrString::String("config-error".to_string()))
+        );
+        assert!(diags[0].range.end.character > 0);
     }
 
     #[test]

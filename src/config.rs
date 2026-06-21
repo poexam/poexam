@@ -180,6 +180,31 @@ impl Config {
         Ok(config)
     }
 
+    /// Directory of the loaded config file, if any.
+    fn config_dir(&self) -> Option<PathBuf> {
+        self.path
+            .as_deref()
+            .and_then(Path::parent)
+            .map(Path::to_path_buf)
+    }
+
+    /// Resolve relative `path_words` / `force_trans_file` / `no_trans_file`
+    /// values against the directory of the loaded config file, canonicalizing
+    /// when possible. A no-op for absolute paths or when no config file path is
+    /// set.
+    ///
+    /// The CLI does this inside [`with_args_check`](Self::with_args_check); the
+    /// language server, which loads the config without command-line args, calls
+    /// this directly so a config-relative word-list path resolves the same way
+    /// in both.
+    pub fn resolve_relative_paths(&mut self) {
+        let config_dir = self.config_dir();
+        let config_dir = config_dir.as_deref();
+        resolve_config_relative(&mut self.check.path_words, config_dir);
+        resolve_config_relative(&mut self.check.force_trans_file, config_dir);
+        resolve_config_relative(&mut self.check.no_trans_file, config_dir);
+    }
+
     /// Update the configuration with command-line arguments.
     pub fn with_args_check(mut self, args: &args::CheckArgs) -> Self {
         if args.fuzzy {
@@ -205,33 +230,21 @@ impl Config {
         }
         if let Some(path_words) = &args.path_words {
             self.check.path_words = Some(PathBuf::from(path_words));
-        } else if let Some(path_words) = &self.check.path_words
-            && path_words.is_relative()
-            && let Some(config_path) = &self.path
-            && let Some(config_dir) = config_path.parent()
-        {
-            let path = PathBuf::from(config_dir).join(path_words);
-            self.check.path_words = path.canonicalize().map_or(Some(path), Some);
+        } else {
+            let config_dir = self.config_dir();
+            resolve_config_relative(&mut self.check.path_words, config_dir.as_deref());
         }
         if let Some(force_trans_file) = &args.force_trans_file {
             self.check.force_trans_file = Some(PathBuf::from(force_trans_file));
-        } else if let Some(force_trans_file) = &self.check.force_trans_file
-            && force_trans_file.is_relative()
-            && let Some(config_path) = &self.path
-            && let Some(config_dir) = config_path.parent()
-        {
-            let path = PathBuf::from(config_dir).join(force_trans_file);
-            self.check.force_trans_file = path.canonicalize().map_or(Some(path), Some);
+        } else {
+            let config_dir = self.config_dir();
+            resolve_config_relative(&mut self.check.force_trans_file, config_dir.as_deref());
         }
         if let Some(no_trans_file) = &args.no_trans_file {
             self.check.no_trans_file = Some(PathBuf::from(no_trans_file));
-        } else if let Some(no_trans_file) = &self.check.no_trans_file
-            && no_trans_file.is_relative()
-            && let Some(config_path) = &self.path
-            && let Some(config_dir) = config_path.parent()
-        {
-            let path = PathBuf::from(config_dir).join(no_trans_file);
-            self.check.no_trans_file = path.canonicalize().map_or(Some(path), Some);
+        } else {
+            let config_dir = self.config_dir();
+            resolve_config_relative(&mut self.check.no_trans_file, config_dir.as_deref());
         }
         if let Some(lang_id) = &args.lang_id {
             self.check.lang_id = String::from(lang_id);
@@ -258,6 +271,20 @@ impl Config {
             self.check.width = width;
         }
         self
+    }
+}
+
+/// Resolve a relative path stored in the config against the config file's
+/// directory (`config_dir`), canonicalizing when possible and falling back to
+/// the joined path otherwise. A no-op for `None`, absolute paths, or an unknown
+/// config directory.
+fn resolve_config_relative(value: &mut Option<PathBuf>, config_dir: Option<&Path>) {
+    if let Some(path) = value.as_ref()
+        && path.is_relative()
+        && let Some(dir) = config_dir
+    {
+        let joined = dir.join(path);
+        *value = Some(joined.canonicalize().unwrap_or(joined));
     }
 }
 
