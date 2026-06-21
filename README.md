@@ -483,12 +483,6 @@ A [Zed](https://zed.dev) extension built on this language server lives in
 [`editors/zed`](editors/zed); it adds PO syntax highlighting and real-time diagnostics. See its
 [README](editors/zed/README.md) for installation.
 
-## Roadmap
-
-- [ ] Add new rules.
-- [ ] Add support for custom rules and checks.
-- [x] Add a Zed editor extension on top of the `poexam lsp` language server.
-
 ## Copyright
 
 <!-- REUSE-IgnoreStart -->
