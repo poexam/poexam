@@ -475,7 +475,15 @@ Emacs 29+, add to your `init.el`:
 ```
 
 `poexam` must be on the `PATH` that Emacs sees (use an absolute path otherwise). Diagnostics appear
-as Flymake overlays; `M-g n` / `M-g p` jump between them.
+as Flymake overlays; navigate them with `flymake-goto-next-error` / `flymake-goto-prev-error` (not
+`next-error` / `M-g n`, which is a separate framework), or list them with
+`flymake-show-buffer-diagnostics`. The navigation commands are unbound by default; bind them, e.g.:
+
+```elisp
+(with-eval-after-load 'flymake
+  (define-key flymake-mode-map (kbd "M-n") #'flymake-goto-next-error)
+  (define-key flymake-mode-map (kbd "M-p") #'flymake-goto-prev-error))
+```
 
 #### Zed
 
