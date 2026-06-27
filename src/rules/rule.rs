@@ -194,6 +194,8 @@ fn get_all_rules() -> Vec<Rule> {
         Box::new(untranslated::UntranslatedRule {}),
         Box::new(urls::UrlsRule {}),
         Box::new(whitespace::WhitespaceEndRule {}),
+        Box::new(whitespace::WhitespaceLineEndRule {}),
+        Box::new(whitespace::WhitespaceLineStartRule {}),
         Box::new(whitespace::WhitespaceStartRule {}),
     ]
 }

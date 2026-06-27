@@ -12,6 +12,8 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 - Add command "lsp" to run a language server (LSP) over stdin/stdout, reporting diagnostics in real time for editor integration
 - Add a Zed editor extension providing PO syntax highlighting and real-time diagnostics via `poexam lsp`
+- Add default rule "whitespace-line-start" to check for inconsistent leading whitespace at the start of each line
+- Add default rule "whitespace-line-end" to check for inconsistent trailing whitespace at the end of each line
 
 ## Version 0.0.11 (2026-06-07)
 

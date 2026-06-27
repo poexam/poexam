@@ -103,31 +103,33 @@ See configuration file example: [poexam.toml](examples/poexam.toml).
 
 It can perform a lot of checks via the default rules:
 
-| Rule name        | Diagnostic reported                                |
-|------------------|----------------------------------------------------|
-| accelerators     | Missing/extra keyboard accelerators.               |
-| blank            | Blank translation (only whitespace).               |
-| brackets         | Missing/extra brackets.                            |
-| double-quotes    | Missing/extra double quotes.                       |
-| double-spaces    | Missing/extra double spaces.                       |
-| emails           | Missing/extra/different emails.                    |
-| encoding         | Incorrect encoding (charset).                      |
-| escapes          | Missing/extra escape characters.                   |
-| formats          | Inconsistent format strings.                       |
-| header           | Invalid/missing required fields in PO file header. |
-| long             | Translation too long.                              |
-| newlines         | Missing/extra newlines.                            |
-| pipes            | Missing/extra pipes.                               |
-| plurals          | Incorrect number of plurals.                       |
-| punc-start       | Inconsistent leading punctuation.                  |
-| punc-end         | Inconsistent trailing punctuation.                 |
-| punc-space-id    | Incorrect spaces around punctuation (source).      |
-| punc-space-str   | Incorrect spaces around punctuation (translation). |
-| short            | Translation too short.                             |
-| tabs             | Missing/extra tabs.                                |
-| unicode-ctrl     | Stray Unicode control chars in translation.        |
-| whitespace-end   | Missing/extra whitespace at the end.               |
-| whitespace-start | Missing/extra whitespace at the start.             |
+| Rule name             | Diagnostic reported                                 |
+|-----------------------|-----------------------------------------------------|
+| accelerators          | Missing/extra keyboard accelerators.                |
+| blank                 | Blank translation (only whitespace).                |
+| brackets              | Missing/extra brackets.                             |
+| double-quotes         | Missing/extra double quotes.                        |
+| double-spaces         | Missing/extra double spaces.                        |
+| emails                | Missing/extra/different emails.                     |
+| encoding              | Incorrect encoding (charset).                       |
+| escapes               | Missing/extra escape characters.                    |
+| formats               | Inconsistent format strings.                        |
+| header                | Invalid/missing required fields in PO file header.  |
+| long                  | Translation too long.                               |
+| newlines              | Missing/extra newlines.                             |
+| pipes                 | Missing/extra pipes.                                |
+| plurals               | Incorrect number of plurals.                        |
+| punc-start            | Inconsistent leading punctuation.                   |
+| punc-end              | Inconsistent trailing punctuation.                  |
+| punc-space-id         | Incorrect spaces around punctuation (source).       |
+| punc-space-str        | Incorrect spaces around punctuation (translation).  |
+| short                 | Translation too short.                              |
+| tabs                  | Missing/extra tabs.                                 |
+| unicode-ctrl          | Stray Unicode control chars in translation.         |
+| whitespace-end        | Missing/extra whitespace at the end.                |
+| whitespace-line-end   | Missing/extra whitespace at the end of each line.   |
+| whitespace-line-start | Missing/extra whitespace at the start of each line. |
+| whitespace-start      | Missing/extra whitespace at the start.              |
 
 For the rule `formats`, the following languages are supported:
 
@@ -378,6 +380,20 @@ Rules that currently produce auto-fixes:
 #### whitespace-end
 
 - **Fix**: Replace the trailing whitespace run in the translation with the source's run.
+- **Safe**: yes.
+
+#### whitespace-line-start
+
+- **Fix**: Replace the leading whitespace run of each interior line in the translation with the
+  source's run. Only the lines after an embedded newline are touched (the string start is handled
+  by `whitespace-start`), and only when source and translation have the same number of lines.
+- **Safe**: yes.
+
+#### whitespace-line-end
+
+- **Fix**: Replace the trailing whitespace run of each interior line in the translation with the
+  source's run. Only the lines before an embedded newline are touched (the string end is handled
+  by `whitespace-end`), and only when source and translation have the same number of lines.
 - **Safe**: yes.
 
 ### Output

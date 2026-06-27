@@ -131,6 +131,14 @@ msgstr "Exemple d'URL : https://github.com/à_propos"
 msgid "Test whitespace end"
 msgstr "Test espace à la fin "
 
+# rule: whitespace-line-end
+msgid "Line one \nLine two"
+msgstr "Ligne un\nLigne deux"
+
+# rule: whitespace-line-start
+msgid "Line one\n Line two"
+msgstr "Ligne un\nLigne deux"
+
 # rule: whitespace-start
 msgid "Test whitespace start"
 msgstr " Test espace au début"
