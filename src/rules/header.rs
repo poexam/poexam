@@ -112,7 +112,7 @@ impl RuleChecker for HeaderRule {
     /// "POT-Creation-Date: 2026-02-01 18:12:08+0100\n"
     /// "PO-Revision-Date: 2026-02-01 18:12:08+0100\n"
     /// "Last-Translator: Sébastien Helleu <flashcode@flashtux.org>\n"
-    /// "Language-Team: Sébastien Helleu <flashcode@flashtux.org>\n"
+    /// "Language-Team: French <flashcode@flashtux.org>\n"
     /// "Language: fr\n"
     /// "MIME-Version: 1.0\n"
     /// "Content-Type: text/plain; charset=UTF-8\n"
