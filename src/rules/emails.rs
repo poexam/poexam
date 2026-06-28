@@ -186,6 +186,19 @@ msgstr "user2@example.com -- „user@domain.com”"
     }
 
     #[test]
+    fn test_quotes_are_not_emails() {
+        // A quoted "@" is not an email: the surrounding quotes must not be
+        // treated as email characters (regression for "missing emails (1 / 0)").
+        let diags = check_emails(
+            r#"
+msgid "Not an e-mail: \"@\"."
+msgstr "Le \"@\" n'est pas un e-mail."
+"#,
+        );
+        assert!(diags.is_empty());
+    }
+
+    #[test]
     fn test_emails_error() {
         let diags = check_emails(
             r#"

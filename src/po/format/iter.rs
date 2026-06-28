@@ -5,6 +5,7 @@
 //! Format iterator: return format strings.
 
 use crate::po::format::{FormatParser, MatchFmtPos, language::Language};
+use crate::rules::double_quotes::DOUBLE_QUOTES;
 
 pub struct FormatPos<'a> {
     s: &'a str,
@@ -367,6 +368,10 @@ impl<'a> FormatEmailPos<'a> {
     /// Simple check for email validity: check that it contains exactly one '@' and that
     /// local and domain parts are not empty and contain only allowed characters, with
     /// relaxed rules (e.g. allow language formats like `%s` or `{0}`).
+    ///
+    /// Quotes are not allowed here: a single pair of surrounding quotes is stripped by
+    /// the iterator before validation (see [`Iterator::next`]), so a token like `"@".`
+    /// is correctly rejected instead of being seen as the email `"@".`.
     fn is_valid_email(email: &str) -> bool {
         email.find('@').is_some_and(|pos_arobase| {
             let local = &email[..pos_arobase];
@@ -383,11 +388,6 @@ impl<'a> FormatEmailPos<'a> {
                         || c == '{'
                         || c == '}'
                         || c == '$'
-                        || c == '"'
-                        || c == '„'
-                        || c == '”'
-                        || c == '«'
-                        || c == '»'
                 })
                 && domain.chars().all(|c| {
                     c.is_alphanumeric()
@@ -397,11 +397,6 @@ impl<'a> FormatEmailPos<'a> {
                         || c == '{'
                         || c == '}'
                         || c == '$'
-                        || c == '"'
-                        || c == '„'
-                        || c == '”'
-                        || c == '«'
-                        || c == '»'
                 })
                 && domain.contains('.')
         })
@@ -416,6 +411,9 @@ impl<'a> FormatEmailPos<'a> {
 ///
 /// Angle brackets around emails are handled, e.g. `Please send email to: <user@example.com>`
 /// (the angle brackets are not included in the returned email).
+///
+/// A single pair of surrounding quotes is handled the same way, e.g. `"user@example.com"`
+/// or `„user@example.com”` (the quotes are not included in the returned email).
 impl<'a> Iterator for FormatEmailPos<'a> {
     type Item = MatchFmtPos<'a>;
 
@@ -443,10 +441,23 @@ impl<'a> Iterator for FormatEmailPos<'a> {
             match (idx_start, idx_end) {
                 (Some(mut start), Some(mut end)) => {
                     let mut s = &self.s[start..end];
+                    // Strip one pair of surrounding angle brackets, e.g. <user@example.com>.
                     if s.starts_with('<') && s.ends_with('>') {
                         s = &s[1..s.len() - 1];
                         start += 1;
                         end -= 1;
+                    }
+                    // Strip one pair of surrounding quotes, e.g. "user@example.com" or
+                    // „user@example.com”, so the quotes are not treated as email characters.
+                    let mut chars = s.char_indices();
+                    if let (Some((_, first)), Some((last_idx, last))) =
+                        (chars.next(), chars.next_back())
+                        && DOUBLE_QUOTES.contains(&first)
+                        && DOUBLE_QUOTES.contains(&last)
+                    {
+                        start += first.len_utf8();
+                        end -= last.len_utf8();
+                        s = &s[first.len_utf8()..last_idx];
                     }
                     if Self::is_valid_email(s) {
                         return Some(MatchFmtPos { s, start, end });

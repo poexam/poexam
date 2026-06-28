@@ -10,7 +10,7 @@ use crate::po::entry::Entry;
 use crate::po::message::Message;
 use crate::rules::rule::RuleChecker;
 
-const DOUBLE_QUOTES: [char; 8] = [
+pub(crate) const DOUBLE_QUOTES: [char; 8] = [
     '"',  // U+0022: quotation mark
     '«',  // U+00AB: left pointing double angle quotation mark
     '»',  // U+00BB: right pointing double angle quotation mark

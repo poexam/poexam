@@ -15,6 +15,10 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - Add default rule "whitespace-line-start" to check for inconsistent leading whitespace at the start of each line
 - Add default rule "whitespace-line-end" to check for inconsistent trailing whitespace at the end of each line
 
+### Fixed
+
+- Do not treat surrounding quotes as part of an email in rule "emails"
+
 ## Version 0.0.11 (2026-06-07)
 
 ### Changed
