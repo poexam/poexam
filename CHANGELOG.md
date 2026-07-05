@@ -6,6 +6,12 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 # Poexam ChangeLog
 
+## Version 0.0.13 (under dev)
+
+### Added
+
+- Add auto-fix for rule "double-spaces" when the source has no double spaces
+
 ## Version 0.0.12 (2026-06-28)
 
 ### Added

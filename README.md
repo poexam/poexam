@@ -281,6 +281,15 @@ poexam check --fix po/
 
 Rules that currently produce auto-fixes:
 
+#### double-spaces
+
+- **Fix**: When the source has no double spaces, collapse each interior run of two or more spaces
+  in the translation to a single space. Only interior runs are touched; leading, trailing and
+  per-line edge runs are left to the whitespace rules. The "extra" case where the source itself
+  has double spaces (which run is surplus is ambiguous) and the "missing" case (no determinable
+  insertion point) are not auto-fixable.
+- **Safe**: yes.
+
 #### double-words
 
 - **Fix**: Remove the second occurrence of any consecutive repeated word from the translation,
