@@ -11,6 +11,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ### Added
 
 - Add auto-fix for rule "double-spaces" when the source has no double spaces
+- Add auto-fix for rule "html-tags" when the translation has different tags at the same positions
 
 ## Version 0.0.12 (2026-06-28)
 

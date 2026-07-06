@@ -8,6 +8,7 @@ use std::collections::HashSet;
 
 use crate::checker::Checker;
 use crate::diagnostic::{Diagnostic, Severity};
+use crate::fix::{Edit, Fix, FixTarget};
 use crate::po::entry::Entry;
 use crate::po::format::iter::FormatHtmlTagPos;
 use crate::po::message::Message;
@@ -51,7 +52,13 @@ impl RuleChecker for HtmlTagsRule {
     /// Diagnostics reported:
     /// - [`warning`](Severity::Warning): `missing HTML tags (# / #)`
     /// - [`warning`](Severity::Warning): `extra HTML tags (# / #)`
-    /// - [`warning`](Severity::Warning): `different HTML tags`
+    /// - [`warning`](Severity::Warning): `different HTML tags` (auto-fixable)
+    ///
+    /// Only the `different HTML tags` diagnostic carries an auto-fix: each
+    /// translation tag is replaced in place with the tag at the same position
+    /// in the source. The `missing` and `extra` cases are left unfixed because
+    /// inserting a missing tag at the right place in the prose or choosing which
+    /// extra to drop both require translator judgement.
     fn check_msg(
         &self,
         checker: &Checker,
@@ -102,14 +109,38 @@ impl RuleChecker for HtmlTagsRule {
                 if id_tags_hash == str_tags_hash {
                     vec![]
                 } else {
+                    // Auto-fix: replace each translation tag with the source tag
+                    // at the same position, for the positions where they differ.
+                    let edits: Vec<Edit> = id_tags
+                        .iter()
+                        .zip(str_tags.iter())
+                        .filter(|(id, str)| id.s != str.s)
+                        .map(|(id, str)| Edit {
+                            range: str.start..str.end,
+                            replacement: id.s.to_string(),
+                        })
+                        .collect();
+                    let fix = (!edits.is_empty()).then(|| Fix {
+                        target: FixTarget::Msgstr {
+                            file_byte_range: msgstr.byte_range.clone(),
+                        },
+                        edits,
+                    });
                     self.new_diag(checker, Severity::Warning, "different HTML tags")
                         .map(|d| {
                             d.with_msgs_hl(
                                 msgid,
-                                id_tags.iter().map(|m| (m.start, m.end)),
+                                id_tags
+                                    .iter()
+                                    .filter(|m| !str_tags_hash.contains(m.s))
+                                    .map(|m| (m.start, m.end)),
                                 msgstr,
-                                str_tags.iter().map(|m| (m.start, m.end)),
+                                str_tags
+                                    .iter()
+                                    .filter(|m| !id_tags_hash.contains(m.s))
+                                    .map(|m| (m.start, m.end)),
                             )
+                            .with_optional_fix(fix)
                         })
                         .into_iter()
                         .collect()
@@ -211,5 +242,87 @@ msgstr "Bonjour <i>monde</i>"
         let diag = &diags[2];
         assert_eq!(diag.severity, Severity::Warning);
         assert_eq!(diag.message, "different HTML tags");
+    }
+
+    #[test]
+    fn test_different_html_tags_fix_replaces_each_in_place() {
+        let diags = check_html_tags(
+            r#"
+msgid "Hello <b>world</b>"
+msgstr "Bonjour <i>monde</i>"
+"#,
+        );
+        assert_eq!(diags.len(), 1);
+        assert_eq!(diags[0].message, "different HTML tags");
+        let fix = diags[0].fix.as_ref().expect("fix attached");
+        // Both tags differ: <i> -> <b> and </i> -> </b>.
+        assert_eq!(fix.edits.len(), 2);
+        assert_eq!(fix.edits[0].replacement, "<b>");
+        assert_eq!(fix.edits[1].replacement, "</b>");
+    }
+
+    #[test]
+    fn test_different_html_tags_fix_skips_positions_already_equal() {
+        // The opening <b> matches; only the mismatched closing tag is fixed.
+        let diags = check_html_tags(
+            r#"
+msgid "<b>Hello</b>"
+msgstr "<b>Bonjour</i>"
+"#,
+        );
+        assert_eq!(diags.len(), 1);
+        let fix = diags[0].fix.as_ref().expect("fix attached");
+        assert_eq!(fix.edits.len(), 1);
+        assert_eq!(fix.edits[0].replacement, "</b>");
+    }
+
+    #[test]
+    fn test_missing_and_extra_html_tags_have_no_fix() {
+        let diags = check_html_tags(
+            r#"
+msgid "Hello <b>world</b>"
+msgstr "Bonjour <b>monde"
+
+msgid "Hello <b>world</b>"
+msgstr "Bonjour <b>monde</b><br/>"
+"#,
+        );
+        assert_eq!(diags.len(), 2);
+        assert!(
+            diags[0].fix.is_none(),
+            "missing HTML tags diagnostic must not carry a fix"
+        );
+        assert!(
+            diags[1].fix.is_none(),
+            "extra HTML tags diagnostic must not carry a fix"
+        );
+    }
+
+    #[test]
+    fn test_different_html_tags_highlights_only_differing() {
+        // <b>/</b> appear in both messages, so they must NOT be highlighted;
+        // only the differing tags (<i>/</i> in the translation) are.
+        let diags = check_html_tags(
+            r#"
+msgid "<b>Hi</b> and <i>bye</i>"
+msgstr "<b>Salut</b> et <u>adieu</u>"
+"#,
+        );
+        assert_eq!(diags.len(), 1);
+        assert_eq!(diags[0].message, "different HTML tags");
+        // `with_msgs_hl` adds 3 lines: msgid, an empty separator, then msgstr.
+        assert_eq!(diags[0].lines.len(), 3);
+        let id_hl: Vec<_> = diags[0].lines[0]
+            .highlights
+            .iter()
+            .map(|(s, e)| &diags[0].lines[0].message[*s..*e])
+            .collect();
+        let str_hl: Vec<_> = diags[0].lines[2]
+            .highlights
+            .iter()
+            .map(|(s, e)| &diags[0].lines[2].message[*s..*e])
+            .collect();
+        assert_eq!(id_hl, vec!["<i>", "</i>"]);
+        assert_eq!(str_hl, vec!["<u>", "</u>"]);
     }
 }

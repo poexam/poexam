@@ -326,6 +326,15 @@ Rules that currently produce auto-fixes:
   on per-file context (language, encoding, contacts, dates).
 - **Safe**: yes.
 
+#### html-tags
+
+- **Fix**: When the translation has the same number of HTML tags as the source but at least one
+  differs, replace each translation tag in place with the tag at the same position in the source.
+  The "missing" and "extra" diagnostics (count mismatch) are not auto-fixable.
+- **Safe**: no.
+- **Caveats**: the translator may have reordered tags in the prose; positional pairing then maps
+  a translation tag to a different source tag and the fix replaces it incorrectly.
+
 #### newlines
 
 - **Fix**: Mirror the source's leading and trailing `\r`/`\n` runs in the translation. The
