@@ -45,3 +45,6 @@ path_words = "."
 
 # output page width used by --fix when rewriting msgstr blocks (0 disables wrapping)
 # width = 79
+
+# also apply unsafe auto-fixes with --fix
+unsafe_fixes = false

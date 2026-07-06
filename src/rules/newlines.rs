@@ -163,6 +163,7 @@ impl NewlinesRule {
                 range: 0..str_run.len(),
                 replacement: id_run.to_string(),
             }],
+            safe: true,
         });
         // Check CR ('\r') at beginning.
         let id_starts_with_cr = msgid.value.starts_with('\r');
@@ -242,6 +243,7 @@ impl NewlinesRule {
                 range: str_run_start..msgstr.value.len(),
                 replacement: id_run.to_string(),
             }],
+            safe: true,
         });
         // Check CR ('\r') at end.
         let id_ends_with_cr = msgid.value.ends_with('\r');

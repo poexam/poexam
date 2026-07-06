@@ -36,10 +36,20 @@ pub enum FixTarget {
 }
 
 /// A set of edits to apply to one msgstr value, plus where to splice the result.
+///
+/// `safe` marks whether applying the fix is guaranteed to preserve the
+/// translation's meaning. Safe fixes (whitespace and punctuation normalization,
+/// header defaults, obsolete-entry deletion, …) are applied by `--fix`. Unsafe
+/// fixes rely on positional heuristics that a reordered translation can defeat
+/// (e.g. swapping emails, URLs, paths, function names or HTML tags by position),
+/// so they are only applied when `--unsafe-fixes` is also given. The README
+/// documents each fixable rule's safety.
 #[derive(Debug, Clone)]
 pub struct Fix {
     pub target: FixTarget,
     pub edits: Vec<Edit>,
+    /// Whether the fix is safe to apply automatically (see the struct docs).
+    pub safe: bool,
 }
 
 /// Returned when two edits on the same msgstr touch overlapping byte ranges.

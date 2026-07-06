@@ -82,6 +82,9 @@ pub struct CheckConfig {
 
     #[serde(default = "default_check_width")]
     pub width: usize,
+
+    #[serde(default)]
+    pub unsafe_fixes: bool,
 }
 
 /// Default value for `check.select`.
@@ -145,6 +148,7 @@ impl Default for CheckConfig {
             punc_ignore_ellipsis: false,
             accelerator: default_check_accelerator(),
             width: default_check_width(),
+            unsafe_fixes: false,
         }
     }
 }
@@ -270,6 +274,9 @@ impl Config {
         if let Some(width) = args.width {
             self.check.width = width;
         }
+        if args.unsafe_fixes {
+            self.check.unsafe_fixes = true;
+        }
         self
     }
 }
@@ -377,6 +384,7 @@ mod tests {
             output: args::CheckOutputFormat::default(),
             quiet: false,
             fix: false,
+            unsafe_fixes: false,
             width: None,
         }
     }
@@ -471,6 +479,23 @@ punc_ignore_ellipsis = true
     }
 
     #[test]
+    fn test_with_args_check_unsafe_fixes_overrides() {
+        let mut args = default_check_args();
+        args.unsafe_fixes = true;
+        let cfg = Config::default().with_args_check(&args);
+        assert!(cfg.check.unsafe_fixes);
+    }
+
+    #[test]
+    fn test_config_new_reads_unsafe_fixes() {
+        let (_tmp, root) = tmp_dir("cfg-unsafe-fixes");
+        let cfg_path = root.join("poexam.toml");
+        std::fs::write(&cfg_path, "[check]\nunsafe_fixes = true\n").expect("write config");
+        let c = Config::new(Some(&cfg_path)).expect("parse config");
+        assert!(c.check.unsafe_fixes);
+    }
+
+    #[test]
     fn test_config_new_missing_file_returns_err() {
         let missing = PathBuf::from("/this/path/should/not/exist/poexam.toml");
         let err = Config::new(Some(&missing)).expect_err("missing file is an error");
@@ -513,6 +538,7 @@ punc_ignore_ellipsis = true
         assert!(cfg.check.path_words.is_none());
         assert_eq!(cfg.check.lang_id, dict::DEFAULT_LANG_ID);
         assert!(cfg.check.severity.is_empty());
+        assert!(!cfg.check.unsafe_fixes);
     }
 
     #[test]

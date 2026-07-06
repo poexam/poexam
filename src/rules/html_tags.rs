@@ -125,6 +125,7 @@ impl RuleChecker for HtmlTagsRule {
                             file_byte_range: msgstr.byte_range.clone(),
                         },
                         edits,
+                        safe: false,
                     });
                     self.new_diag(checker, Severity::Warning, "different HTML tags")
                         .map(|d| {

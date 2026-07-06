@@ -12,6 +12,11 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 - Add auto-fix for rule "double-spaces" when the source has no double spaces
 - Add auto-fix for rule "html-tags" when the translation has different tags at the same positions
+- Add option `--unsafe-fixes` and config key `unsafe_fixes` to also apply unsafe auto-fixes with `--fix`
+
+### Changed
+
+- Apply only safe auto-fixes with `--fix` by default; unsafe fixes now require `--unsafe-fixes`
 
 ## Version 0.0.12 (2026-06-28)
 

@@ -98,6 +98,7 @@ impl RuleChecker for PuncStartRule {
                     range: 0..str_punc.len(),
                     replacement: id_punc.to_string(),
                 }],
+                safe: true,
             };
             self.new_diag(
                 checker,
@@ -188,6 +189,7 @@ impl RuleChecker for PuncEndRule {
                     range: str_punc_start..msgstr.value.len(),
                     replacement: id_punc.to_string(),
                 }],
+                safe: true,
             };
             self.new_diag(
                 checker,

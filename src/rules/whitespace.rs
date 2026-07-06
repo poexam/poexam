@@ -73,6 +73,7 @@ impl RuleChecker for WhitespaceStartRule {
                     range: 0..str_ws.len(),
                     replacement: id_ws.to_string(),
                 }],
+                safe: true,
             };
             self.new_diag(
                 checker,
@@ -148,6 +149,7 @@ impl RuleChecker for WhitespaceEndRule {
                     range: str_ws_start..msgstr.value.len(),
                     replacement: id_ws.to_string(),
                 }],
+                safe: true,
             };
             self.new_diag(
                 checker,
@@ -359,6 +361,7 @@ fn check_interior_whitespace<R: RuleChecker>(
                 range: str_hl.0..str_hl.1,
                 replacement: id_ws.to_string(),
             }],
+            safe: true,
         };
         if let Some(diag) = rule.new_diag(
             checker,

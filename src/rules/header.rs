@@ -70,6 +70,7 @@ fn append_header_field_fix(msgstr: &Message, field: &str, value: &str) -> Fix {
             range: end..end,
             replacement,
         }],
+        safe: true,
     }
 }
 

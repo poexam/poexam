@@ -33,6 +33,7 @@ fn msgstr_fix(msgstr: &Message, range: Range<usize>, replacement: &str) -> Fix {
             range,
             replacement: replacement.to_string(),
         }],
+        safe: true,
     }
 }
 

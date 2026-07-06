@@ -151,9 +151,14 @@ pub struct CheckArgs {
     #[arg(short, long)]
     pub quiet: bool,
 
-    /// Rewrite files in place, applying every diagnostic that carries an auto-fix
+    /// Rewrite files in place, applying every diagnostic that carries a safe auto-fix
     #[arg(long)]
     pub fix: bool,
+
+    /// Also apply unsafe auto-fixes with `--fix` (positional heuristics that a
+    /// reordered translation can defeat); see the README for the list of unsafe fixes
+    #[arg(long, requires = "fix")]
+    pub unsafe_fixes: bool,
 
     /// Output page width used by `--fix` when rewriting msgstr blocks (default: 79);
     /// 0 disables wrapping (matches `msgcat --width=0` / `msgcat --no-wrap`)

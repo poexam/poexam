@@ -96,6 +96,7 @@ The following options are available in the `check` section (each option can be o
 | punc_ignore_ellipsis | Boolean          | Ignore ellipsis differences (`...` vs `…`) in punc rules.         |
 | accelerator          | String (char)    | Marker for keyboard accelerators (default: `&`).                  |
 | width                | Integer          | Output page width for `--fix` (default: 79); 0 disables wrapping. |
+| unsafe_fixes         | Boolean          | Also apply unsafe auto-fixes with `--fix` (see auto-fix section). |
 
 See configuration file example: [poexam.toml](examples/poexam.toml).
 
@@ -269,17 +270,20 @@ msgstr "ceci est Forbidden"  # ok, different case from the source — counts as 
 
 ### Auto-fix
 
-With the option `--fix`, poexam rewrites each PO file in place, applying every diagnostic that carries an auto-fix. The file is then re-checked, so the reported diagnostics reflect the post-fix state; any remaining diagnostic is annotated with `Note: no fix available.` since it could not be fixed.
+With the option `--fix`, poexam rewrites each PO file in place, applying every diagnostic that carries a **safe** auto-fix. The file is then re-checked, so the reported diagnostics reflect the post-fix state; any remaining diagnostic is annotated with `Note: no fix available.` (or `Note: unsafe fix available, use --unsafe-fixes to apply it.` when a fix exists but is unsafe).
+
+Each fix is either **safe** or **unsafe** (see the per-rule list below). Safe fixes preserve the translation's meaning (whitespace and punctuation normalization, header defaults, obsolete-entry deletion, …) and are always applied by `--fix`. Unsafe fixes rely on positional heuristics that a reordered translation can defeat (e.g. replacing emails, URLs, paths, function names or HTML tags by position), so `--fix` skips them unless `--unsafe-fixes` is also given:
+
+```shell
+poexam check --fix po/                 # safe fixes only
+poexam check --fix --unsafe-fixes po/  # safe and unsafe fixes
+```
+
+`--unsafe-fixes` (or the `unsafe_fixes` config key) has no effect on its own; it must be combined with `--fix`.
 
 The rewriter wraps each replaced `msgstr` block the same way GNU `msgcat` does (Unicode Line Breaking + display width, default page width 79), so running `msgcat` on a fixed file is a no-op. The page width is configurable with `--width N` (or `check.width` in the config file); `--width 0` disables wrapping entirely (matches `msgcat --width=0` / `msgcat --no-wrap`).
 
-Example:
-
-```shell
-poexam check --fix po/
-```
-
-Rules that currently produce auto-fixes:
+Rules that currently produce auto-fixes (`Safe: no` fixes require `--unsafe-fixes`):
 
 #### double-spaces
 

@@ -104,6 +104,7 @@ impl RuleChecker for UnicodeCtrlRule {
                         file_byte_range: msgstr.byte_range.clone(),
                     },
                     edits,
+                    safe: true,
                 };
                 self.new_diag(checker, ctrl_char_severity(c), msg)
                     .map(|d| d.with_msgs_hl(msgid, [], msgstr, positions).with_fix(fix))

@@ -37,13 +37,22 @@ fn display_settings(path: &Path, config: &Config, rules: &Rules) {
 
 /// Display diagnostics in human format.
 fn display_diagnostics_human(result: &[CheckFileResult], args: &args::CheckArgs) {
-    let mut diags: Vec<&Diagnostic> = result.iter().flat_map(|x| &x.diagnostics).collect();
+    // Pair each diagnostic with its file's effective `unsafe_fixes` setting so
+    // the per-diagnostic note can tell whether a skipped fix was unsafe.
+    let mut diags: Vec<(&Diagnostic, bool)> = result
+        .iter()
+        .flat_map(|f| {
+            f.diagnostics
+                .iter()
+                .map(move |d| (d, f.config.check.unsafe_fixes))
+        })
+        .collect();
     // Use `sort_by_cached_key`: build the sort key once per element instead of
     // once per comparison (the latter would re-allocate a `Vec<usize>` of line
     // numbers `O(N log N)` times during the sort).
     match args.sort {
         args::CheckSort::Line => {
-            diags.sort_by_cached_key(|diag| {
+            diags.sort_by_cached_key(|(diag, _)| {
                 (
                     diag.path.clone(),
                     diag.lines
@@ -54,7 +63,7 @@ fn display_diagnostics_human(result: &[CheckFileResult], args: &args::CheckArgs)
             });
         }
         args::CheckSort::Message => {
-            diags.sort_by_cached_key(|diag| {
+            diags.sort_by_cached_key(|(diag, _)| {
                 (
                     diag.lines
                         .first()
@@ -68,7 +77,7 @@ fn display_diagnostics_human(result: &[CheckFileResult], args: &args::CheckArgs)
             });
         }
         args::CheckSort::Rule => {
-            diags.sort_by_cached_key(|diag| {
+            diags.sort_by_cached_key(|(diag, _)| {
                 (
                     diag.rule,
                     diag.path.clone(),
@@ -80,7 +89,7 @@ fn display_diagnostics_human(result: &[CheckFileResult], args: &args::CheckArgs)
             });
         }
     }
-    for diag in diags {
+    for (diag, file_unsafe_fixes) in diags {
         // `Diagnostic`'s Display impl already ends each diagnostic with a
         // newline-terminated `|` bar, so use `print!` here to keep the optional
         // "Note: no fix available." line attached to that bar without an empty
@@ -88,7 +97,11 @@ fn display_diagnostics_human(result: &[CheckFileResult], args: &args::CheckArgs)
         // separator before the next diagnostic.
         print!("{diag}");
         if args.fix {
-            println!("Note: no fix available.");
+            if diag.fix.as_ref().is_some_and(|f| !f.safe) && !file_unsafe_fixes {
+                println!("Note: unsafe fix available, use --unsafe-fixes to apply it.");
+            } else {
+                println!("Note: no fix available.");
+            }
         }
         println!();
     }
@@ -156,23 +169,45 @@ fn display_misspelled_words(result: &[CheckFileResult], _args: &args::CheckArgs)
     }
 }
 
-/// Display the summary of the fixes applied and the remaining problems with no fix available.
+/// Display the summary of the fixes applied and the remaining problems.
+///
+/// Remaining problems are split between those with no fix at all and those whose
+/// only fix is unsafe and was skipped because `--unsafe-fixes` was not given.
 fn display_fix_summary(result: &[CheckFileResult], elapsed: &Duration) {
     let fixes_applied: usize = result.iter().map(|f| f.fixes_applied).sum();
-    let remaining_with_no_fix: usize = result
-        .iter()
-        .flat_map(|f| &f.diagnostics)
-        .filter(|d| d.fix.is_none())
-        .count();
-    if fixes_applied == 0 && remaining_with_no_fix == 0 {
+    let mut remaining_no_fix = 0;
+    let mut remaining_unsafe = 0;
+    for file in result {
+        for diag in &file.diagnostics {
+            // A diagnostic still carrying an unsafe fix was skipped only because
+            // unsafe fixes are off for this file; everything else (no fix, or a
+            // fix dropped on a conflict) has no further fix to offer.
+            if diag.fix.as_ref().is_some_and(|f| !f.safe) && !file.config.check.unsafe_fixes {
+                remaining_unsafe += 1;
+            } else {
+                remaining_no_fix += 1;
+            }
+        }
+    }
+    let remaining = remaining_no_fix + remaining_unsafe;
+    if fixes_applied == 0 && remaining == 0 {
         println!("No problems found, nothing to fix! [{elapsed:?}]");
-    } else if remaining_with_no_fix == 0 {
+    } else if remaining == 0 {
         println!("{fixes_applied} problems fixed, all fixed! [{elapsed:?}]");
+    } else if remaining_unsafe == 0 {
+        println!(
+            "{fixes_applied} problems fixed, {remaining} remaining (no fix available) [{elapsed:?}]"
+        );
+    } else if remaining_no_fix == 0 {
+        println!(
+            "{fixes_applied} problems fixed, {remaining} remaining \
+             (unsafe fix available, use --unsafe-fixes) [{elapsed:?}]"
+        );
     } else {
         println!(
-            "{fixes_applied} problems fixed, \
-         {remaining_with_no_fix} remaining (no fix available) \
-         [{elapsed:?}]",
+            "{fixes_applied} problems fixed, {remaining} remaining \
+             ({remaining_no_fix} with no fix, {remaining_unsafe} with an unsafe fix: use --unsafe-fixes) \
+             [{elapsed:?}]"
         );
     }
 }
@@ -325,6 +360,7 @@ mod tests {
             output: args::CheckOutputFormat::default(),
             quiet: false,
             fix: false,
+            unsafe_fixes: false,
             width: None,
         }
     }

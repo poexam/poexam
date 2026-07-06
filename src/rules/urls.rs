@@ -125,6 +125,7 @@ impl RuleChecker for UrlsRule {
                             file_byte_range: msgstr.byte_range.clone(),
                         },
                         edits,
+                        safe: false,
                     });
                     self.new_diag(checker, Severity::Warning, "different URLs")
                         .map(|d| {

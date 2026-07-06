@@ -80,6 +80,7 @@ impl RuleChecker for DoubleWordsRule {
                         range: word.end..next_word.end,
                         replacement: String::new(),
                     }],
+                    safe: false,
                 };
                 diags.extend(
                     self.new_diag(

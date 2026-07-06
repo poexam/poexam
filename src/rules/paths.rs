@@ -126,6 +126,7 @@ impl RuleChecker for PathsRule {
                             file_byte_range: msgstr.byte_range.clone(),
                         },
                         edits,
+                        safe: false,
                     });
                     self.new_diag(checker, Severity::Warning, "different paths")
                         .map(|d| {

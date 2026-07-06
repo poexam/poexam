@@ -274,16 +274,24 @@ impl<'d> Checker<'d> {
 /// together with the count of distinct fixes that were actually applied
 /// (msgstrs rewritten + entries deleted), or `None` if there is nothing to
 /// rewrite (no fixes, or every fix is in conflict and skipped).
+///
+/// When `allow_unsafe` is false, fixes flagged unsafe (see [`Fix::safe`](crate::fix::Fix::safe)) are
+/// skipped, so `--fix` alone applies only safe fixes; `--unsafe-fixes` sets this
+/// to true to also apply the unsafe ones.
 fn apply_fixes_to_data(
     data: &[u8],
     diagnostics: &[Diagnostic],
     page_width: usize,
+    allow_unsafe: bool,
 ) -> Option<(Vec<u8>, usize)> {
     // Bucket fixes by target kind.
     let mut edits_by_range: BTreeMap<(usize, usize), Vec<Edit>> = BTreeMap::new();
     let mut entry_deletions: BTreeSet<(usize, usize)> = BTreeSet::new();
     for diag in diagnostics {
         let Some(fix) = &diag.fix else { continue };
+        if !fix.safe && !allow_unsafe {
+            continue;
+        }
         match &fix.target {
             FixTarget::Msgstr { file_byte_range } => {
                 let key = (file_byte_range.start, file_byte_range.end);
@@ -466,9 +474,12 @@ fn check_file(path: &PathBuf, args: &args::CheckArgs) -> CheckFileResult {
     let mut checker = Checker::new(&data).with_path(path).with_config(config);
     checker.do_all_checks(&rules);
     if args.fix {
-        if let Some((new_data, fixes_applied)) =
-            apply_fixes_to_data(&data, &checker.diagnostics, checker.config.check.width)
-        {
+        if let Some((new_data, fixes_applied)) = apply_fixes_to_data(
+            &data,
+            &checker.diagnostics,
+            checker.config.check.width,
+            checker.config.check.unsafe_fixes,
+        ) {
             let config = std::mem::take(&mut checker.config);
             let diagnostics = std::mem::take(&mut checker.diagnostics);
             drop(checker);
@@ -561,6 +572,7 @@ mod tests {
             output: args::CheckOutputFormat::default(),
             quiet: true,
             fix: false,
+            unsafe_fixes: false,
             width: None,
         }
     }
@@ -794,6 +806,66 @@ msgstr \"monde\"
         );
     }
 
+    /// PO content carrying one safe fix (a leading-whitespace mismatch, fixed by
+    /// `whitespace-start`) and one unsafe fix (a differing function name, fixed
+    /// by `functions` via positional replacement).
+    const PO_SAFE_AND_UNSAFE_FIXES: &str = "msgid \"\"
+msgstr \"\"
+\"Content-Type: text/plain; charset=UTF-8\\n\"
+
+msgid \" hello\"
+msgstr \"bonjour\"
+
+msgid \"Call foo()\"
+msgstr \"Appelez bar()\"
+";
+
+    #[test]
+    fn test_fix_applies_only_safe_fixes_without_unsafe_flag() {
+        let tmp = tmp_dir("fix-safe-only");
+        let po_path = write_po(tmp.path(), "fr.po", PO_SAFE_AND_UNSAFE_FIXES);
+
+        let mut args = default_check_args();
+        args.no_config = true;
+        args.select = Some("whitespace-start,functions".to_string());
+        args.fix = true;
+        let result = check_file(&po_path, &args);
+
+        let fixed = std::fs::read_to_string(&po_path).expect("read fixed file");
+        // Safe fix applied: the leading space is mirrored into the translation.
+        assert!(fixed.contains("msgstr \" bonjour\""));
+        // Unsafe fix NOT applied: the function name is left untouched.
+        assert!(fixed.contains("msgstr \"Appelez bar()\""));
+        // ... and its diagnostic still remains after the fix pass.
+        assert!(
+            result.diagnostics.iter().any(|d| d.rule == "functions"),
+            "unsafe functions fix must not be applied without --unsafe-fixes"
+        );
+    }
+
+    #[test]
+    fn test_fix_applies_unsafe_fixes_with_unsafe_flag() {
+        let tmp = tmp_dir("fix-unsafe");
+        let po_path = write_po(tmp.path(), "fr.po", PO_SAFE_AND_UNSAFE_FIXES);
+
+        let mut args = default_check_args();
+        args.no_config = true;
+        args.select = Some("whitespace-start,functions".to_string());
+        args.fix = true;
+        args.unsafe_fixes = true;
+        let result = check_file(&po_path, &args);
+
+        let fixed = std::fs::read_to_string(&po_path).expect("read fixed file");
+        // Both the safe and the unsafe fix are applied.
+        assert!(fixed.contains("msgstr \" bonjour\""));
+        assert!(fixed.contains("msgstr \"Appelez foo()\""));
+        // No functions diagnostic remains once the unsafe fix ran.
+        assert!(
+            !result.diagnostics.iter().any(|d| d.rule == "functions"),
+            "functions fix should be applied with --unsafe-fixes"
+        );
+    }
+
     /// PO content with stray Unicode control characters in two translations:
     /// a ZERO WIDTH SPACE inside "Save" and a SOFT HYPHEN inside "installation".
     const PO_UNICODE_CTRL_ISSUES: &str = "msgid \"\"
@@ -891,6 +963,9 @@ msgstr \"ceci est un un test et et\"
         args.no_config = true;
         args.select = Some("double-words".to_string());
         args.fix = true;
+        // The double-words fix is unsafe (a few constructions legitimately repeat
+        // a word), so it is applied only with --unsafe-fixes.
+        args.unsafe_fixes = true;
         let result = check_file(&po_path, &args);
 
         let remaining = result

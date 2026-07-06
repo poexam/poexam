@@ -59,6 +59,7 @@ impl RuleChecker for ObsoleteRule {
                     file_byte_range: entry.byte_range.clone(),
                 },
                 edits: Vec::new(),
+                safe: true,
             };
             self.new_diag(checker, Severity::Info, "obsolete entry")
                 .map(|d| d.with_entry(entry).with_fix(fix))

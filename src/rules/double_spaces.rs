@@ -89,6 +89,7 @@ impl RuleChecker for DoubleSpacesRule {
                         replacement: " ".to_string(),
                     })
                     .collect(),
+                safe: true,
             });
         self.new_diag(checker, Severity::Info, msg)
             .map(|d| {
