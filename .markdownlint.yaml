@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: 2026 Sébastien Helleu <flashcode@flashtux.org>
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# Allow repeated change-type headings (### Added, ### Changed, ### Fixed)
+# under different versions in CHANGELOG.md, as required by Keep a Changelog.
+MD024:
+  siblings_only: true
+
+# Do not enforce a maximum line length (changelog entries are long).
+MD013: false
