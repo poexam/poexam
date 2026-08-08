@@ -19,6 +19,7 @@ jobs:
           - ubuntu-26.04
           - ubuntu-26.04-arm
           - macos-15
+          - macos-26
           - windows-2025
 
     runs-on: ${{ matrix.os }}
