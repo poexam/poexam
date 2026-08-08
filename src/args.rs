@@ -71,6 +71,10 @@ pub struct CheckArgs {
     #[arg(long)]
     pub obsolete: bool,
 
+    /// Check only files in these languages, based on the language in the PO header (comma-separated list of language ids, e.g. `fr,pt_BR`); by default all files are checked
+    #[arg(long)]
+    pub langs: Option<String>,
+
     /// Select rules to apply (comma-separated list), see `poexam rules`
     #[arg(short, long)]
     pub select: Option<String>,

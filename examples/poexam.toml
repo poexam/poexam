@@ -19,6 +19,9 @@ ignore = ["changed"]
 # check obsolete entries
 # obsolete = true
 
+# check only files in these languages (other files are ignored)
+# langs = ["fr", "pt_BR"]
+
 # path to hunspell dictionary
 # path_dicts = "/usr/share/hunspell"
 

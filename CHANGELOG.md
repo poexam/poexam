@@ -10,6 +10,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 ### Added
 
+- Add option `--langs` and config key `langs` to check only files in these languages (other files are ignored).
 - Add auto-fix for rule "double-spaces" when the source has no double spaces.
 - Add auto-fix for rule "html-tags" when the translation has different tags at the same positions.
 - Add option `--unsafe-fixes` and config key `unsafe_fixes` to also apply unsafe auto-fixes with `--fix`.

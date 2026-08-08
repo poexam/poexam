@@ -38,6 +38,9 @@ pub struct CheckConfig {
     #[serde(default)]
     pub obsolete: bool,
 
+    #[serde(default)]
+    pub langs: Vec<String>,
+
     #[serde(default = "default_check_select")]
     pub select: Vec<String>,
 
@@ -140,6 +143,7 @@ impl Default for CheckConfig {
             fuzzy: false,
             noqa: false,
             obsolete: false,
+            langs: vec![],
             select: default_check_select(),
             ignore: vec![],
             path_msgfmt: default_check_path_msgfmt(),
@@ -226,6 +230,9 @@ impl Config {
         }
         if args.obsolete {
             self.check.obsolete = true;
+        }
+        if let Some(langs) = &args.langs {
+            self.check.langs = langs.split(',').map(|s| s.trim().to_string()).collect();
         }
         if let Some(select) = &args.select {
             self.check.select = select.split(',').map(|s| s.trim().to_string()).collect();
@@ -370,6 +377,7 @@ mod tests {
             fuzzy: false,
             noqa: false,
             obsolete: false,
+            langs: None,
             select: None,
             ignore: None,
             path_msgfmt: None,
@@ -416,6 +424,7 @@ mod tests {
         assert!(!c.fuzzy);
         assert!(!c.noqa);
         assert!(!c.obsolete);
+        assert!(c.langs.is_empty());
         assert_eq!(c.select, vec!["default".to_string()]);
         assert!(c.ignore.is_empty());
         assert_eq!(c.path_msgfmt, PathBuf::from(DEFAULT_PATH_MSGFMT));
@@ -583,6 +592,7 @@ punc_ignore_ellipsis = true
         let mut args = default_check_args();
         args.select = Some(" spelling , html-tags ".to_string());
         args.ignore = Some("urls,paths".to_string());
+        args.langs = Some(" fr, pt_BR ".to_string());
         args.spelling_langs = Some("en_US, fr ,de".to_string());
         let cfg = Config::default().with_args_check(&args);
         assert_eq!(
@@ -593,6 +603,7 @@ punc_ignore_ellipsis = true
             cfg.check.ignore,
             vec!["urls".to_string(), "paths".to_string()],
         );
+        assert_eq!(cfg.check.langs, vec!["fr".to_string(), "pt_BR".to_string()],);
         assert_eq!(
             cfg.check.spelling_langs,
             vec!["en_US".to_string(), "fr".to_string(), "de".to_string()],

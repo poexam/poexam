@@ -339,6 +339,7 @@ mod tests {
             fuzzy: false,
             noqa: false,
             obsolete: false,
+            langs: None,
             select: None,
             ignore: None,
             path_msgfmt: None,

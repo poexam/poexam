@@ -397,8 +397,32 @@ fn rewrite_and_recheck(
     }
 }
 
+/// Build a `CheckFileResult` holding a single error diagnostic.
+fn error_result(path: &Path, rule: &'static str, message: String) -> CheckFileResult {
+    CheckFileResult {
+        path: PathBuf::from(path),
+        diagnostics: vec![Diagnostic::new(path, rule, Severity::Error, message)],
+        ..Default::default()
+    }
+}
+
+/// Return `true` if the language in the PO file header is in `langs`.
+fn language_selected(data: &[u8], langs: &[String]) -> bool {
+    // Parse entries up to the header to get the language of the file.
+    let mut parser = Parser::new(data);
+    for entry in parser.by_ref() {
+        if entry.is_header() {
+            break;
+        }
+    }
+    langs.iter().any(|s| s == parser.language())
+}
+
 /// Check a single PO file and return the list of diagnostics found.
-fn check_file(path: &PathBuf, args: &args::CheckArgs) -> CheckFileResult {
+///
+/// Return `None` when the config key `langs` is set and the language in the
+/// PO file header is not in the list: the file is then completely ignored.
+fn check_file(path: &PathBuf, args: &args::CheckArgs) -> Option<CheckFileResult> {
     let path_config = if args.no_config {
         None
     } else {
@@ -413,64 +437,35 @@ fn check_file(path: &PathBuf, args: &args::CheckArgs) -> CheckFileResult {
     let config = match Config::new(path_config.as_ref()) {
         Ok(cfg) => cfg.with_args_check(args),
         Err(err) => {
-            return CheckFileResult {
-                path: path.clone(),
-                diagnostics: vec![Diagnostic::new(
-                    path.as_path(),
-                    "config-error",
-                    Severity::Error,
-                    format!(
-                        "invalid config file (path: {}): {err}",
-                        path_config.unwrap_or_default().display()
-                    ),
-                )],
-                ..Default::default()
-            };
+            return Some(error_result(
+                path,
+                "config-error",
+                format!(
+                    "invalid config file (path: {}): {err}",
+                    path_config.unwrap_or_default().display()
+                ),
+            ));
         }
     };
     let rules = match get_selected_rules(&config) {
         Ok(selected_rules) => selected_rules,
         Err(err) => {
-            return CheckFileResult {
-                path: path.clone(),
-                diagnostics: vec![Diagnostic::new(
-                    path.as_path(),
-                    "rules-error",
-                    Severity::Error,
-                    err.to_string(),
-                )],
-                ..Default::default()
-            };
+            return Some(error_result(path, "rules-error", err.to_string()));
         }
     };
     let mut data: Vec<u8> = Vec::new();
     match File::open(path) {
         Ok(mut file) => {
             if let Err(err) = file.read_to_end(&mut data) {
-                return CheckFileResult {
-                    path: path.clone(),
-                    diagnostics: vec![Diagnostic::new(
-                        path.as_path(),
-                        "read-error",
-                        Severity::Error,
-                        err.to_string(),
-                    )],
-                    ..Default::default()
-                };
+                return Some(error_result(path, "read-error", err.to_string()));
             }
         }
         Err(err) => {
-            return CheckFileResult {
-                path: path.clone(),
-                diagnostics: vec![Diagnostic::new(
-                    path.as_path(),
-                    "read-error",
-                    Severity::Error,
-                    err.to_string(),
-                )],
-                ..Default::default()
-            };
+            return Some(error_result(path, "read-error", err.to_string()));
         }
+    }
+    if !config.check.langs.is_empty() && !language_selected(&data, &config.check.langs) {
+        return None;
     }
     let mut checker = Checker::new(&data).with_path(path).with_config(config);
     checker.do_all_checks(&rules);
@@ -484,16 +479,23 @@ fn check_file(path: &PathBuf, args: &args::CheckArgs) -> CheckFileResult {
             let config = std::mem::take(&mut checker.config);
             let diagnostics = std::mem::take(&mut checker.diagnostics);
             drop(checker);
-            return rewrite_and_recheck(path, &new_data, fixes_applied, config, rules, diagnostics);
+            return Some(rewrite_and_recheck(
+                path,
+                &new_data,
+                fixes_applied,
+                config,
+                rules,
+                diagnostics,
+            ));
         }
     }
-    CheckFileResult {
+    Some(CheckFileResult {
         path: path.clone(),
         config: checker.config,
         rules,
         diagnostics: checker.diagnostics,
         fixes_applied: 0,
-    }
+    })
 }
 
 /// Check and display result for all PO files.
@@ -501,7 +503,7 @@ pub fn run_check(args: &args::CheckArgs) -> i32 {
     let start = std::time::Instant::now();
     let result: Vec<CheckFileResult> = find_po_files(&args.files)
         .par_iter()
-        .map(|path| check_file(path, args))
+        .filter_map(|path| check_file(path, args))
         .collect();
     let elapsed = start.elapsed();
     display_result(&result, args, &elapsed)
@@ -552,6 +554,7 @@ mod tests {
             fuzzy: false,
             noqa: false,
             obsolete: false,
+            langs: None,
             select: None,
             ignore: None,
             path_msgfmt: None,
@@ -653,7 +656,7 @@ msgstr \"olá\"
         let missing = PathBuf::from("/this/path/should/not/exist/file.po");
         let mut args = default_check_args();
         args.no_config = true;
-        let result = check_file(&missing, &args);
+        let result = check_file(&missing, &args).expect("file is checked");
         assert_eq!(result.path, missing);
         assert_eq!(result.diagnostics.len(), 1);
         assert_eq!(result.diagnostics[0].rule, "read-error");
@@ -669,7 +672,7 @@ msgstr \"olá\"
 
         let mut args = default_check_args();
         args.config = Some(cfg_path);
-        let result = check_file(&po_path, &args);
+        let result = check_file(&po_path, &args).expect("file is checked");
         assert_eq!(result.diagnostics.len(), 1);
         assert_eq!(result.diagnostics[0].rule, "config-error");
         assert_eq!(result.diagnostics[0].severity, Severity::Error);
@@ -683,7 +686,7 @@ msgstr \"olá\"
         let mut args = default_check_args();
         args.no_config = true;
         args.select = Some("does-not-exist-rule".to_string());
-        let result = check_file(&po_path, &args);
+        let result = check_file(&po_path, &args).expect("file is checked");
         assert_eq!(result.diagnostics.len(), 1);
         assert_eq!(result.diagnostics[0].rule, "rules-error");
         assert_eq!(result.diagnostics[0].severity, Severity::Error);
@@ -698,7 +701,7 @@ msgstr \"olá\"
         args.no_config = true;
         // Pick a non-default rule that won't fire on a non-fuzzy, non-obsolete entry.
         args.select = Some("fuzzy".to_string());
-        let result = check_file(&po_path, &args);
+        let result = check_file(&po_path, &args).expect("file is checked");
         assert_eq!(result.path, po_path);
         assert!(
             result.diagnostics.is_empty(),
@@ -715,9 +718,34 @@ msgstr \"olá\"
         let po_path = write_po(tmp.path(), "fr.po", PO_PT_BR);
         let mut args = default_check_args();
         args.config = Some(PathBuf::from("/no/such/poexam.toml"));
-        let result = check_file(&po_path, &args);
+        let result = check_file(&po_path, &args).expect("file is checked");
         assert_eq!(result.diagnostics.len(), 1);
         assert_eq!(result.diagnostics[0].rule, "config-error");
+    }
+
+    #[test]
+    fn test_check_file_langs_skips_other_languages() {
+        let tmp = tmp_dir("langs-filter");
+        let po_path = write_po(tmp.path(), "pt_BR.po", PO_PT_BR);
+
+        let mut args = default_check_args();
+        args.no_config = true;
+        args.langs = Some("fr, pt_BR".to_string());
+        assert!(check_file(&po_path, &args).is_some());
+
+        args.langs = Some("fr, de".to_string());
+        assert!(check_file(&po_path, &args).is_none());
+
+        // A file without a header has no language: it is skipped too.
+        let no_header = write_po(
+            tmp.path(),
+            "no_header.po",
+            "msgid \"hello\"\nmsgstr \"olá\"\n",
+        );
+        args.langs = Some("pt_BR".to_string());
+        assert!(check_file(&no_header, &args).is_none());
+        args.langs = None;
+        assert!(check_file(&no_header, &args).is_some());
     }
 
     #[test]
@@ -768,7 +796,7 @@ msgstr \"monde\"
         args.no_config = true;
         args.select = Some("whitespace-start,whitespace-end".to_string());
         args.fix = true;
-        let result = check_file(&po_path, &args);
+        let result = check_file(&po_path, &args).expect("file is checked");
 
         // Re-checking the rewritten file must report zero whitespace diagnostics.
         let whitespace_diags = result
@@ -798,7 +826,7 @@ msgstr \"monde\"
         args.no_config = true;
         args.select = Some("whitespace-start,whitespace-end".to_string());
         args.fix = true;
-        let _ = check_file(&po_path, &args);
+        let _ = check_file(&po_path, &args).expect("file is checked");
 
         let after = std::fs::read(&po_path).expect("read after");
         assert_eq!(
@@ -830,7 +858,7 @@ msgstr \"Appelez bar()\"
         args.no_config = true;
         args.select = Some("whitespace-start,functions".to_string());
         args.fix = true;
-        let result = check_file(&po_path, &args);
+        let result = check_file(&po_path, &args).expect("file is checked");
 
         let fixed = std::fs::read_to_string(&po_path).expect("read fixed file");
         // Safe fix applied: the leading space is mirrored into the translation.
@@ -854,7 +882,7 @@ msgstr \"Appelez bar()\"
         args.select = Some("whitespace-start,functions".to_string());
         args.fix = true;
         args.unsafe_fixes = true;
-        let result = check_file(&po_path, &args);
+        let result = check_file(&po_path, &args).expect("file is checked");
 
         let fixed = std::fs::read_to_string(&po_path).expect("read fixed file");
         // Both the safe and the unsafe fix are applied.
@@ -920,7 +948,7 @@ msgstr \"bonjour\"
         args.select = Some("obsolete".to_string());
         args.obsolete = true;
         args.fix = true;
-        let result = check_file(&po_path, &args);
+        let result = check_file(&po_path, &args).expect("file is checked");
 
         let remaining = result
             .diagnostics
@@ -967,7 +995,7 @@ msgstr \"ceci est un un test et et\"
         // The double-words fix is unsafe (a few constructions legitimately repeat
         // a word), so it is applied only with --unsafe-fixes.
         args.unsafe_fixes = true;
-        let result = check_file(&po_path, &args);
+        let result = check_file(&po_path, &args).expect("file is checked");
 
         let remaining = result
             .diagnostics
@@ -1012,7 +1040,7 @@ msgstr \"bonjour\"
         args.no_config = true;
         args.select = Some("header".to_string());
         args.fix = true;
-        let result = check_file(&po_path, &args);
+        let result = check_file(&po_path, &args).expect("file is checked");
 
         // Both fixable header diagnostics should be gone after --fix.
         let remaining = result
@@ -1060,7 +1088,7 @@ msgstr \"Guillemets : « test »\"
         args.no_config = true;
         args.select = Some("punc-space-str".to_string());
         args.fix = true;
-        let result = check_file(&po_path, &args);
+        let result = check_file(&po_path, &args).expect("file is checked");
 
         let remaining = result
             .diagnostics
@@ -1092,7 +1120,7 @@ msgstr \"Guillemets : « test »\"
         args.no_config = true;
         args.select = Some("punc-start,punc-end".to_string());
         args.fix = true;
-        let result = check_file(&po_path, &args);
+        let result = check_file(&po_path, &args).expect("file is checked");
 
         // Re-checking the rewritten file must report zero punc diagnostics.
         let remaining = result
@@ -1121,7 +1149,7 @@ msgstr \"Guillemets : « test »\"
         args.no_config = true;
         args.select = Some("unicode-ctrl".to_string());
         args.fix = true;
-        let result = check_file(&po_path, &args);
+        let result = check_file(&po_path, &args).expect("file is checked");
 
         // Both stray chars were fixable, so re-check reports no unicode-ctrl diagnostics.
         let remaining = result
