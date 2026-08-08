@@ -48,6 +48,10 @@ impl RuleChecker for WhitespaceStartRule {
     /// msgstr " ceci est un test"
     /// ```
     ///
+    /// In French, a leading space followed by `:`, `;`, `!`, `?` or `»` is
+    /// required typography and is not reported (e.g. msgid `": "` translated
+    /// as msgstr `" : "`).
+    ///
     /// Diagnostics reported:
     /// - [`info`](Severity::Info): `inconsistent leading whitespace ('…' / '…')` (auto-fixable)
     fn check_msg(
@@ -62,7 +66,7 @@ impl RuleChecker for WhitespaceStartRule {
         }
         let id_ws = get_whitespace_start(&msgid.value);
         let str_ws = get_whitespace_start(&msgstr.value);
-        if id_ws == str_ws {
+        if id_ws == str_ws || is_french_punc_space(checker, id_ws, &msgstr.value) {
             vec![]
         } else {
             let fix = Fix {
@@ -205,6 +209,10 @@ impl RuleChecker for WhitespaceLineStartRule {
     /// msgid "first line\n  second line"
     /// msgstr "première ligne\n  seconde ligne"
     /// ```
+    ///
+    /// In French, a leading space followed by `:`, `;`, `!`, `?` or `»` is
+    /// required typography and is not reported (e.g. msgid `"x\n: "` translated
+    /// as msgstr `"x\n : "`).
     ///
     /// Diagnostics reported:
     /// - [`info`](Severity::Info): `inconsistent leading whitespace ('…' / '…')` (auto-fixable)
@@ -350,7 +358,9 @@ fn check_interior_whitespace<R: RuleChecker>(
                 )
             }
         };
-        if id_ws == str_ws {
+        if id_ws == str_ws
+            || (matches!(edge, LineEdge::Start) && is_french_punc_space(checker, id_ws, str_line))
+        {
             continue;
         }
         let fix = Fix {
@@ -375,6 +385,20 @@ fn check_interior_whitespace<R: RuleChecker>(
         }
     }
     diagnostics
+}
+
+/// Return `true` when the translation's leading space is required French
+/// typography rather than an inconsistency: in French a (non-breaking) space
+/// must precede `:`, `;`, `!`, `?` and `»`, so a French translation of a
+/// source starting directly with one of these characters legitimately starts
+/// with a single space (e.g. msgid `": "` translated as msgstr `" : "`).
+fn is_french_punc_space(checker: &Checker, id_ws: &str, str_line: &str) -> bool {
+    if !id_ws.is_empty() || checker.language_code() != "fr" {
+        return false;
+    }
+    let mut chars = str_line.chars();
+    matches!(chars.next(), Some(' ' | '\u{00A0}' | '\u{202F}'))
+        && matches!(chars.next(), Some(':' | ';' | '!' | '?' | '»'))
 }
 
 /// Get the leading whitespace of a string (up to the first non-whitespace character or newline).
@@ -535,6 +559,45 @@ msgstr "testé  "
     }
 
     #[test]
+    fn test_whitespace_start_french_punc_space_ok() {
+        // In French a space is required before `: ; ! ? »`: the leading space
+        // of the translation is required typography, not an inconsistency.
+        for punc in [':', ';', '!', '?', '»'] {
+            let diags = check_whitespace_start(&format!(
+                "msgid \"\"\nmsgstr \"Language: fr\\n\"\n\nmsgid \"{punc} \"\nmsgstr \" {punc} \"\n",
+            ));
+            assert!(diags.is_empty(), "'{punc}' should not be reported");
+        }
+        // Also accepted with a non-breaking space.
+        let diags = check_whitespace_start(
+            "msgid \"\"\nmsgstr \"Language: fr\\n\"\n\nmsgid \": \"\nmsgstr \"\u{00A0}: \"\n",
+        );
+        assert!(diags.is_empty());
+    }
+
+    #[test]
+    fn test_whitespace_start_french_punc_space_error() {
+        // Not French: the leading space is an inconsistency.
+        let diags = check_whitespace_start(
+            r#"
+msgid ": "
+msgstr " : "
+"#,
+        );
+        assert_eq!(diags.len(), 1);
+        // French but the leading space is not followed by `: ; ! ? »`.
+        let diags = check_whitespace_start(
+            "msgid \"\"\nmsgstr \"Language: fr\\n\"\n\nmsgid \"tested\"\nmsgstr \" testé\"\n",
+        );
+        assert_eq!(diags.len(), 1);
+        // French but the source has its own leading whitespace to mirror.
+        let diags = check_whitespace_start(
+            "msgid \"\"\nmsgstr \"Language: fr\\n\"\n\nmsgid \"  : x\"\nmsgstr \" : x\"\n",
+        );
+        assert_eq!(diags.len(), 1);
+    }
+
+    #[test]
     fn test_whitespace_start_fix() {
         // msgstr is missing the leading space the msgid has.
         let diags = check_whitespace_start(
@@ -655,6 +718,28 @@ msgstr "un\ndeux"
             diags[0].message,
             "inconsistent trailing whitespace (' ' / '')"
         );
+    }
+
+    #[test]
+    fn test_whitespace_line_start_french_punc_space_ok() {
+        // Interior line of the French translation starts with the space
+        // required before `:`.
+        let diags = check_whitespace_line_start(
+            "msgid \"\"\nmsgstr \"Language: fr\\n\"\n\nmsgid \"x\\n: y\"\nmsgstr \"a\\n : b\"\n",
+        );
+        assert!(diags.is_empty());
+    }
+
+    #[test]
+    fn test_whitespace_line_start_french_punc_space_error() {
+        // Not French: the interior leading space is an inconsistency.
+        let diags = check_whitespace_line_start(
+            r#"
+msgid "x\n: y"
+msgstr "a\n : b"
+"#,
+        );
+        assert_eq!(diags.len(), 1);
     }
 
     #[test]

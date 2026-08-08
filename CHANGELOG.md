@@ -21,6 +21,10 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - **Breaking:** rename option `--langs` to `--spelling-langs` and config key `langs` to `spelling_langs`.
 - Apply only safe auto-fixes with `--fix` by default; unsafe fixes now require `--unsafe-fixes`.
 
+### Fixed
+
+- Do not report inconsistent leading whitespace in rules "whitespace-start" and "whitespace-line-start" when a French translation starts with the space required before `:`, `;`, `!`, `?` or `»`.
+
 ## [0.0.12] - 2026-06-28
 
 ### Added
