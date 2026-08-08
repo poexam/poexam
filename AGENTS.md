@@ -119,3 +119,9 @@ Avoid adding new dependencies unless strictly necessary. Current key dependencie
 ## Changelog
 
 Update `CHANGELOG.md` for every user-facing change, following the existing format with `Removed`, `Changed`, `Added`, `Fixed` sections (in this order) under the current development version.
+Always add new entries on top of the section.
+Breaking changes are specified like this:
+
+``` markdown
+- **Breaking:** add new breaking feature.
+```
