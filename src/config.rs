@@ -59,11 +59,11 @@ pub struct CheckConfig {
     #[serde(default)]
     pub no_trans_file: Option<PathBuf>,
 
-    #[serde(default = "default_check_lang_id")]
-    pub lang_id: String,
+    #[serde(default = "default_check_spelling_lang_id")]
+    pub spelling_lang_id: String,
 
     #[serde(default)]
-    pub langs: Vec<String>,
+    pub spelling_langs: Vec<String>,
 
     #[serde(default = "default_check_short_factor")]
     pub short_factor: u16,
@@ -102,8 +102,8 @@ fn default_check_path_dicts() -> PathBuf {
     PathBuf::from(dict::DEFAULT_PATH_DICTS)
 }
 
-/// Default value for `check.lang_id`.
-fn default_check_lang_id() -> String {
+/// Default value for `check.spelling_lang_id`.
+fn default_check_spelling_lang_id() -> String {
     String::from(dict::DEFAULT_LANG_ID)
 }
 
@@ -127,6 +127,13 @@ const fn default_check_width() -> usize {
     DEFAULT_PAGE_WIDTH
 }
 
+impl CheckConfig {
+    /// Return `true` if spelling must be checked for the given language.
+    pub fn spelling_enabled(&self, language: &str) -> bool {
+        self.spelling_langs.is_empty() || self.spelling_langs.iter().any(|s| s == language)
+    }
+}
+
 impl Default for CheckConfig {
     fn default() -> Self {
         Self {
@@ -140,8 +147,8 @@ impl Default for CheckConfig {
             path_words: None,
             force_trans_file: None,
             no_trans_file: None,
-            lang_id: default_check_lang_id(),
-            langs: vec![],
+            spelling_lang_id: default_check_spelling_lang_id(),
+            spelling_langs: vec![],
             short_factor: default_check_short_factor(),
             long_factor: default_check_long_factor(),
             severity: vec![],
@@ -250,11 +257,11 @@ impl Config {
             let config_dir = self.config_dir();
             resolve_config_relative(&mut self.check.no_trans_file, config_dir.as_deref());
         }
-        if let Some(lang_id) = &args.lang_id {
-            self.check.lang_id = String::from(lang_id);
+        if let Some(lang_id) = &args.spelling_lang_id {
+            self.check.spelling_lang_id = String::from(lang_id);
         }
-        if let Some(langs) = &args.langs {
-            self.check.langs = langs.split(',').map(|s| s.trim().to_string()).collect();
+        if let Some(langs) = &args.spelling_langs {
+            self.check.spelling_langs = langs.split(',').map(|s| s.trim().to_string()).collect();
         }
         if let Some(short_factor) = args.short_factor {
             self.check.short_factor = short_factor;
@@ -370,8 +377,8 @@ mod tests {
             path_words: None,
             force_trans_file: None,
             no_trans_file: None,
-            lang_id: None,
-            langs: None,
+            spelling_lang_id: None,
+            spelling_langs: None,
             short_factor: None,
             long_factor: None,
             severity: vec![],
@@ -400,7 +407,7 @@ mod tests {
             default_check_path_dicts(),
             PathBuf::from(dict::DEFAULT_PATH_DICTS),
         );
-        assert_eq!(default_check_lang_id(), dict::DEFAULT_LANG_ID);
+        assert_eq!(default_check_spelling_lang_id(), dict::DEFAULT_LANG_ID);
     }
 
     #[test]
@@ -414,8 +421,8 @@ mod tests {
         assert_eq!(c.path_msgfmt, PathBuf::from(DEFAULT_PATH_MSGFMT));
         assert_eq!(c.path_dicts, PathBuf::from(dict::DEFAULT_PATH_DICTS));
         assert!(c.path_words.is_none());
-        assert_eq!(c.lang_id, dict::DEFAULT_LANG_ID);
-        assert!(c.langs.is_empty());
+        assert_eq!(c.spelling_lang_id, dict::DEFAULT_LANG_ID);
+        assert!(c.spelling_langs.is_empty());
         assert!(c.severity.is_empty());
         assert!(!c.punc_ignore_ellipsis);
         assert_eq!(c.accelerator, '&');
@@ -426,7 +433,7 @@ mod tests {
         let c = Config::new(None).expect("config builds without a path");
         assert!(c.path.is_none());
         assert_eq!(c.check.select, vec!["default".to_string()]);
-        assert_eq!(c.check.lang_id, dict::DEFAULT_LANG_ID);
+        assert_eq!(c.check.spelling_lang_id, dict::DEFAULT_LANG_ID);
         assert!(!c.check.fuzzy);
     }
 
@@ -441,7 +448,7 @@ mod tests {
 fuzzy = true
 select = ["spelling", "html-tags"]
 ignore = ["urls"]
-lang_id = "fr"
+spelling_lang_id = "fr"
 punc_ignore_ellipsis = true
 "#,
         )
@@ -454,7 +461,7 @@ punc_ignore_ellipsis = true
             vec!["spelling".to_string(), "html-tags".to_string()],
         );
         assert_eq!(c.check.ignore, vec!["urls".to_string()]);
-        assert_eq!(c.check.lang_id, "fr");
+        assert_eq!(c.check.spelling_lang_id, "fr");
         assert!(c.check.punc_ignore_ellipsis);
         // Unspecified fields fall back to defaults.
         assert!(!c.check.noqa);
@@ -536,7 +543,7 @@ punc_ignore_ellipsis = true
         assert!(cfg.check.ignore.is_empty());
         assert_eq!(cfg.check.path_msgfmt, PathBuf::from(DEFAULT_PATH_MSGFMT));
         assert!(cfg.check.path_words.is_none());
-        assert_eq!(cfg.check.lang_id, dict::DEFAULT_LANG_ID);
+        assert_eq!(cfg.check.spelling_lang_id, dict::DEFAULT_LANG_ID);
         assert!(cfg.check.severity.is_empty());
         assert!(!cfg.check.unsafe_fixes);
     }
@@ -576,7 +583,7 @@ punc_ignore_ellipsis = true
         let mut args = default_check_args();
         args.select = Some(" spelling , html-tags ".to_string());
         args.ignore = Some("urls,paths".to_string());
-        args.langs = Some("en_US, fr ,de".to_string());
+        args.spelling_langs = Some("en_US, fr ,de".to_string());
         let cfg = Config::default().with_args_check(&args);
         assert_eq!(
             cfg.check.select,
@@ -587,23 +594,23 @@ punc_ignore_ellipsis = true
             vec!["urls".to_string(), "paths".to_string()],
         );
         assert_eq!(
-            cfg.check.langs,
+            cfg.check.spelling_langs,
             vec!["en_US".to_string(), "fr".to_string(), "de".to_string()],
         );
     }
 
     #[test]
-    fn test_with_args_check_paths_and_lang_id() {
+    fn test_with_args_check_paths_and_spelling_lang_id() {
         let mut args = default_check_args();
         args.path_msgfmt = Some(PathBuf::from("/opt/bin/msgfmt"));
         args.path_dicts = Some(PathBuf::from("/opt/share/hunspell"));
         args.path_words = Some(PathBuf::from("/opt/words"));
-        args.lang_id = Some("de".to_string());
+        args.spelling_lang_id = Some("de".to_string());
         let cfg = Config::default().with_args_check(&args);
         assert_eq!(cfg.check.path_msgfmt, PathBuf::from("/opt/bin/msgfmt"));
         assert_eq!(cfg.check.path_dicts, PathBuf::from("/opt/share/hunspell"));
         assert_eq!(cfg.check.path_words, Some(PathBuf::from("/opt/words")));
-        assert_eq!(cfg.check.lang_id, "de");
+        assert_eq!(cfg.check.spelling_lang_id, "de");
     }
 
     #[test]

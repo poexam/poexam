@@ -189,13 +189,15 @@ impl<'d> Checker<'d> {
         while let Some(entry) = self.parser.next() {
             if entry.is_header() {
                 if (rules.spelling_ctxt_rule || rules.spelling_id_rule)
-                    && (self.config.check.langs.is_empty()
-                        || self.config.check.langs.contains(&self.config.check.lang_id))
+                    && self
+                        .config
+                        .check
+                        .spelling_enabled(&self.config.check.spelling_lang_id)
                 {
                     self.dict_id = match dict::get_dict(
                         self.config.check.path_dicts.as_path(),
                         self.config.check.path_words.as_ref(),
-                        &self.config.check.lang_id,
+                        &self.config.check.spelling_lang_id,
                     ) {
                         Ok(dict) => Some(dict),
                         Err(err) => {
@@ -214,8 +216,7 @@ impl<'d> Checker<'d> {
                 }
                 let language = self.parser.language();
                 if (rules.spelling_str_rule && self.dict_str.is_none())
-                    && (self.config.check.langs.is_empty()
-                        || self.config.check.langs.iter().any(|s| s == language))
+                    && self.config.check.spelling_enabled(language)
                 {
                     self.dict_str = match dict::get_dict(
                         self.config.check.path_dicts.as_path(),
@@ -558,8 +559,8 @@ mod tests {
             path_words: None,
             force_trans_file: None,
             no_trans_file: None,
-            lang_id: None,
-            langs: None,
+            spelling_lang_id: None,
+            spelling_langs: None,
             short_factor: None,
             long_factor: None,
             severity: vec![],
@@ -611,9 +612,9 @@ msgstr \"olá\"
     #[test]
     fn test_with_config_sets_config() {
         let mut config = Config::default();
-        config.check.lang_id = "fr".to_string();
+        config.check.spelling_lang_id = "fr".to_string();
         let checker = Checker::new(b"").with_config(config);
-        assert_eq!(checker.config.check.lang_id, "fr");
+        assert_eq!(checker.config.check.spelling_lang_id, "fr");
     }
 
     #[test]

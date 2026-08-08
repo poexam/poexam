@@ -16,6 +16,8 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 ### Changed
 
+- **Breaking:** rename option `--lang-id` to `--spelling-lang-id` and config key `lang_id` to `spelling_lang_id`.
+- **Breaking:** rename option `--langs` to `--spelling-langs` and config key `langs` to `spelling_langs`.
 - Apply only safe auto-fixes with `--fix` by default; unsafe fixes now require `--unsafe-fixes`.
 
 ## [0.0.12] - 2026-06-28

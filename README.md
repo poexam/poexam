@@ -88,8 +88,8 @@ The following options are available in the `check` section (each option can be o
 | path_words           | String (path)    | Path with custom words (absolute or relative to the config file). |
 | force_trans_file     | String (path)    | Path to a word list for the `force-trans` rule.                   |
 | no_trans_file        | String (path)    | Path to a word list for the `no-trans` rule.                      |
-| lang_id              | String           | Language used to check source strings.                            |
-| langs                | Array of strings | Check spelling only for these languages.                          |
+| spelling_lang_id     | String           | Language used to check source strings.                            |
+| spelling_langs       | Array of strings | Check spelling only for these languages.                          |
 | short_factor         | Integer          | Min ratio source/translation length to flag "too short" (min: 2). |
 | long_factor          | Integer          | Min ratio translation/source length to flag "too long" (min: 2).  |
 | severity             | Array of strings | Show diagnostics with these severities (info/warning/error).      |
@@ -194,7 +194,7 @@ You can check all words in a file by using one of these rules:
 
 The special rule `spelling` can be used to select these 3 rules at once.
 
-For rules `spelling-ctxt` and `spelling-id`, the default dictionary used is `en_US` and can be changed with the option `--lang-id`.
+For rules `spelling-ctxt` and `spelling-id`, the default dictionary used is `en_US` and can be changed with the option `--spelling-lang-id`.
 
 The dictionaries are read from the hunspell directory (option `--path-dicts` to override it), in the following way:
 

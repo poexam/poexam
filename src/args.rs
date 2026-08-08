@@ -101,11 +101,11 @@ pub struct CheckArgs {
 
     /// Language used to check source strings (default: `en_US`)
     #[arg(long)]
-    pub lang_id: Option<String>,
+    pub spelling_lang_id: Option<String>,
 
     /// Check spelling only for these languages (comma-separated list of language ids, e.g. `en_US,fr`); by default all languages are checked
     #[arg(long)]
-    pub langs: Option<String>,
+    pub spelling_langs: Option<String>,
 
     /// Factor used to determine if a translation is too short compared to the source (default: 8, min: 2)
     #[arg(long, value_parser = clap::value_parser!(u16).range(2..))]

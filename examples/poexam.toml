@@ -26,10 +26,10 @@ ignore = ["changed"]
 path_words = "."
 
 # language used to check source strings
-# lang = "en_US"
+# spelling_lang_id = "en_US"
 
 # check spelling only for these languages
-# langs = ["en_US", "fr"]
+# spelling_langs = ["en_US", "fr"]
 
 # min ratio source/translation length to flag "too short" (min: 2)
 # short_factor = 8
