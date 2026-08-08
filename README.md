@@ -81,6 +81,7 @@ The following options are available in the `check` section (each option can be o
 | fuzzy                | Boolean          | Check fuzzy entries.                                              |
 | noqa                 | Boolean          | Check entries marked as "noqa".                                   |
 | obsolete             | Boolean          | Check obsolete entries.                                           |
+| exclude              | Array of strings | Exclude files matching these glob patterns (path or file name).   |
 | langs                | Array of strings | Check only files in these languages (other files are ignored).    |
 | select               | Array of strings | Selected rules.                                                   |
 | ignore               | Array of strings | Ignored rules.                                                    |

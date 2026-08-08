@@ -406,6 +406,21 @@ fn error_result(path: &Path, rule: &'static str, message: String) -> CheckFileRe
     }
 }
 
+/// Return `true` if the path matches any of the `exclude` glob patterns.
+///
+/// Each pattern is matched against both the whole path and the file name, so
+/// `test_*.po` excludes a file at any depth while `vendor/**` excludes a whole
+/// directory tree.
+fn path_excluded(path: &Path, exclude: &[String]) -> Result<bool, globset::Error> {
+    for pattern in exclude {
+        let matcher = globset::Glob::new(pattern)?.compile_matcher();
+        if matcher.is_match(path) || path.file_name().is_some_and(|name| matcher.is_match(name)) {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
 /// Return `true` if the language in the PO file header is in `langs`.
 fn language_selected(data: &[u8], langs: &[String]) -> bool {
     // Parse entries up to the header to get the language of the file.
@@ -420,8 +435,9 @@ fn language_selected(data: &[u8], langs: &[String]) -> bool {
 
 /// Check a single PO file and return the list of diagnostics found.
 ///
-/// Return `None` when the config key `langs` is set and the language in the
-/// PO file header is not in the list: the file is then completely ignored.
+/// Return `None` when the path matches a pattern in the config key `exclude`,
+/// or when the config key `langs` is set and the language in the PO file
+/// header is not in the list: the file is then completely ignored.
 fn check_file(path: &PathBuf, args: &args::CheckArgs) -> Option<CheckFileResult> {
     let path_config = if args.no_config {
         None
@@ -447,6 +463,17 @@ fn check_file(path: &PathBuf, args: &args::CheckArgs) -> Option<CheckFileResult>
             ));
         }
     };
+    match path_excluded(path, &config.check.exclude) {
+        Ok(true) => return None,
+        Ok(false) => {}
+        Err(err) => {
+            return Some(error_result(
+                path,
+                "config-error",
+                format!("invalid exclude pattern: {err}"),
+            ));
+        }
+    }
     let rules = match get_selected_rules(&config) {
         Ok(selected_rules) => selected_rules,
         Err(err) => {
@@ -554,6 +581,7 @@ mod tests {
             fuzzy: false,
             noqa: false,
             obsolete: false,
+            exclude: None,
             langs: None,
             select: None,
             ignore: None,
@@ -721,6 +749,51 @@ msgstr \"olá\"
         let result = check_file(&po_path, &args).expect("file is checked");
         assert_eq!(result.diagnostics.len(), 1);
         assert_eq!(result.diagnostics[0].rule, "config-error");
+    }
+
+    #[test]
+    fn test_path_excluded() {
+        let path = PathBuf::from("i18n/vendor/fr.po");
+        // File name match, at any depth.
+        assert!(path_excluded(&path, &["fr.po".to_string()]).unwrap());
+        assert!(path_excluded(&path, &["fr*".to_string()]).unwrap());
+        // Whole path match.
+        assert!(path_excluded(&path, &["i18n/vendor/**".to_string()]).unwrap());
+        assert!(path_excluded(&path, &["**/vendor/**".to_string()]).unwrap());
+        // No match.
+        assert!(!path_excluded(&path, &["de.po".to_string()]).unwrap());
+        assert!(!path_excluded(&path, &["po/**".to_string()]).unwrap());
+        assert!(!path_excluded(&path, &[]).unwrap());
+        // Invalid pattern.
+        assert!(path_excluded(&path, &["ab[cd".to_string()]).is_err());
+    }
+
+    #[test]
+    fn test_check_file_exclude_skips_matching_paths() {
+        let tmp = tmp_dir("exclude-filter");
+        let po_path = write_po(tmp.path(), "pt_BR.po", PO_PT_BR);
+
+        let mut args = default_check_args();
+        args.no_config = true;
+
+        // Pattern matching the file name.
+        args.exclude = Some("pt_*.po".to_string());
+        assert!(check_file(&po_path, &args).is_none());
+
+        // Pattern matching the whole path.
+        args.exclude = Some(format!("{}/**", tmp.path().display()));
+        assert!(check_file(&po_path, &args).is_none());
+
+        // Non-matching pattern: the file is checked.
+        args.exclude = Some("vendor/**".to_string());
+        assert!(check_file(&po_path, &args).is_some());
+
+        // Invalid pattern: surfaced as a config error.
+        args.exclude = Some("bad[pattern".to_string());
+        let result = check_file(&po_path, &args).expect("error result");
+        assert_eq!(result.diagnostics.len(), 1);
+        assert_eq!(result.diagnostics[0].rule, "config-error");
+        assert_eq!(result.diagnostics[0].severity, Severity::Error);
     }
 
     #[test]

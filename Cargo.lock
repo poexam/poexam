@@ -703,6 +703,7 @@ dependencies = [
  "clap",
  "colored",
  "encoding_rs",
+ "globset",
  "ignore",
  "memchr",
  "path-absolutize",

@@ -39,6 +39,9 @@ pub struct CheckConfig {
     pub obsolete: bool,
 
     #[serde(default)]
+    pub exclude: Vec<String>,
+
+    #[serde(default)]
     pub langs: Vec<String>,
 
     #[serde(default = "default_check_select")]
@@ -143,6 +146,7 @@ impl Default for CheckConfig {
             fuzzy: false,
             noqa: false,
             obsolete: false,
+            exclude: vec![],
             langs: vec![],
             select: default_check_select(),
             ignore: vec![],
@@ -230,6 +234,9 @@ impl Config {
         }
         if args.obsolete {
             self.check.obsolete = true;
+        }
+        if let Some(exclude) = &args.exclude {
+            self.check.exclude = exclude.split(',').map(|s| s.trim().to_string()).collect();
         }
         if let Some(langs) = &args.langs {
             self.check.langs = langs.split(',').map(|s| s.trim().to_string()).collect();
@@ -377,6 +384,7 @@ mod tests {
             fuzzy: false,
             noqa: false,
             obsolete: false,
+            exclude: None,
             langs: None,
             select: None,
             ignore: None,
@@ -424,6 +432,7 @@ mod tests {
         assert!(!c.fuzzy);
         assert!(!c.noqa);
         assert!(!c.obsolete);
+        assert!(c.exclude.is_empty());
         assert!(c.langs.is_empty());
         assert_eq!(c.select, vec!["default".to_string()]);
         assert!(c.ignore.is_empty());
@@ -455,6 +464,7 @@ mod tests {
             r#"
 [check]
 fuzzy = true
+exclude = ["vendor/**", "test_*.po"]
 select = ["spelling", "html-tags"]
 ignore = ["urls"]
 spelling_lang_id = "fr"
@@ -465,6 +475,10 @@ punc_ignore_ellipsis = true
         let c = Config::new(Some(&cfg_path)).expect("parse config");
         assert_eq!(c.path.as_deref(), Some(cfg_path.as_path()));
         assert!(c.check.fuzzy);
+        assert_eq!(
+            c.check.exclude,
+            vec!["vendor/**".to_string(), "test_*.po".to_string()],
+        );
         assert_eq!(
             c.check.select,
             vec!["spelling".to_string(), "html-tags".to_string()],
@@ -592,9 +606,14 @@ punc_ignore_ellipsis = true
         let mut args = default_check_args();
         args.select = Some(" spelling , html-tags ".to_string());
         args.ignore = Some("urls,paths".to_string());
+        args.exclude = Some(" vendor/** , test_*.po ".to_string());
         args.langs = Some(" fr, pt_BR ".to_string());
         args.spelling_langs = Some("en_US, fr ,de".to_string());
         let cfg = Config::default().with_args_check(&args);
+        assert_eq!(
+            cfg.check.exclude,
+            vec!["vendor/**".to_string(), "test_*.po".to_string()],
+        );
         assert_eq!(
             cfg.check.select,
             vec!["spelling".to_string(), "html-tags".to_string()],

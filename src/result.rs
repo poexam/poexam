@@ -339,6 +339,7 @@ mod tests {
             fuzzy: false,
             noqa: false,
             obsolete: false,
+            exclude: None,
             langs: None,
             select: None,
             ignore: None,

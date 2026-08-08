@@ -71,6 +71,10 @@ pub struct CheckArgs {
     #[arg(long)]
     pub obsolete: bool,
 
+    /// Exclude files matching these patterns (comma-separated list of glob patterns, matched against the file path and the file name, e.g. `vendor/**,test_*.po`); by default no files are excluded
+    #[arg(long)]
+    pub exclude: Option<String>,
+
     /// Check only files in these languages, based on the language in the PO header (comma-separated list of language ids, e.g. `fr,pt_BR`); by default all files are checked
     #[arg(long)]
     pub langs: Option<String>,

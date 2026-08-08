@@ -19,6 +19,9 @@ ignore = ["changed"]
 # check obsolete entries
 # obsolete = true
 
+# exclude files matching these glob patterns (matched against path and file name)
+# exclude = ["vendor/**", "test_*.po"]
+
 # check only files in these languages (other files are ignored)
 # langs = ["fr", "pt_BR"]
 

@@ -10,6 +10,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 ### Added
 
+- Add option `--exclude` and config key `exclude` to exclude files matching glob patterns.
 - Add option `--langs` and config key `langs` to check only files in these languages (other files are ignored).
 - Add auto-fix for rule "double-spaces" when the source has no double spaces.
 - Add auto-fix for rule "html-tags" when the translation has different tags at the same positions.
