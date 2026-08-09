@@ -23,19 +23,19 @@ categories = [
 ]
 
 [dependencies]
-clap = { version = "4.6.1", features = ["derive"] }
+clap = { version = "4.6.6", features = ["derive"] }
 colored = "3.1.1"
 encoding_rs = "0.8.35"
-globset = "0.4.18"
-ignore = "0.4.27"
-memchr = "2.8.2"
-path-absolutize = { version = "3.1.1", features = ["once_cell_cache"] }
+globset = "0.4.19"
+ignore = "0.4.30"
+memchr = "2.8.3"
+path-absolutize = { version = "4.0.1" }
 rayon = "1.12.0"
-serde_json = "1.0.150"
-serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.151"
+serde = { version = "1.0.229", features = ["derive"] }
 spellbook = "0.4.2"
-tokio = { version = "1.52.3", features = ["rt-multi-thread", "io-std"] }
-toml = "1.1.2"
+tokio = { version = "1.53.1", features = ["rt-multi-thread", "io-std"] }
+toml = "1.1.4"
 tower-lsp = "0.20.0"
 unicode-linebreak = "0.1"
 unicode-width = "0.2"
