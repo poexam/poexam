@@ -76,7 +76,7 @@ sed -i \
 cargo build
 
 # Commit and tag (only the release files, ignoring anything else staged).
-git commit -m "Version ${version}" -- Cargo.toml Cargo.lock CHANGELOG.md
+git commit -m "Release version ${version}" -- Cargo.toml Cargo.lock CHANGELOG.md
 git tag -a "v${version}" -m "Version ${version}"
 
 echo "Version ${version} released and tagged (v${version})."
