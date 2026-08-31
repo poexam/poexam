@@ -45,3 +45,13 @@ jobs:
 
       - name: Run tests
         run: cargo test --verbose
+
+  # Exercise the release build, so a musl breakage shows up before the tag.
+  musl:
+    runs-on: ubuntu-26.04
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build and package the static musl binary
+        run: tools/build-musl.sh --package
