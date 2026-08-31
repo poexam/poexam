@@ -6,6 +6,12 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- Publish static Linux binaries for `x86_64` and `aarch64`, built against musl libc, on each release.
+
 ## [0.1.0] - 2026-08-09
 
 ### Added

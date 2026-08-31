@@ -1,0 +1,120 @@
+# SPDX-FileCopyrightText: 2026 Vincent Vanackere <vincent.vanackere@gmail.com>
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+name: Release
+
+# Build the static Linux binaries for a vX.Y.Z tag and publish them as a
+# GitHub release, with the notes taken from CHANGELOG.md.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  # Reject an inconsistent tag before starting the builds.
+  preflight:
+    runs-on: ubuntu-26.04
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check that the tag, the version and the changelog agree
+        run: |
+          set -euo pipefail
+          tag=${GITHUB_REF#refs/tags/}
+          version=$(grep -m1 '^version = ' Cargo.toml | sed -E 's/.*"(.*)".*/\1/')
+          if [ "${tag}" != "v${version}" ]; then
+              echo "error: tag ${tag} does not match the version ${version} in Cargo.toml" >&2
+              exit 1
+          fi
+          tools/release-notes.sh "${tag}" > /dev/null
+          echo "Tag ${tag} matches the version in Cargo.toml and has release notes."
+
+  # Both builds are native: musl is not cross-compiled here.
+  build:
+    needs: preflight
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            os: ubuntu-26.04
+          - arch: aarch64
+            os: ubuntu-26.04-arm
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build and package the static musl binary
+        run: tools/build-musl.sh --target=${{ matrix.arch }} --package
+
+      - name: Upload the archive
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-linux-${{ matrix.arch }}-${{ github.sha }}
+          path: |
+            dist/poexam-linux-${{ matrix.arch }}.tar.gz
+            dist/poexam-linux-${{ matrix.arch }}.sha256
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 3
+
+  release:
+    needs: build
+
+    runs-on: ubuntu-26.04
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download the archives
+        uses: actions/download-artifact@v7
+        with:
+          pattern: release-linux-*-${{ github.sha }}
+          path: dist
+          merge-multiple: true
+
+      - name: Check the archives against their sidecars
+        run: |
+          set -euo pipefail
+          cd dist
+          for sidecar in poexam-linux-*.sha256; do
+              sha256sum -c "${sidecar}"
+          done
+
+      - name: Extract the release notes from the changelog
+        run: tools/release-notes.sh "${GITHUB_REF#refs/tags/}" > "${RUNNER_TEMP}/release-notes.md"
+
+      # Upload to a draft first, so a partial release is never published.
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          tag=${GITHUB_REF#refs/tags/}
+          # An explicit list makes a missing architecture fail the job.
+          assets=(
+              dist/poexam-linux-x86_64.tar.gz
+              dist/poexam-linux-x86_64.sha256
+              dist/poexam-linux-aarch64.tar.gz
+              dist/poexam-linux-aarch64.sha256
+          )
+          if gh release view "${tag}" >/dev/null 2>&1; then
+              gh release upload "${tag}" "${assets[@]}" --clobber
+          else
+              gh release create "${tag}" "${assets[@]}" \
+                  --draft --title "${tag}" --notes-file "${RUNNER_TEMP}/release-notes.md"
+          fi
+          gh release edit "${tag}" --draft=false
