@@ -44,6 +44,26 @@ With cargo:
 cargo install poexam
 ```
 
+### Static Linux binaries
+
+Each release ships a static binary for Linux `x86_64` and `aarch64`, built against musl libc: it does not depend on the system libc and runs on any distribution, including Alpine and `scratch` containers.
+
+Download it, check it against its `sha256` sidecar and install it (replace `x86_64` with `aarch64` on ARM):
+
+```shell
+url=https://github.com/poexam/poexam/releases/latest/download
+curl -L --remote-name-all ${url}/poexam-linux-x86_64.tar.gz ${url}/poexam-linux-x86_64.sha256
+sha256sum --check poexam-linux-x86_64.sha256
+tar --extract --gzip --file poexam-linux-x86_64.tar.gz poexam
+install -m 0755 poexam ~/.local/bin/
+```
+
+The same binary can be built from a clone, on a Linux host of the target architecture:
+
+```shell
+tools/build-musl.sh --package
+```
+
 ## Pre-commit
 
 Add this to your `.pre-commit-config.yaml`:
