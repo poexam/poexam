@@ -34,6 +34,15 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get --yes --no-install-recommends install gettext
 
+      # The matrix entries need distinct keys: two runners can share a host
+      # triple (macos-15 and macos-26), which the automatic key does not
+      # separate on its own.
+      - name: Cache the cargo registry and the dependency build
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.os }}
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+
       - name: Check Rust code formatting
         run: cargo fmt --check
 
