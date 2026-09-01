@@ -112,6 +112,7 @@ jobs:
         run: |
           set -euo pipefail
           tag=${GITHUB_REF#refs/tags/}
+          notes=${RUNNER_TEMP}/release-notes.md
           # An explicit list makes a missing architecture fail the job.
           assets=(
               dist/poexam-linux-x86_64.tar.gz
@@ -123,6 +124,8 @@ jobs:
               gh release upload "${tag}" "${assets[@]}" --clobber
           else
               gh release create "${tag}" "${assets[@]}" \
-                  --draft --title "${tag}" --notes-file "${RUNNER_TEMP}/release-notes.md"
+                  --draft --title "${tag}" --notes-file "${notes}"
           fi
-          gh release edit "${tag}" --draft=false
+          # Publish with the notes of this run: a release left over from an
+          # earlier run carries the notes it was created with.
+          gh release edit "${tag}" --title "${tag}" --notes-file "${notes}" --draft=false
