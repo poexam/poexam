@@ -53,5 +53,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # Only the main branch writes the cache: a branch cache is visible to
+      # that branch alone, so saving one per pull request would fill the cache
+      # quota with entries nothing else can restore.
+      - name: Cache the cargo registry and the dependency build
+        uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+
       - name: Build and package the static musl binary
         run: tools/build-musl.sh --package
