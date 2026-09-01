@@ -125,27 +125,30 @@ echo "Built ${binary}: ${description}"
 
 [ -n "${package}" ] || exit 0
 
-# Package the binary, the README and the license, all at the root of the
-# archive so a single file can be extracted with:
-#   tar -xzf poexam-linux-<arch>.tar.gz poexam
+# Package the binary, the README and the license under a single
+# "poexam-linux-<arch>" directory, so extracting the archive never overwrites
+# a README.md or a LICENSE in the current directory.
 #
 # Member order, ownership, modes and timestamps are fixed, and gzip -n omits
 # the name and modification time it would otherwise store, so the same binary
 # always packages to the same bytes.
-archive=poexam-${platform}.tar.gz
-sidecar=poexam-${platform}.sha256
+root=poexam-${platform}
+archive=${root}.tar.gz
+sidecar=${root}.sha256
 stage=$(mktemp -d)
 trap 'rm -rf "${stage}"' EXIT
-install -m 0755 "${binary}" "${stage}/poexam"
-install -m 0644 README.md LICENSE "${stage}/"
-# The mode and timestamp of the staging directory itself are not stored: only
-# the members listed below are added to the archive.
-touch -h -d "@${epoch}" "${stage}"/*
+mkdir "${stage}/${root}"
+install -m 0755 "${binary}" "${stage}/${root}/poexam"
+install -m 0644 README.md LICENSE "${stage}/${root}/"
+# The mode and timestamp of the directories themselves are not stored: only the
+# members listed below are added to the archive, and tar creates the enclosing
+# directory on extraction.
+touch -h -d "@${epoch}" "${stage}/${root}"/*
 
 out_abs=$(cd "${out}" && pwd)
 # Publish the archive and its sidecar only once both are complete.
 tar --format=gnu --owner=0 --group=0 --numeric-owner --mtime="@${epoch}" \
-    -cf - -C "${stage}" LICENSE README.md poexam \
+    -cf - -C "${stage}" "${root}/LICENSE" "${root}/README.md" "${root}/poexam" \
     | gzip -9n > "${out_abs}/.${archive}.tmp"
 # The sidecar names the bare archive, so "sha256sum -c" works from its
 # directory.

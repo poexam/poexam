@@ -54,8 +54,8 @@ Download it, check it against its `sha256` sidecar and install it (replace `x86_
 url=https://github.com/poexam/poexam/releases/latest/download
 curl -L --remote-name-all ${url}/poexam-linux-x86_64.tar.gz ${url}/poexam-linux-x86_64.sha256
 sha256sum --check poexam-linux-x86_64.sha256
-tar --extract --gzip --file poexam-linux-x86_64.tar.gz poexam
-install -D -m 0755 poexam ~/.local/bin/poexam
+tar --extract --gzip --file poexam-linux-x86_64.tar.gz
+install -D -m 0755 poexam-linux-x86_64/poexam ~/.local/bin/poexam
 ```
 
 The same binary can be built from a clone, on a Linux host of the target architecture:
