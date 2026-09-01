@@ -12,6 +12,14 @@ on:
     tags:
       - "v*"
 
+# Serialize the runs for a single tag: a re-pushed tag must not upload its
+# assets while the run it replaces is publishing the same release. Runs for
+# different tags stay parallel, and queue rather than cancel, so a publish is
+# never interrupted halfway.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
