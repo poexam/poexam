@@ -6,7 +6,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 # Changelog
 
-## [Unreleased]
+## [0.1.1] - 2026-09-01
 
 ### Added
 
@@ -213,7 +213,8 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - Check PO files with 19 built-in rules.
 - Display statistics: progress, count of messages, words, characters.
 
-[Unreleased]: https://github.com/poexam/poexam/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/poexam/poexam/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/poexam/poexam/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/poexam/poexam/compare/v0.0.12...v0.1.0
 [0.0.12]: https://github.com/poexam/poexam/compare/v0.0.11...v0.0.12
 [0.0.11]: https://github.com/poexam/poexam/compare/v0.0.10...v0.0.11
