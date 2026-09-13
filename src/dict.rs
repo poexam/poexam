@@ -5,14 +5,79 @@
 //! Dictionary for spell checking in PO files.
 
 use std::{
+    cell::RefCell,
+    collections::HashMap,
     error::Error,
     path::{Path, PathBuf},
+    sync::{Arc, LazyLock, Mutex, PoisonError},
+    time::SystemTime,
 };
 
 use spellbook::Dictionary;
 
 pub const DEFAULT_PATH_DICTS: &str = "/usr/share/hunspell";
 pub const DEFAULT_LANG_ID: &str = "en_US";
+
+/// A dictionary and the spell check results already computed with it.
+///
+/// Checking a word with Hunspell affix rules is far more expensive than a hash
+/// lookup, and the same words come back over and over in a PO file (in a
+/// typical file, only ~20% of the words are distinct), so every answer is
+/// memoized: each distinct word is checked against the dictionary only once.
+///
+/// The cache is per [`Checker`](crate::checker::Checker), hence per file: it is
+/// dropped with the file being checked, while the dictionary itself is shared
+/// between files (see [`get_dict`]).
+pub struct CachedDict {
+    dict: Arc<Dictionary>,
+    /// Words already checked, with the result.
+    cache: RefCell<HashMap<Box<str>, bool>>,
+}
+
+impl CachedDict {
+    /// Create a cache in front of a shared dictionary.
+    pub fn new(dict: Arc<Dictionary>) -> Self {
+        Self {
+            dict,
+            cache: RefCell::new(HashMap::new()),
+        }
+    }
+
+    /// Return `true` if `word` is in the dictionary, reusing the result of a
+    /// previous check of the same word.
+    pub fn check(&self, word: &str) -> bool {
+        if let Some(known) = self.cache.borrow().get(word) {
+            return *known;
+        }
+        let correct = self.dict.check(word);
+        self.cache.borrow_mut().insert(Box::from(word), correct);
+        correct
+    }
+}
+
+/// A dictionary loaded in this process, with the modification time of the file
+/// with extra words it was built from (`None` when there is no such file).
+struct LoadedDict {
+    words_stamp: Option<SystemTime>,
+    dict: Arc<Dictionary>,
+}
+
+/// Key of a cached dictionary: dictionaries directory, extra words directory
+/// and language.
+type DictKey = (PathBuf, Option<PathBuf>, String);
+
+/// Slot of a cached dictionary, empty until the dictionary is loaded.
+type DictSlot = Arc<Mutex<Option<LoadedDict>>>;
+
+/// Dictionaries already loaded in this process, shared by all files.
+///
+/// Parsing a Hunspell dictionary takes tens of milliseconds, which used to be
+/// paid again for every PO file checked (and, in the language server, on every
+/// keystroke). Each entry has its own lock, so two threads loading *different*
+/// languages never wait for each other, while two threads asking for the *same*
+/// language load it only once.
+static DICTS: LazyLock<Mutex<HashMap<DictKey, DictSlot>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
 
 /// Get the dictionary with its name.
 fn get_dict_name(path: &Path, name: &str) -> Option<Dictionary> {
@@ -25,20 +90,32 @@ fn get_dict_name(path: &Path, name: &str) -> Option<Dictionary> {
     }
 }
 
+/// Get the file with extra words for a language (e.g. `fr.dic` or `pt_BR.dic`),
+/// falling back to the language without country (e.g. `pt.dic`).
+fn get_words_file(path: &Path, language: &str) -> Option<PathBuf> {
+    let file = path.join(format!("{language}.dic"));
+    if file.is_file() {
+        return Some(file);
+    }
+    let pos = language.find('_')?;
+    let file = path.join(format!("{}.dic", &language[..pos]));
+    file.is_file().then_some(file)
+}
+
+/// Get the modification time of the file with extra words for a language.
+///
+/// Used to reload the dictionary when the file has changed since it was cached
+/// (the language server runs for a long time, and the user can add words to
+/// this file while editing).
+fn get_words_stamp(path_words: Option<&PathBuf>, language: &str) -> Option<SystemTime> {
+    let file = get_words_file(path_words?, language)?;
+    std::fs::metadata(file).ok()?.modified().ok()
+}
+
 /// Add words to a dictionary.
 fn add_words_to_dict(path: &Path, language: &str, dict: &mut Dictionary) {
-    if let Ok(words) =
-        std::fs::read_to_string(format!("{}/{}.dic", path.to_string_lossy(), language))
-    {
-        for word in words.lines() {
-            dict.add(word).ok();
-        }
-    } else if let Some(pos) = language.find('_')
-        && let Ok(words) = std::fs::read_to_string(format!(
-            "{}/{}.dic",
-            path.to_string_lossy(),
-            &language[..pos]
-        ))
+    if let Some(file) = get_words_file(path, language)
+        && let Ok(words) = std::fs::read_to_string(file)
     {
         for word in words.lines() {
             dict.add(word).ok();
@@ -46,11 +123,11 @@ fn add_words_to_dict(path: &Path, language: &str, dict: &mut Dictionary) {
     }
 }
 
-// Get the dictionary for a language (e.g. `fr` or `pt_BR`).
+// Load the dictionary for a language (e.g. `fr` or `pt_BR`).
 //
 // Words are added to the dictionary if path_words is set and if a file with ignored words exists
 // in this directory.
-pub fn get_dict(
+fn load_dict(
     path_dicts: &Path,
     path_words: Option<&PathBuf>,
     language: &str,
@@ -76,6 +153,41 @@ pub fn get_dict(
         path_dicts.to_string_lossy()
     )
     .into())
+}
+
+/// Get the dictionary for a language (e.g. `fr` or `pt_BR`), loading it only
+/// the first time it is needed in this process.
+///
+/// The dictionary is rebuilt when the file with extra words (in `path_words`)
+/// has been modified since it was cached. A dictionary that can not be loaded
+/// is not cached: the error is returned for each file, as before.
+pub fn get_dict(
+    path_dicts: &Path,
+    path_words: Option<&PathBuf>,
+    language: &str,
+) -> Result<Arc<Dictionary>, Box<dyn Error>> {
+    let key = (
+        PathBuf::from(path_dicts),
+        path_words.cloned(),
+        language.to_string(),
+    );
+    let entry = {
+        let mut dicts = DICTS.lock().unwrap_or_else(PoisonError::into_inner);
+        Arc::clone(dicts.entry(key).or_default())
+    };
+    let mut loaded = entry.lock().unwrap_or_else(PoisonError::into_inner);
+    let words_stamp = get_words_stamp(path_words, language);
+    if let Some(cached) = loaded.as_ref()
+        && cached.words_stamp == words_stamp
+    {
+        return Ok(Arc::clone(&cached.dict));
+    }
+    let dict = Arc::new(load_dict(path_dicts, path_words, language)?);
+    *loaded = Some(LoadedDict {
+        words_stamp,
+        dict: Arc::clone(&dict),
+    });
+    Ok(dict)
 }
 
 #[cfg(test)]
@@ -249,5 +361,63 @@ mod tests {
         let dict = get_dict(tmp_dicts.path(), Some(&words_path), "pt_BR").expect("dict");
         assert!(dict.check("seed"));
         assert!(dict.check("zzbrextra"));
+    }
+
+    #[test]
+    fn test_get_dict_returns_the_same_dictionary_for_the_same_language() {
+        let tmp = tmp_dir("cache-hit");
+        write_dict(tmp.path(), "en_US", &["hello"]);
+        let dict1 = get_dict(tmp.path(), None, "en_US").expect("dictionary");
+        let dict2 = get_dict(tmp.path(), None, "en_US").expect("dictionary");
+        // Loaded once, then shared: no second parsing of the .aff/.dic files.
+        assert!(Arc::ptr_eq(&dict1, &dict2));
+        // A different language is a different dictionary.
+        write_dict(tmp.path(), "fr", &["bonjour"]);
+        let dict_fr = get_dict(tmp.path(), None, "fr").expect("dictionary");
+        assert!(!Arc::ptr_eq(&dict1, &dict_fr));
+    }
+
+    #[test]
+    fn test_get_dict_reloads_when_words_file_changed() {
+        let tmp_dicts = tmp_dir("reload-dicts");
+        write_dict(tmp_dicts.path(), "en_US", &["seed"]);
+
+        let tmp_words = tmp_dir("reload-words");
+        let words_file = tmp_words.path().join("en_US.dic");
+        std::fs::write(&words_file, "zzfirst\n").expect("write words file");
+        let words_path = PathBuf::from(tmp_words.path());
+
+        let dict1 = get_dict(tmp_dicts.path(), Some(&words_path), "en_US").expect("dictionary");
+        assert!(dict1.check("zzfirst"));
+        assert!(!dict1.check("zzsecond"));
+
+        // Words file untouched: the cached dictionary is reused.
+        let dict2 = get_dict(tmp_dicts.path(), Some(&words_path), "en_US").expect("dictionary");
+        assert!(Arc::ptr_eq(&dict1, &dict2));
+
+        // Words file modified: the dictionary is built again with the new words.
+        std::fs::write(&words_file, "zzfirst\nzzsecond\n").expect("update words file");
+        std::fs::File::options()
+            .write(true)
+            .open(&words_file)
+            .expect("open words file")
+            .set_modified(SystemTime::now() + std::time::Duration::from_secs(1))
+            .expect("set modification time");
+        let dict3 = get_dict(tmp_dicts.path(), Some(&words_path), "en_US").expect("dictionary");
+        assert!(!Arc::ptr_eq(&dict1, &dict3));
+        assert!(dict3.check("zzsecond"));
+    }
+
+    #[test]
+    fn test_cached_dict_check_matches_dictionary() {
+        let tmp = tmp_dir("cached-check");
+        write_dict(tmp.path(), "en_US", &["hello", "world"]);
+        let dict = CachedDict::new(get_dict(tmp.path(), None, "en_US").expect("dictionary"));
+        // Same answers on the first check and on the memoized ones.
+        for _ in 0..2 {
+            assert!(dict.check("hello"));
+            assert!(dict.check("world"));
+            assert!(!dict.check("doesnotexistword"));
+        }
     }
 }

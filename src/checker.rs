@@ -13,13 +13,12 @@ use std::{
 };
 
 use rayon::prelude::*;
-use spellbook::Dictionary;
 
 use crate::{
     args,
     config::{self, Config, find_config_path},
     diagnostic::{Diagnostic, Severity},
-    dict,
+    dict::{self, CachedDict},
     dir::find_po_files,
     fix::{Edit, FixTarget, apply_msgstr_fixes},
     po::{
@@ -44,8 +43,12 @@ pub struct CheckFileResult {
 pub struct Checker<'d> {
     pub path: PathBuf,
     pub config: Config,
-    pub dict_id: Option<Dictionary>,
-    pub dict_str: Option<Dictionary>,
+    /// Dictionary used to check the context and source strings (English), with
+    /// the words already checked in this file.
+    pub dict_id: Option<CachedDict>,
+    /// Dictionary used to check the translated strings (language of the file),
+    /// with the words already checked in this file.
+    pub dict_str: Option<CachedDict>,
     /// Lowercase words loaded from `check.force_trans_file` (one per line).
     /// Used by the `force-trans` rule.
     pub force_trans_words: Option<HashSet<String>>,
@@ -199,7 +202,7 @@ impl<'d> Checker<'d> {
                         self.config.check.path_words.as_ref(),
                         &self.config.check.spelling_lang_id,
                     ) {
-                        Ok(dict) => Some(dict),
+                        Ok(dict) => Some(CachedDict::new(dict)),
                         Err(err) => {
                             if !error_dict_id {
                                 self.diagnostics.push(Diagnostic::new(
@@ -223,7 +226,7 @@ impl<'d> Checker<'d> {
                         self.config.check.path_words.as_ref(),
                         language,
                     ) {
-                        Ok(dict) => Some(dict),
+                        Ok(dict) => Some(CachedDict::new(dict)),
                         Err(err) => {
                             if !error_dict_str {
                                 self.diagnostics.push(Diagnostic::new(

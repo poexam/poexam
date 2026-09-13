@@ -9,10 +9,9 @@
 
 use std::collections::HashSet;
 
-use spellbook::Dictionary;
-
 use crate::checker::Checker;
 use crate::diagnostic::{Diagnostic, Severity};
+use crate::dict::CachedDict;
 use crate::po::entry::Entry;
 use crate::po::format::iter::FormatWordPos;
 use crate::po::format::language::Language;
@@ -203,14 +202,16 @@ impl RuleChecker for SpellingStrRule {
 
 /// Check words in a string: context (msgctxt), source (msgid) or translation (msgstr).
 ///
+/// Each distinct word is looked up in the dictionary only once per file: `dict`
+/// memoizes the result of every check (see [`CachedDict`]).
+///
 /// Return list of misspelled words (can be empty) and their positions in the string (start, end).
 fn check_words<'s>(
     s: &'s str,
     format_language: Language,
-    dict: &Dictionary,
+    dict: &CachedDict,
 ) -> (HashSet<&'s str>, Vec<(usize, usize)>) {
     let mut misspelled_words: HashSet<&str> = HashSet::new();
-    let mut hash_words: HashSet<&str> = HashSet::new();
     let mut pos_words = Vec::new();
     for word in FormatWordPos::new(s, format_language) {
         // Ignore word if it contains at least one digit.
@@ -221,16 +222,9 @@ fn check_words<'s>(
         if word.s.len() >= 2 && word.s.chars().all(|c| c.is_ascii_uppercase()) {
             continue;
         }
-        if hash_words.contains(word.s) {
-            if misspelled_words.contains(word.s) {
-                pos_words.push((word.start, word.end));
-            }
-        } else {
-            hash_words.insert(word.s);
-            if !dict.check(word.s) {
-                misspelled_words.insert(word.s);
-                pos_words.push((word.start, word.end));
-            }
+        if !dict.check(word.s) {
+            misspelled_words.insert(word.s);
+            pos_words.push((word.start, word.end));
         }
     }
     (misspelled_words, pos_words)
@@ -272,6 +266,30 @@ msgstr "testé : HTTP v3"
 "#,
         );
         assert!(diags.is_empty());
+    }
+
+    #[test]
+    fn test_spelling_same_words_in_multiple_entries() {
+        // Words checked in an entry are memoized for the whole file: the same
+        // typo must still be reported in every entry where it appears, and the
+        // same correct word must stay correct.
+        let diags = check_spelling(
+            r#"
+msgid ""
+msgstr "Language: fr\n"
+
+msgid "this is a tyypo"
+msgstr "ceci est une faute"
+
+msgid "a tyypo is this"
+msgstr "ceci est une faute"
+"#,
+        );
+        assert_eq!(diags.len(), 2);
+        for diag in &diags {
+            assert_eq!(diag.rule, "spelling-id");
+            assert_eq!(diag.misspelled_words, HashSet::from(["tyypo".to_string()]));
+        }
     }
 
     #[test]

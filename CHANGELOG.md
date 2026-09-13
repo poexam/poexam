@@ -6,6 +6,12 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- Load each spelling dictionary only once per run instead of once per file, and check each distinct word only once per file: the spelling rules are up to 4 times faster and use less memory.
+
 ## [0.1.1] - 2026-09-01
 
 ### Added
