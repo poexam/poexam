@@ -128,7 +128,8 @@ mod tests {
     use crate::po::format::{
         iter::{
             FormatAcceleratorPos, FormatAcronymPos, FormatEmailPos, FormatFunctionPos,
-            FormatHtmlTagPos, FormatPathPos, FormatPos, FormatUrlPos, FormatWordPos,
+            FormatHtmlTagPos, FormatNumberPos, FormatPathPos, FormatPos, FormatUrlPos,
+            FormatWordPos,
         },
         language::Language,
         strip_formats,
@@ -398,6 +399,19 @@ mod tests {
                 (r#"<span title="a > b">"#, 75, 95),
                 ("</span>", 95, 102),
             ]
+        );
+    }
+
+    #[test]
+    fn test_number_pos() {
+        assert!(FormatNumberPos::new("", Language::C).next().is_none());
+        // Format strings are skipped: the "3" of "%3$d" is not a number, and the
+        // numbers around are returned with their original positions.
+        assert_eq!(
+            FormatNumberPos::new("5 items, %3$d of %d, 1 000 total", Language::C)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("5", 0, 1), ("1 000", 21, 26)]
         );
     }
 }

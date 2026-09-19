@@ -28,7 +28,8 @@ mod tests {
     use crate::po::format::{
         iter::{
             FormatAcceleratorPos, FormatAcronymPos, FormatEmailPos, FormatFunctionPos,
-            FormatHtmlTagPos, FormatPathPos, FormatPos, FormatUrlPos, FormatWordPos,
+            FormatHtmlTagPos, FormatNumberPos, FormatPathPos, FormatPos, FormatUrlPos,
+            FormatWordPos,
         },
         language::Language,
         strip_formats,
@@ -253,6 +254,36 @@ mod tests {
                 (r#"<span title="a > b">"#, 72, 92),
                 ("</span>", 92, 99),
             ]
+        );
+    }
+
+    #[test]
+    fn test_number_pos() {
+        assert!(FormatNumberPos::new("", Language::Null).next().is_none());
+        assert!(
+            FormatNumberPos::new("Hello, world!", Language::Null)
+                .next()
+                .is_none()
+        );
+        // Digit-group and decimal separators are part of the number.
+        assert_eq!(
+            FormatNumberPos::new("1,000 files, 1 000 fichiers, 1.5 GB", Language::Null)
+                .map(|m| (m.s, m.start, m.end))
+                .collect::<Vec<_>>(),
+            vec![("1,000", 0, 5), ("1 000", 13, 18), ("1.5", 29, 32)]
+        );
+        // Digits of other scripts are numbers as well.
+        assert_eq!(
+            FormatNumberPos::new("٣ et ३", Language::Null)
+                .map(|m| m.s)
+                .collect::<Vec<_>>(),
+            vec!["٣", "३"]
+        );
+        // Numbers glued to a letter are identifiers, not values.
+        assert!(
+            FormatNumberPos::new("MP3 3D 1st 16px", Language::Null)
+                .next()
+                .is_none()
         );
     }
 }

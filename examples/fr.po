@@ -78,6 +78,10 @@ msgstr "une longue traduction"
 msgid "Test\ntwo lines"
 msgstr "\nTest deux lignes\n"
 
+# rule: numbers
+msgid "Press 3 times to confirm"
+msgstr "Appuyez 2 fois pour confirmer"
+
 # rule: paths
 msgid "Path: /tmp/output.txt"
 msgstr "Chemin : /tmp/sortie.txt"

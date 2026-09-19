@@ -727,3 +727,202 @@ impl<'a> Iterator for FormatFunctionPos<'a> {
         }
     }
 }
+
+/// Zero code points of the Unicode decimal digit blocks recognized as digits.
+///
+/// Each block is a contiguous run of ten code points, so a character `c` in the range
+/// `zero..zero + 10` is the digit `c - zero`.
+const DIGIT_ZEROS: [char; 20] = [
+    '\u{0660}', // Arabic-Indic
+    '\u{06F0}', // Extended Arabic-Indic (Persian, Urdu)
+    '\u{07C0}', // NKo
+    '\u{0966}', // Devanagari
+    '\u{09E6}', // Bengali
+    '\u{0A66}', // Gurmukhi
+    '\u{0AE6}', // Gujarati
+    '\u{0B66}', // Oriya
+    '\u{0BE6}', // Tamil
+    '\u{0C66}', // Telugu
+    '\u{0CE6}', // Kannada
+    '\u{0D66}', // Malayalam
+    '\u{0DE6}', // Sinhala
+    '\u{0E50}', // Thai
+    '\u{0ED0}', // Lao
+    '\u{0F20}', // Tibetan
+    '\u{1040}', // Myanmar
+    '\u{17E0}', // Khmer
+    '\u{1810}', // Mongolian
+    '\u{FF10}', // Fullwidth
+];
+
+/// Separators that can be either a digit-group separator or a decimal separator:
+/// they continue a number token before any digit.
+const DECIMAL_SEPARATORS: [char; 3] = [
+    '.', ',', '\u{066B}', // Arabic decimal separator
+];
+
+/// Separators that are only ever digit-group separators: they continue a number token
+/// before a group of exactly three digits.
+const GROUP_SEPARATORS: [char; 7] = [
+    ' ', '\u{00A0}', // no-break space
+    '\u{202F}', // narrow no-break space
+    '\u{2009}', // thin space
+    '\u{2007}', // figure space
+    '\u{066C}', // Arabic thousands separator
+    '\'',       // Swiss group separator
+];
+
+/// Return the ASCII equivalent of a decimal digit character, or `None` if the character
+/// is not a decimal digit.
+///
+/// ASCII digits are returned as-is, digits of the scripts listed in [`DIGIT_ZEROS`] are
+/// mapped to their ASCII equivalent: `٣` (Arabic-Indic) and `३` (Devanagari) both return
+/// `'3'`.
+#[inline]
+pub fn ascii_digit(c: char) -> Option<char> {
+    if c.is_ascii_digit() {
+        return Some(c);
+    }
+    if !c.is_numeric() {
+        return None;
+    }
+    DIGIT_ZEROS
+        .iter()
+        .find_map(|zero| char::from_digit(u32::from(c).wrapping_sub(u32::from(*zero)), 10))
+}
+
+pub struct FormatNumberPos<'a> {
+    s: &'a str,
+    len: usize,
+    pos: usize,
+    fmt: Language,
+    prev_alnum: bool,
+    /// Read a letter run directly after the digits as a unit (`8MB`) instead of as the
+    /// rest of an identifier (`3D`).
+    units: bool,
+}
+
+impl<'a> FormatNumberPos<'a> {
+    /// Iterate over the numbers of `s`, skipping the digits glued to a letter, which are
+    /// part of an identifier: `MP3`, `3D` and `1st` yield nothing.
+    pub fn new(s: &'a str, language: Language) -> Self {
+        Self::with_options(s, language, false)
+    }
+
+    /// Iterate over the numbers of `s`, including the ones directly followed by a letter
+    /// run, which is read as a unit: `8MB` yields `8`.
+    ///
+    /// Only the letters *after* the digits are read this way, so `MP3` still yields
+    /// nothing. Used by the `numbers` rule to tell a detached unit (`8MB` translated
+    /// `8 Mo`) from a lost value.
+    pub fn with_units(s: &'a str, language: Language) -> Self {
+        Self::with_options(s, language, true)
+    }
+
+    fn with_options(s: &'a str, language: Language, units: bool) -> Self {
+        Self {
+            s,
+            len: s.len(),
+            pos: 0,
+            fmt: language,
+            prev_alnum: false,
+            units,
+        }
+    }
+
+    /// Return the position just after the run of decimal digits starting at `pos`,
+    /// which is `pos` itself when there is no digit there.
+    fn digits_end(&self, pos: usize) -> usize {
+        let mut pos = pos;
+        while let Some((c, new_pos, is_format)) = self.fmt.next_char(self.s, pos) {
+            if is_format || ascii_digit(c).is_none() {
+                break;
+            }
+            pos = new_pos;
+        }
+        pos
+    }
+
+    /// Return the position just after the number token starting at `start`, which must
+    /// be the position of a decimal digit.
+    ///
+    /// A token is a run of digits, continued by a [decimal separator](DECIMAL_SEPARATORS)
+    /// before any digit, or by a [group separator](GROUP_SEPARATORS) before a group of
+    /// exactly three digits.
+    fn number_end(&self, start: usize) -> usize {
+        let mut end = self.digits_end(start);
+        while let Some((sep, after_sep, is_format)) = self.fmt.next_char(self.s, end) {
+            if is_format {
+                break;
+            }
+            let group_end = self.digits_end(after_sep);
+            let group_len = self.s[after_sep..group_end].chars().count();
+            let is_separator = if DECIMAL_SEPARATORS.contains(&sep) {
+                group_len > 0
+            } else if GROUP_SEPARATORS.contains(&sep) {
+                group_len == 3
+            } else {
+                false
+            };
+            if !is_separator {
+                break;
+            }
+            end = group_end;
+        }
+        end
+    }
+}
+
+/// Iterator returning numbers of a string, according to the given language, skipping
+/// format strings.
+///
+/// A number is a run of decimal digits, possibly including digit-group and decimal
+/// separators, e.g. `1,000.5`, `1 000,5` or `1.000,5` (see [`Self::number_end`]).
+/// Digits of any script are recognized, e.g. `٣` (Arabic-Indic) and `३` (Devanagari).
+///
+/// A number glued to a letter is part of an identifier rather than a value, so it is
+/// not returned: `MP3`, `3D` and `1st` yield nothing. A letter run *after* the digits is
+/// read as a unit instead when the iterator is built with [`with_units`](Self::with_units),
+/// so that `8MB` yields `8`.
+///
+/// For example in C language, with the string `Press %d of 3 times`, it will return
+/// `3` with its position in the string (the `3` of a format string such as `%3$d` is
+/// skipped along with the format string).
+impl<'a> Iterator for FormatNumberPos<'a> {
+    type Item = MatchFmtPos<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some((c, new_pos, is_format)) = self.fmt.next_char(self.s, self.pos) {
+            if is_format {
+                self.pos = self.fmt.find_end_format(self.s, new_pos, self.len);
+                self.prev_alnum = false;
+                continue;
+            }
+            if ascii_digit(c).is_none() {
+                self.prev_alnum = c.is_alphanumeric();
+                self.pos = new_pos;
+                continue;
+            }
+            let start = self.pos;
+            let after_alnum = self.prev_alnum;
+            let end = self.number_end(start);
+            self.pos = end;
+            self.prev_alnum = true;
+            let before_letter = !self.units
+                && self.s[end..]
+                    .chars()
+                    .next()
+                    .is_some_and(char::is_alphabetic);
+            if after_alnum || before_letter {
+                // Part of an identifier ("MP3", "3D", "1st"), not a value.
+                continue;
+            }
+            return Some(MatchFmtPos {
+                s: &self.s[start..end],
+                start,
+                end,
+            });
+        }
+        None
+    }
+}

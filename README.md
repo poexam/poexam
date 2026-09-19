@@ -175,6 +175,7 @@ You can enable them on-demand:
 | html-tags      | Missing/extra/different HTML tags.               |
 | no-trans       | Words that must not be translated.               |
 | noqa           | Entry has `noqa` comment.                        |
+| numbers        | Missing/extra/different numbers.                 |
 | obsolete       | Obsolete entry.                                  |
 | paths          | Missing/extra/different paths.                   |
 | spelling-ctxt  | Spelling error in the context.                   |
@@ -291,7 +292,7 @@ msgstr "ceci est Forbidden"  # ok, different case from the source — counts as 
 
 With the option `--fix`, poexam rewrites each PO file in place, applying every diagnostic that carries a **safe** auto-fix. The file is then re-checked, so the reported diagnostics reflect the post-fix state; any remaining diagnostic is annotated with `Note: no fix available.` (or `Note: unsafe fix available, use --unsafe-fixes to apply it.` when a fix exists but is unsafe).
 
-Each fix is either **safe** or **unsafe** (see the per-rule list below). Safe fixes preserve the translation's meaning (whitespace and punctuation normalization, header defaults, obsolete-entry deletion, …) and are always applied by `--fix`. Unsafe fixes rely on positional heuristics that a reordered translation can defeat (e.g. replacing emails, URLs, paths, function names or HTML tags by position), so `--fix` skips them unless `--unsafe-fixes` is also given:
+Each fix is either **safe** or **unsafe** (see the per-rule list below). Safe fixes preserve the translation's meaning (whitespace and punctuation normalization, header defaults, obsolete-entry deletion, …) and are always applied by `--fix`. Unsafe fixes rely on positional heuristics that a reordered translation can defeat (e.g. replacing emails, URLs, paths, numbers, function names or HTML tags by position), so `--fix` skips them unless `--unsafe-fixes` is also given:
 
 ```shell
 poexam check --fix po/                 # safe fixes only
@@ -363,6 +364,16 @@ Rules that currently produce auto-fixes (`Safe: no` fixes require `--unsafe-fixe
 - **Fix**: Mirror the source's leading and trailing `\r`/`\n` runs in the translation. The
   "count" diagnostics (mid-string newline mismatches) are not auto-fixable.
 - **Safe**: yes.
+
+#### numbers
+
+- **Fix**: When the translation has as many numbers as the source but at least one differs,
+  replace each translation number in place with the number at the same position in the source.
+  The "missing" and "extra" diagnostics (count mismatch) are not auto-fixable.
+- **Safe**: no.
+- **Caveats**: the source number is copied verbatim, so the fix can bring the source's
+  digit-group and decimal separators into a language using others (e.g. `1,000` written in a
+  French translation instead of `1 000`).
 
 #### obsolete
 
