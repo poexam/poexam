@@ -56,15 +56,15 @@ The project is REUSE-compliant. Run `pre-commit run --all-files` (or rely on the
    - `description()` — short description of what the rule checks.
    - `is_default()` — whether the rule is enabled by default.
    - `is_check()` — `true` for real checks, `false` for special rules like `fuzzy`/`noqa`.
-   - `severity()` — pick by impact:
-     - `Severity::Error` — file won't compile or msgid/msgstr structural mismatch that breaks runtime (e.g. `compilation`, `escapes`, `formats`, `newlines`, `plurals`, `tabs`).
-     - `Severity::Warning` — translation is likely wrong but file still compiles (e.g. `blank`, `long`, `short`).
-     - `Severity::Info` — stylistic or informational (default for most rules).
    - One or more check methods: `check_file()`, `check_header()`, `check_entry()`, `check_ctxt()`, or `check_msg()`.
-3. Add `pub mod my_rule;` in `src/rules/mod.rs`.
-4. Register the rule in `src/rules/rule.rs`, `get_all_rules()`.
-5. Add tests in the same file using `#[cfg(test)]` module.
-6. Update `README.md` rules table and `CHANGELOG.md`.
+3. Build each diagnostic with `new_diag()`, which takes the severity as an argument: severity is per diagnostic, not per rule, so a single rule can emit several severities (see `src/rules/header.rs`). Pick it by impact:
+   - `Severity::Error` — file won't compile or msgid/msgstr structural mismatch that breaks runtime (e.g. `compilation`, `escapes`, `formats`, `newlines`, `plurals`, `tabs`).
+   - `Severity::Warning` — translation is likely wrong but file still compiles (e.g. `blank`, `long`, `short`).
+   - `Severity::Info` — stylistic or informational (default for most rules).
+4. Add `pub mod my_rule;` in `src/rules/mod.rs`.
+5. Register the rule in `src/rules/rule.rs`, `get_all_rules()`.
+6. Add tests in the same file using `#[cfg(test)]` module.
+7. Update `README.md` rules table and `CHANGELOG.md`.
 
 ## Adding a new format language
 
