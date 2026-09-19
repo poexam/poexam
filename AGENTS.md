@@ -121,7 +121,17 @@ Avoid adding new dependencies unless strictly necessary. Current key dependencie
 
 ## Changelog
 
-Update `CHANGELOG.md` for every user-facing change, following the existing format with `Removed`, `Changed`, `Added`, `Fixed` sections (in this order) under the current development version.
+Update `CHANGELOG.md` for every user-facing change, under the current development version.
+The format follows [Keep a Changelog 2.0.0](https://keepachangelog.com/en/2.0.0/), with these sections, in this order:
+
+- `Added` for new features.
+- `Changed` for changes in existing functionality.
+- `Deprecated` for soon-to-be removed features.
+- `Removed` for now removed features.
+- `Fixed` for bug fixes.
+- `Security` for vulnerabilities.
+
+Only the sections with entries are written.
 Always add new entries on top of the section.
 Breaking changes are specified like this:
 
