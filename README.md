@@ -138,6 +138,7 @@ It can perform a lot of checks via the default rules:
 | newlines              | Missing/extra newlines.                             |
 | pipes                 | Missing/extra pipes.                                |
 | plurals               | Incorrect number of plurals.                        |
+| plurals-empty         | Empty plural form among translated ones.            |
 | punc-start            | Inconsistent leading punctuation.                   |
 | punc-end              | Inconsistent trailing punctuation.                  |
 | punc-space-id         | Incorrect spaces around punctuation (source).       |

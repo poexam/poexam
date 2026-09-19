@@ -12,6 +12,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Add default rule "plurals-empty" to check for an empty plural form in an entry where another plural form is translated.
+
 ### Changed
 
 - Load each spelling dictionary only once per run instead of once per file, and check each distinct word only once per file: the spelling rules are up to 4 times faster and use less memory.

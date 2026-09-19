@@ -95,6 +95,12 @@ msgstr[0] "%d fichier"
 msgstr[1] "%d fichiers"
 msgstr[2] "%d fichiers"
 
+# rule: plurals-empty
+msgid "%d directory"
+msgid_plural "%d directories"
+msgstr[0] "%d répertoire"
+msgstr[1] ""
+
 # rule: punc-end
 msgid "Test punctuation end."
 msgstr "Test de ponctuation à la fin"
