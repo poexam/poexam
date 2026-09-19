@@ -38,10 +38,12 @@ The project is REUSE-compliant. Run `pre-commit run --all-files` (or rely on the
 - `src/diagnostic.rs` — Diagnostic types (`Severity`: `Info`, `Warning`, `Error`).
 - `src/dict.rs` — Hunspell dictionary and spell checking support.
 - `src/dir.rs` — Directory traversal (respects `.gitignore`).
+- `src/fix.rs` — Auto-fix types (`Edit`, `FixTarget`, `Fix`) and application of fixes with `--fix`.
 - `src/result.rs` — Display check results (human/JSON/SARIF/misspelled) and compute exit code.
 - `src/sarif.rs` — SARIF v2.1.0 output format.
 - `src/lsp.rs` — Language server (LSP) over stdin/stdout for editor integration (`poexam lsp`).
 - `src/stats.rs` — Statistics command implementation.
+- `src/table.rs` — Table rendering, used by the `rules` command.
 - `src/po/` — PO file parser (entry, escape, message, format strings).
 - `src/rules/` — All lint rules, one file per rule, or per closely related rule group.
 - `src/rules/rule.rs` — `RuleChecker` trait and rule loading.
@@ -62,9 +64,10 @@ The project is REUSE-compliant. Run `pre-commit run --all-files` (or rely on the
    - `Severity::Warning` — translation is likely wrong but file still compiles (e.g. `blank`, `long`, `short`).
    - `Severity::Info` — stylistic or informational (default for most rules).
 4. Add `pub mod my_rule;` in `src/rules/mod.rs`.
-5. Register the rule in `src/rules/rule.rs`, `get_all_rules()`.
+5. Register the rule in `src/rules/rule.rs`: add the module to the `use crate::rules::{…}` block and the rule to `get_all_rules()` (both alphabetical). A rule that must influence entry filtering (like `fuzzy` or `obsolete`) also needs a boolean field in `struct Rules`, set by name in `Rules::new()`.
 6. Add tests in the same file using `#[cfg(test)]` module.
-7. Update `README.md` rules table and `CHANGELOG.md`.
+7. Add a `# rule: my-rule` example entry in `examples/fr.po`.
+8. Update `README.md` rules table and `CHANGELOG.md`.
 
 ## Adding a new format language
 
@@ -78,7 +81,7 @@ To add support for a new format language (e.g. `ruby-format`):
    - Add a variant to the `Language` enum (e.g. `Ruby`).
    - Add a match arm in `From<&str>` for `"ruby"` → `Self::Ruby` (this maps from the PO keyword `ruby-format`).
    - Add a match arm in `Display` (e.g. `Self::Ruby => write!(f, "Ruby")`).
-   - Add a match arm in `format_parser()` returning the new parser.
+   - Add a match arm in both `next_char()` and `find_end_format()` of `impl FormatParser for Language`, delegating to the new parser (e.g. `Self::Ruby => FormatRuby.next_char(s, pos)`).
    - Add a test case in `test_language()`.
 4. Add tests in `lang_ruby.rs` using a `#[cfg(test)]` module (test `strip_formats`, `FormatPos`, etc.).
 5. Update the `formats` rule documentation in `README.md`.
@@ -114,7 +117,7 @@ Performance matters: poexam is meant to lint large PO trees in milliseconds. Hot
 ## Dependencies
 
 Avoid adding new dependencies unless strictly necessary. Current key dependencies:
-`clap`, `colored`, `rayon`, `spellbook`, `encoding_rs`, `ignore`, `serde`, `serde_json`, `toml`, `memchr`, `path-absolutize`, `tower-lsp` and `tokio` (used only by the `lsp` command).
+`clap`, `colored`, `rayon`, `spellbook`, `encoding_rs`, `ignore`, `globset`, `serde`, `serde_json`, `toml`, `memchr`, `unicode-linebreak`, `unicode-width`, `tower-lsp` and `tokio` (the last two used only by the `lsp` command).
 
 ## Changelog
 
