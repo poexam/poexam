@@ -13,6 +13,7 @@ use std::path::{Path, PathBuf};
 use crate::args;
 use crate::diagnostic::Severity;
 use crate::dict;
+use crate::po::format::iter::VariableStyle;
 use crate::po::wrap::DEFAULT_PAGE_WIDTH;
 
 pub const DEFAULT_PATH_MSGFMT: &str = "/usr/bin/msgfmt";
@@ -86,6 +87,9 @@ pub struct CheckConfig {
     #[serde(default = "default_check_accelerator")]
     pub accelerator: char,
 
+    #[serde(default = "default_check_variable_styles")]
+    pub variable_styles: Vec<VariableStyle>,
+
     #[serde(default = "default_check_width")]
     pub width: usize,
 
@@ -128,6 +132,19 @@ const fn default_check_accelerator() -> char {
     '&'
 }
 
+/// Default value for `check.variable_styles`.
+///
+/// Deliberately conservative: the two styles left out (`$VAR` and `{var}`) are the ones
+/// whose delimiters also occur in ordinary prose, so a project using them opts in.
+fn default_check_variable_styles() -> Vec<VariableStyle> {
+    vec![
+        VariableStyle::DollarBrace,
+        VariableStyle::Percent,
+        VariableStyle::At,
+        VariableStyle::DoubleBrace,
+    ]
+}
+
 /// Default value for `check.width`.
 const fn default_check_width() -> usize {
     DEFAULT_PAGE_WIDTH
@@ -162,6 +179,7 @@ impl Default for CheckConfig {
             severity: vec![],
             punc_ignore_ellipsis: false,
             accelerator: default_check_accelerator(),
+            variable_styles: default_check_variable_styles(),
             width: default_check_width(),
             unsafe_fixes: false,
         }
@@ -292,6 +310,9 @@ impl Config {
         if let Some(accelerator) = args.accelerator {
             self.check.accelerator = accelerator;
         }
+        if !args.variable_styles.is_empty() {
+            self.check.variable_styles.clone_from(&args.variable_styles);
+        }
         if let Some(width) = args.width {
             self.check.width = width;
         }
@@ -400,6 +421,7 @@ mod tests {
             severity: vec![],
             punc_ignore_ellipsis: false,
             accelerator: None,
+            variable_styles: vec![],
             no_errors: false,
             sort: args::CheckSort::default(),
             rule_stats: false,
@@ -444,6 +466,7 @@ mod tests {
         assert!(c.severity.is_empty());
         assert!(!c.punc_ignore_ellipsis);
         assert_eq!(c.accelerator, '&');
+        assert_eq!(c.variable_styles, default_check_variable_styles());
     }
 
     #[test]
@@ -509,6 +532,38 @@ punc_ignore_ellipsis = true
     }
 
     #[test]
+    fn test_config_new_reads_variable_styles() {
+        let (_tmp, root) = tmp_dir("cfg-var-styles");
+        let cfg_path = root.join("poexam.toml");
+        std::fs::write(
+            &cfg_path,
+            "[check]\nvariable_styles = [\"dollar\", \"brace\"]\n",
+        )
+        .expect("write config");
+        let c = Config::new(Some(&cfg_path)).expect("parse config");
+        assert_eq!(
+            c.check.variable_styles,
+            vec![VariableStyle::Dollar, VariableStyle::Brace],
+        );
+    }
+
+    #[test]
+    fn test_config_new_rejects_unknown_variable_style() {
+        let (_tmp, root) = tmp_dir("cfg-var-style-bad");
+        let cfg_path = root.join("poexam.toml");
+        std::fs::write(&cfg_path, "[check]\nvariable_styles = [\"nope\"]\n").expect("write config");
+        assert!(Config::new(Some(&cfg_path)).is_err());
+    }
+
+    #[test]
+    fn test_with_args_check_variable_styles_overrides() {
+        let mut args = default_check_args();
+        args.variable_styles = vec![VariableStyle::Percent];
+        let cfg = Config::default().with_args_check(&args);
+        assert_eq!(cfg.check.variable_styles, vec![VariableStyle::Percent]);
+    }
+
+    #[test]
     fn test_with_args_check_unsafe_fixes_overrides() {
         let mut args = default_check_args();
         args.unsafe_fixes = true;
@@ -568,6 +623,7 @@ punc_ignore_ellipsis = true
         assert!(cfg.check.path_words.is_none());
         assert_eq!(cfg.check.spelling_lang_id, dict::DEFAULT_LANG_ID);
         assert!(cfg.check.severity.is_empty());
+        assert_eq!(cfg.check.variable_styles, default_check_variable_styles());
         assert!(!cfg.check.unsafe_fixes);
     }
 

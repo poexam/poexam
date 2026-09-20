@@ -41,4 +41,5 @@ pub mod unchanged;
 pub mod unicode_ctrl;
 pub mod untranslated;
 pub mod urls;
+pub mod variables;
 pub mod whitespace;

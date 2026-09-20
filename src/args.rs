@@ -10,6 +10,7 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 use serde::{Deserialize, Serialize};
 
 use crate::diagnostic::Severity;
+use crate::po::format::iter::VariableStyle;
 
 #[derive(Debug, Parser)]
 #[command(
@@ -134,6 +135,10 @@ pub struct CheckArgs {
     /// Marker character for keyboard accelerators in rule "accelerators" (default: `&`)
     #[arg(long)]
     pub accelerator: Option<char>,
+
+    /// Variable syntaxes checked by the rule "variables" (comma-separated list, e.g. `dollar-brace,percent`); default: `dollar-brace,percent,at,double-brace`
+    #[arg(long, value_enum, value_delimiter = ',')]
+    pub variable_styles: Vec<VariableStyle>,
 
     /// Do not display errors found
     #[arg(short, long)]

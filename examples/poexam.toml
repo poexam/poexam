@@ -49,6 +49,9 @@ path_words = "."
 # marker character for keyboard accelerators in rule "accelerators"
 # accelerator = "&"
 
+# variable syntaxes checked by rule "variables"
+# variable_styles = ["dollar-brace", "percent", "at", "double-brace"]
+
 # output page width used by --fix when rewriting msgstr blocks (0 disables wrapping)
 # width = 79
 

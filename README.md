@@ -113,6 +113,7 @@ The following options are available in the `check` section (each option can be o
 | severity             | Array of strings | Show diagnostics with these severities (info/warning/error).      |
 | punc_ignore_ellipsis | Boolean          | Ignore ellipsis differences (`...` vs `…`) in punc rules.         |
 | accelerator          | String (char)    | Marker for keyboard accelerators (default: `&`).                  |
+| variable_styles      | Array of strings | Variable syntaxes checked by the rule `variables`.                |
 | width                | Integer          | Output page width for `--fix` (default: 79); 0 disables wrapping. |
 | unsafe_fixes         | Boolean          | Also apply unsafe auto-fixes with `--fix` (see auto-fix section). |
 
@@ -146,6 +147,7 @@ It can perform a lot of checks via the default rules:
 | short                 | Translation too short.                              |
 | tabs                  | Missing/extra tabs.                                 |
 | unicode-ctrl          | Stray Unicode control chars in translation.         |
+| variables             | Missing/extra/different variables (placeholders).   |
 | whitespace-end        | Missing/extra whitespace at the end.                |
 | whitespace-line-end   | Missing/extra whitespace at the end of each line.   |
 | whitespace-line-start | Missing/extra whitespace at the start of each line. |
@@ -157,6 +159,26 @@ For the rule `formats`, the following languages are supported:
 - Java (`java-format`): Java `MessageFormat` language (e.g. `{0}`, `{1,date,short}`)
 - Python (`python-format`): Python % format strings (e.g. `%s %(age)d`)
 - Python brace (`python-brace-format`): Python brace format strings (e.g. `{0!r:20} {1}`).
+
+The rule `variables` covers the placeholders of the templating syntaxes gettext knows nothing about: such an entry carries no `*-format` flag, so `formats` returns early and the placeholder is otherwise unchecked. The syntaxes to look for are selected with the `variable_styles` option:
+
+| Style          | Syntax    | Where it appears                                   | Enabled by default |
+|----------------|-----------|----------------------------------------------------|--------------------|
+| `dollar`       | `$VAR`    | shell, systemd units, config templates             | no                 |
+| `dollar-brace` | `${VAR}`  | shell, systemd units, config templates             | yes                |
+| `percent`      | `%VAR%`   | Windows-style, Qt, some web frameworks             | yes                |
+| `at`           | `@VAR@`   | autotools, Transifex                               | yes                |
+| `double-brace` | `{{var}}` | Mustache, Handlebars, Jinja, JavaScript frameworks | yes                |
+| `brace`        | `{var}`   | .NET and JavaScript template literals              | no                 |
+
+The two styles off by default are the ones whose delimiters also occur in ordinary prose, so a project using them opts in, for example:
+
+```toml
+[check]
+variable_styles = ["dollar", "dollar-brace"]
+```
+
+A variable name is made of ASCII letters, digits and underscores; `{{…}}` accepts a whole expression, e.g. `{{ user.name }}`. A bare `$VAR` must start with a letter or an underscore (`$5` is an amount of money), and `%VAR%` and `@VAR@` are recognized only at a word boundary (`user@example.com` is an address). Variables inside format strings are skipped, so a `python-brace-format` entry is left to the `formats` rule.
 
 Some extra rules are not used by default because they are not really "checks",
 report too many false positives or can slow down the process.
@@ -292,7 +314,7 @@ msgstr "ceci est Forbidden"  # ok, different case from the source — counts as 
 
 With the option `--fix`, poexam rewrites each PO file in place, applying every diagnostic that carries a **safe** auto-fix. The file is then re-checked, so the reported diagnostics reflect the post-fix state; any remaining diagnostic is annotated with `Note: no fix available.` (or `Note: unsafe fix available, use --unsafe-fixes to apply it.` when a fix exists but is unsafe).
 
-Each fix is either **safe** or **unsafe** (see the per-rule list below). Safe fixes preserve the translation's meaning (whitespace and punctuation normalization, header defaults, obsolete-entry deletion, …) and are always applied by `--fix`. Unsafe fixes rely on positional heuristics that a reordered translation can defeat (e.g. replacing emails, URLs, paths, numbers, function names or HTML tags by position), so `--fix` skips them unless `--unsafe-fixes` is also given:
+Each fix is either **safe** or **unsafe** (see the per-rule list below). Safe fixes preserve the translation's meaning (whitespace and punctuation normalization, header defaults, obsolete-entry deletion, …) and are always applied by `--fix`. Unsafe fixes rely on positional heuristics that a reordered translation can defeat (e.g. replacing emails, URLs, paths, numbers, variables, function names or HTML tags by position), so `--fix` skips them unless `--unsafe-fixes` is also given:
 
 ```shell
 poexam check --fix po/                 # safe fixes only
@@ -423,6 +445,15 @@ Rules that currently produce auto-fixes (`Safe: no` fixes require `--unsafe-fixe
 - **Caveats**: the translator may have intentionally used a localized URL (e.g. a page with a
   language prefix such as `/fr/about` instead of `/about`); the fix overwrites that choice
   with the source's URL.
+
+#### variables
+
+- **Fix**: When the translation has the same number of variables as the source but at least one
+  differs, replace each translation variable in place with the variable at the same position in
+  the source. The "missing" and "extra" diagnostics (count mismatch) are not auto-fixable.
+- **Safe**: no.
+- **Caveats**: the translator may have reordered variables in the prose; positional pairing then
+  maps a translation variable to a different source variable and the fix renames it incorrectly.
 
 #### whitespace-start
 

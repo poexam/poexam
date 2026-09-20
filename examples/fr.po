@@ -137,6 +137,10 @@ msgstr "Sa​ve"
 msgid "URL example: https://github.com/about"
 msgstr "Exemple d'URL : https://github.com/à_propos"
 
+# rule: variables
+msgid "Welcome, ${USER}"
+msgstr "Bienvenue, ${UTILISATEUR}"
+
 # rule: whitespace-end
 msgid "Test whitespace end"
 msgstr "Test espace à la fin "

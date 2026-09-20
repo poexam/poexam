@@ -4,6 +4,9 @@
 
 //! Format iterator: return format strings.
 
+use clap::ValueEnum;
+use serde::{Deserialize, Serialize};
+
 use crate::po::format::{FormatParser, MatchFmtPos, language::Language};
 use crate::rules::double_quotes::DOUBLE_QUOTES;
 
@@ -922,6 +925,221 @@ impl<'a> Iterator for FormatNumberPos<'a> {
                 start,
                 end,
             });
+        }
+        None
+    }
+}
+
+/// Syntax of a variable recognized by [`FormatVariablePos`], and value accepted by the
+/// `variable_styles` configuration key of the `variables` rule.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ValueEnum)]
+#[serde(rename_all = "kebab-case")]
+pub enum VariableStyle {
+    /// `$VAR`: shell, systemd units, config templates.
+    Dollar,
+    /// `${VAR}`: shell, systemd units, config templates.
+    DollarBrace,
+    /// `%VAR%`: Windows-style, Qt, some web frameworks.
+    Percent,
+    /// `@VAR@`: autotools, Transifex.
+    At,
+    /// `{{var}}`: Mustache, Handlebars, Jinja, JavaScript frameworks.
+    DoubleBrace,
+    /// `{var}`: .NET and JavaScript template literals.
+    Brace,
+}
+
+/// Characters allowed in a variable name: ASCII alphanumeric and underscore.
+///
+/// Deliberately narrow: allowing `.` or `-` would make `%d.%d` and `50%-60%` look like
+/// `%VAR%` variables.
+#[inline]
+fn is_name_char(c: char) -> bool {
+    c.is_ascii_alphanumeric() || c == '_'
+}
+
+pub struct FormatVariablePos<'a> {
+    s: &'a str,
+    len: usize,
+    pos: usize,
+    fmt: Language,
+    styles: &'a [VariableStyle],
+    prev: Option<char>,
+}
+
+impl<'a> FormatVariablePos<'a> {
+    pub fn new(s: &'a str, language: Language, styles: &'a [VariableStyle]) -> Self {
+        Self {
+            s,
+            len: s.len(),
+            pos: 0,
+            fmt: language,
+            styles,
+            prev: None,
+        }
+    }
+
+    /// Whether the given variable style is enabled.
+    fn enabled(&self, style: VariableStyle) -> bool {
+        self.styles.contains(&style)
+    }
+
+    /// Return the character at `pos` and the position just after it, or `None` at the end
+    /// of the string or when a format string starts at `pos`.
+    fn char_at(&self, pos: usize) -> Option<(char, usize)> {
+        match self.fmt.next_char(self.s, pos) {
+            Some((c, new_pos, false)) => Some((c, new_pos)),
+            _ => None,
+        }
+    }
+
+    /// Return the position just after the run of [name characters](is_name_char) starting
+    /// at `pos`, which is `pos` itself when there is no name character there.
+    fn name_end(&self, pos: usize) -> usize {
+        let mut pos = pos;
+        while let Some((c, new_pos)) = self.char_at(pos) {
+            if !is_name_char(c) {
+                break;
+            }
+            pos = new_pos;
+        }
+        pos
+    }
+
+    /// Return the position just after a non-empty variable name starting at `pos` and
+    /// terminated by `close`, or `None` when the name is empty or not terminated.
+    fn closed_name_end(&self, pos: usize, close: char) -> Option<usize> {
+        let end = self.name_end(pos);
+        if end == pos {
+            return None;
+        }
+        match self.char_at(end) {
+            Some((c, new_pos)) if c == close => Some(new_pos),
+            _ => None,
+        }
+    }
+
+    /// Return the position just after a `%NAME%` or `@NAME@` variable whose name starts at
+    /// `pos`, or `None` when there is no such variable there.
+    ///
+    /// The closing delimiter must not be glued to a name character, so that
+    /// `@user@instance` is a social handle rather than the variable `@user@`. The caller
+    /// applies the same rule to the opening delimiter, which rules out `user@example.com`.
+    fn paired_end(&self, pos: usize, delimiter: char) -> Option<usize> {
+        let end = self.closed_name_end(pos, delimiter)?;
+        match self.char_at(end) {
+            Some((c, _)) if is_name_char(c) => None,
+            _ => Some(end),
+        }
+    }
+
+    /// Return the position just after a `$NAME` or `${NAME}` variable opened by the `$`
+    /// ending at `pos`, or `None` when no enabled style matches there.
+    fn dollar_end(&self, pos: usize) -> Option<usize> {
+        let (c, after) = self.char_at(pos)?;
+        if c == '{' {
+            if self.enabled(VariableStyle::DollarBrace) {
+                return self.closed_name_end(after, '}');
+            }
+            return None;
+        }
+        // The name of a bare `$` variable must start with a letter or an underscore: `$5`
+        // and `$1,000` are amounts of money, not variables.
+        if self.enabled(VariableStyle::Dollar) && (c.is_ascii_alphabetic() || c == '_') {
+            return Some(self.name_end(pos));
+        }
+        None
+    }
+
+    /// Return the position just after a `{{…}}` or `{NAME}` variable opened by the `{`
+    /// ending at `pos`, or `None` when no enabled style matches there.
+    fn brace_end(&self, pos: usize) -> Option<usize> {
+        if let Some(('{', after)) = self.char_at(pos) {
+            // A doubled `{` opens a `{{…}}` variable, never a `{NAME}` one: with only the
+            // `brace` style enabled, `{{name}}` must yield nothing rather than `{name}`.
+            if self.enabled(VariableStyle::DoubleBrace) {
+                return self.double_brace_end(after);
+            }
+            return None;
+        }
+        if self.enabled(VariableStyle::Brace) {
+            return self.closed_name_end(pos, '}');
+        }
+        None
+    }
+
+    /// Return the position just after a `{{…}}` variable whose content starts at `pos`, or
+    /// `None` when the content is blank, holds a brace or a control character, or is not
+    /// terminated by `}}`.
+    ///
+    /// The content is not restricted to a [name](is_name_char): the template engines using
+    /// this syntax accept expressions, e.g. `{{ user.name }}` or `{{ count|plural }}`.
+    fn double_brace_end(&self, pos: usize) -> Option<usize> {
+        let mut end = pos;
+        while let Some((c, new_pos)) = self.char_at(end) {
+            if c == '{' || c.is_control() {
+                return None;
+            }
+            if c == '}' {
+                if self.s[pos..end].trim().is_empty() {
+                    return None;
+                }
+                return match self.char_at(new_pos) {
+                    Some(('}', after)) => Some(after),
+                    _ => None,
+                };
+            }
+            end = new_pos;
+        }
+        None
+    }
+}
+
+/// Iterator returning variables of a string, according to the given language and the
+/// enabled [styles](VariableStyle), skipping format strings.
+///
+/// A variable is a placeholder substituted at runtime by a templating syntax that gettext
+/// knows nothing about: it carries no `*-format` flag, so the `formats` rule never sees it.
+///
+/// For example with the styles `dollar-brace` and `percent` and the string
+/// `Copy ${SRC} to %DEST%`, it will return `${SRC}` and `%DEST%` with their positions in
+/// the string.
+impl<'a> Iterator for FormatVariablePos<'a> {
+    type Item = MatchFmtPos<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some((c, new_pos, is_format)) = self.fmt.next_char(self.s, self.pos) {
+            if is_format {
+                self.pos = self.fmt.find_end_format(self.s, new_pos, self.len);
+                self.prev = None;
+                continue;
+            }
+            let start = self.pos;
+            let prev = self.prev;
+            let glued = prev.is_some_and(is_name_char);
+            self.pos = new_pos;
+            self.prev = Some(c);
+            // `%` and `@` are ordinary characters in prose, so they open a variable only at
+            // a word boundary, unlike `$` and `{` which are distinctive enough on their own.
+            let end = match c {
+                '$' => self.dollar_end(new_pos),
+                '%' if !glued && self.enabled(VariableStyle::Percent) => {
+                    self.paired_end(new_pos, '%')
+                }
+                '@' if !glued && self.enabled(VariableStyle::At) => self.paired_end(new_pos, '@'),
+                // The second `{` of a `{{…}}` opener was already handled by the first one.
+                '{' if prev != Some('{') => self.brace_end(new_pos),
+                _ => None,
+            };
+            if let Some(end) = end {
+                self.pos = end;
+                self.prev = self.s[..end].chars().next_back();
+                return Some(MatchFmtPos {
+                    s: &self.s[start..end],
+                    start,
+                    end,
+                });
+            }
         }
         None
     }
