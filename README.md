@@ -128,6 +128,7 @@ It can perform a lot of checks via the default rules:
 | accelerators          | Missing/extra keyboard accelerators.                |
 | blank                 | Blank translation (only whitespace).                |
 | brackets              | Missing/extra brackets.                             |
+| compendium            | Unresolved msgcat conflict markers.                 |
 | double-quotes         | Missing/extra double quotes.                        |
 | double-spaces         | Missing/extra double spaces.                        |
 | emails                | Missing/extra/different emails.                     |
@@ -227,6 +228,25 @@ examples/fr.po:42: [info:brackets] missing opening and closing square brackets '
      44 | Test crochets
         |
 ```
+
+### Merge conflicts
+
+When `msgcat` merges catalogs that hold conflicting translations for the same `msgid`, it does not pick one: it writes every alternative into the `msgstr`, each introduced by a `#-#-#-#-#` line naming where it came from.
+
+```text
+msgid "Save"
+msgstr ""
+"#-#-#-#-#  fr.po (app)  #-#-#-#-#\n"
+"Enregistrer\n"
+"#-#-#-#-#  fr.po (lib)  #-#-#-#-#\n"
+"Sauvegarder"
+```
+
+The conflict is meant to be resolved by hand, and a catalog still carrying the markers ships them verbatim to users, so the default rule `compendium` reports them as errors. Merging catalogs with differing headers puts the markers in the header too, where they are reported the same way.
+
+`msgcat` marks every entry it could not merge as fuzzy, and fuzzy entries are skipped unless `--fuzzy` is given, so a freshly merged catalog reports its conflicts through the header. The per-entry diagnostic is what catches the state that actually ships: the fuzzy flag cleared while the markers are still there.
+
+There is no auto-fix: the markers exist precisely because `msgcat` could not choose, and keeping one alternative is the translator's call.
 
 ### PO file header
 

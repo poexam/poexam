@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ### Added
 
+- Add default rule "compendium" to check for unresolved `msgcat` conflict markers (`#-#-#-#-#`) left in the translation or the header.
 - Add default rule "lang-path" to check that the language in the PO file header matches the language announced by the file path.
 - Report the unchanged POT template values of the PO file header (`PACKAGE VERSION`, `YEAR-MO-DA HO:MI+ZONE`, `FULL NAME <EMAIL@ADDRESS>`, `LANGUAGE <LL@li.org>`, `charset=CHARSET`, `ENCODING`) with rule "header".
 - Add non-default rule "options" to check for missing, extra or different command-line options in the translation.

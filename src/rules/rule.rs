@@ -13,7 +13,7 @@ use crate::{
     diagnostic::{Diagnostic, Severity},
     po::{entry::Entry, message::Message},
     rules::{
-        accelerators, acronyms, blank, brackets, changed, compilation, double_quotes,
+        accelerators, acronyms, blank, brackets, changed, compendium, compilation, double_quotes,
         double_spaces, double_words, emails, encoding, escapes, force_trans, formats, functions,
         fuzzy, header, html_tags, lang_path, long, newlines, no_trans, noqa, numbers, obsolete,
         options, paths, pipes, plurals, punc, punc_space, short, spelling, tabs, unchanged,
@@ -159,6 +159,7 @@ fn get_all_rules() -> Vec<Rule> {
         Box::new(blank::BlankRule {}),
         Box::new(brackets::BracketsRule {}),
         Box::new(changed::ChangedRule {}),
+        Box::new(compendium::CompendiumRule {}),
         Box::new(compilation::CompilationRule {}),
         Box::new(double_quotes::DoubleQuotesRule {}),
         Box::new(double_spaces::DoubleSpacesRule {}),

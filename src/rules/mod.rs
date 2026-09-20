@@ -9,6 +9,7 @@ pub mod acronyms;
 pub mod blank;
 pub mod brackets;
 pub mod changed;
+pub mod compendium;
 pub mod compilation;
 pub mod double_quotes;
 pub mod double_spaces;

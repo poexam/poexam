@@ -37,6 +37,14 @@ msgstr " "
 msgid "Test [brackets]"
 msgstr "Test crochets"
 
+# rule: compendium
+msgid "Conflicting translation"
+msgstr ""
+"#-#-#-#-# fr.po (app) #-#-#-#-#\n"
+"Première\n"
+"#-#-#-#-# fr.po (lib) #-#-#-#-#\n"
+"Seconde"
+
 # rule: double-quotes
 msgid "Test \"double quotes\""
 msgstr "Test guillemets doubles"
