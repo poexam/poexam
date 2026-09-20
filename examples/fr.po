@@ -82,6 +82,10 @@ msgstr "\nTest deux lignes\n"
 msgid "Press 3 times to confirm"
 msgstr "Appuyez 2 fois pour confirmer"
 
+# rule: options
+msgid "Use --verbose to get more output"
+msgstr "Utilisez --bavard pour plus de détails"
+
 # rule: paths
 msgid "Path: /tmp/output.txt"
 msgstr "Chemin : /tmp/sortie.txt"

@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ### Added
 
+- Add non-default rule "options" to check for missing, extra or different command-line options in the translation.
 - Add option `--variable-styles` and config key `variable_styles` to select the variable syntaxes checked by the rule "variables".
 - Add default rule "variables" to check for missing, extra or different variables in the translation (placeholders of templating syntaxes that carry no `*-format` flag, e.g. `${VAR}`, `%VAR%`, `@VAR@` or `{{var}}`).
 - Add non-default rule "numbers" to check for missing, extra or different numbers in the translation.

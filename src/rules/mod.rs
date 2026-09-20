@@ -28,6 +28,7 @@ pub mod no_trans;
 pub mod noqa;
 pub mod numbers;
 pub mod obsolete;
+pub mod options;
 pub mod paths;
 pub mod pipes;
 pub mod plurals;

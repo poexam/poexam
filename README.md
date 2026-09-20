@@ -199,6 +199,7 @@ You can enable them on-demand:
 | noqa           | Entry has `noqa` comment.                        |
 | numbers        | Missing/extra/different numbers.                 |
 | obsolete       | Obsolete entry.                                  |
+| options        | Missing/extra/different command-line options.    |
 | paths          | Missing/extra/different paths.                   |
 | spelling-ctxt  | Spelling error in the context.                   |
 | spelling-id    | Spelling error in the source.                    |
@@ -283,6 +284,20 @@ msgstr "Utiliser l'interface"  # flagged: HTTP and API are missing
 
 When the `force-trans` rule is also enabled and a `force-trans-file` is configured, any acronym whose lowercase form is listed in that file is ignored by the `acronyms` rule, because the force-trans rule requires it to be translated (the two rules would otherwise contradict each other).
 
+### Command-line options
+
+The non-default rule `options` checks that every command-line option found in the source is also present in the translation: `--verbose` rendered as `--bavard` is a help string telling the user to type something that does not work.
+
+An option is a `-` or `--` prefix at a word boundary followed by an ASCII letter, then any number of ASCII alphanumeric characters, `-` and `_`. Only the name is compared, so the value of `--opt=value` stays translatable:
+
+```text
+msgid "Use --log-level=debug"
+msgstr "Utilisez --log-level=débogage"  # ok, only the name is compared
+msgstr "Utilisez --niveau=débogage"     # flagged: the option was translated
+```
+
+The word boundary and the leading letter are what keep prose out: the hyphen of `well-known`, `café-restaurant`, `UTF-8` and `5-10` follows an alphanumeric character, while `-5` and a dash surrounded by spaces are not followed by a letter. Format strings are skipped (e.g. `%s`, `{0}`).
+
 ### Force / forbid translation of specific words
 
 Two non-default rules consult external word lists to enforce, for a given vocabulary, whether words found in the source must (or must not) be translated:
@@ -314,7 +329,7 @@ msgstr "ceci est Forbidden"  # ok, different case from the source — counts as 
 
 With the option `--fix`, poexam rewrites each PO file in place, applying every diagnostic that carries a **safe** auto-fix. The file is then re-checked, so the reported diagnostics reflect the post-fix state; any remaining diagnostic is annotated with `Note: no fix available.` (or `Note: unsafe fix available, use --unsafe-fixes to apply it.` when a fix exists but is unsafe).
 
-Each fix is either **safe** or **unsafe** (see the per-rule list below). Safe fixes preserve the translation's meaning (whitespace and punctuation normalization, header defaults, obsolete-entry deletion, …) and are always applied by `--fix`. Unsafe fixes rely on positional heuristics that a reordered translation can defeat (e.g. replacing emails, URLs, paths, numbers, variables, function names or HTML tags by position), so `--fix` skips them unless `--unsafe-fixes` is also given:
+Each fix is either **safe** or **unsafe** (see the per-rule list below). Safe fixes preserve the translation's meaning (whitespace and punctuation normalization, header defaults, obsolete-entry deletion, …) and are always applied by `--fix`. Unsafe fixes rely on positional heuristics that a reordered translation can defeat (e.g. replacing emails, URLs, paths, numbers, variables, options, function names or HTML tags by position), so `--fix` skips them unless `--unsafe-fixes` is also given:
 
 ```shell
 poexam check --fix po/                 # safe fixes only
@@ -402,6 +417,16 @@ Rules that currently produce auto-fixes (`Safe: no` fixes require `--unsafe-fixe
 - **Fix**: Delete the entire obsolete entry from the file, including any leading comments and
   the trailing blank-line separator.
 - **Safe**: yes.
+
+#### options
+
+- **Fix**: When the translation has the same number of command-line options as the source but
+  at least one differs, replace each translation option in place with the option at the same
+  position in the source. The edit spans the option name only, so the value of `--opt=value` is
+  kept. The "missing" and "extra" diagnostics (count mismatch) are not auto-fixable.
+- **Safe**: no.
+- **Caveats**: the translator may have reordered options in the prose; positional pairing then
+  maps a translation option to a different source option and the fix renames it incorrectly.
 
 #### paths
 

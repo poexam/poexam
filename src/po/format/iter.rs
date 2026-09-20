@@ -949,6 +949,18 @@ pub enum VariableStyle {
     Brace,
 }
 
+/// Return the character at `pos` and the position just after it, or `None` at the end of
+/// the string or when a format string starts at `pos`.
+///
+/// Used by the iterators that look ahead one character at a time while leaving format
+/// strings out of the way.
+fn plain_char_at(s: &str, fmt: Language, pos: usize) -> Option<(char, usize)> {
+    match fmt.next_char(s, pos) {
+        Some((c, new_pos, false)) => Some((c, new_pos)),
+        _ => None,
+    }
+}
+
 /// Characters allowed in a variable name: ASCII alphanumeric and underscore.
 ///
 /// Deliberately narrow: allowing `.` or `-` would make `%d.%d` and `50%-60%` look like
@@ -987,10 +999,7 @@ impl<'a> FormatVariablePos<'a> {
     /// Return the character at `pos` and the position just after it, or `None` at the end
     /// of the string or when a format string starts at `pos`.
     fn char_at(&self, pos: usize) -> Option<(char, usize)> {
-        match self.fmt.next_char(self.s, pos) {
-            Some((c, new_pos, false)) => Some((c, new_pos)),
-            _ => None,
-        }
+        plain_char_at(self.s, self.fmt, pos)
     }
 
     /// Return the position just after the run of [name characters](is_name_char) starting
@@ -1132,6 +1141,112 @@ impl<'a> Iterator for FormatVariablePos<'a> {
                 _ => None,
             };
             if let Some(end) = end {
+                self.pos = end;
+                self.prev = self.s[..end].chars().next_back();
+                return Some(MatchFmtPos {
+                    s: &self.s[start..end],
+                    start,
+                    end,
+                });
+            }
+        }
+        None
+    }
+}
+
+/// Characters allowed in a command-line option name: the [name characters](is_name_char)
+/// plus the hyphen of `--no-color`.
+#[inline]
+fn is_option_char(c: char) -> bool {
+    is_name_char(c) || c == '-'
+}
+
+pub struct FormatOptionPos<'a> {
+    s: &'a str,
+    len: usize,
+    pos: usize,
+    fmt: Language,
+    prev: Option<char>,
+}
+
+impl<'a> FormatOptionPos<'a> {
+    pub fn new(s: &'a str, language: Language) -> Self {
+        Self {
+            s,
+            len: s.len(),
+            pos: 0,
+            fmt: language,
+            prev: None,
+        }
+    }
+
+    /// Return the character at `pos` and the position just after it, or `None` at the end
+    /// of the string or when a format string starts at `pos`.
+    fn char_at(&self, pos: usize) -> Option<(char, usize)> {
+        plain_char_at(self.s, self.fmt, pos)
+    }
+
+    /// Return the position just after the option name starting at `pos`, or `None` when
+    /// there is no name there.
+    ///
+    /// The name must start with an ASCII letter, which keeps `-5` a negative number and a
+    /// dash surrounded by spaces a dash.
+    fn name_end(&self, pos: usize) -> Option<usize> {
+        let (c, mut end) = self.char_at(pos)?;
+        if !c.is_ascii_alphabetic() {
+            return None;
+        }
+        while let Some((c, new_pos)) = self.char_at(end) {
+            if !is_option_char(c) {
+                break;
+            }
+            end = new_pos;
+        }
+        Some(end)
+    }
+}
+
+/// Iterator returning command-line options of a string, according to the given language,
+/// skipping format strings.
+///
+/// An option is a `-` or `--` prefix at a word boundary followed by an ASCII letter, then
+/// any number of ASCII alphanumeric characters, `-` and `_`: `-v`, `--verbose` and
+/// `--no-color`. The value of `--opt=value` is not part of the option, so only `--opt` is
+/// returned and the value stays translatable.
+///
+/// The word boundary and the leading letter are what keep prose out: the hyphen of
+/// `well-known` and `café-restaurant` follows an alphanumeric character, while `-5` and a
+/// dash surrounded by spaces are not followed by a letter.
+///
+/// For example with the string `Use -v or --log-level=debug`, it will return `-v` and
+/// `--log-level` with their positions in the string.
+impl<'a> Iterator for FormatOptionPos<'a> {
+    type Item = MatchFmtPos<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some((c, new_pos, is_format)) = self.fmt.next_char(self.s, self.pos) {
+            if is_format {
+                self.pos = self.fmt.find_end_format(self.s, new_pos, self.len);
+                self.prev = None;
+                continue;
+            }
+            let start = self.pos;
+            // An option starts a word: a dash glued to the end of one is a compound word or
+            // a range ("well-known", "café-restaurant", "UTF-8", "5-10").
+            let boundary = self
+                .prev
+                .is_none_or(|p| !p.is_alphanumeric() && p != '_' && p != '-');
+            self.pos = new_pos;
+            self.prev = Some(c);
+            if c != '-' || !boundary {
+                continue;
+            }
+            // A second dash makes it a long option, anything else starts the name.
+            let after_dashes = match self.char_at(new_pos) {
+                Some(('-', after)) => after,
+                _ => new_pos,
+            };
+            if let Some(end) = self.name_end(after_dashes) {
                 self.pos = end;
                 self.prev = self.s[..end].chars().next_back();
                 return Some(MatchFmtPos {
