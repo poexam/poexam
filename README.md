@@ -135,6 +135,7 @@ It can perform a lot of checks via the default rules:
 | escapes               | Missing/extra escape characters.                    |
 | formats               | Inconsistent format strings.                        |
 | header                | Invalid/missing/unfilled fields in PO file header.  |
+| lang-path             | Language in header different from the file path.    |
 | long                  | Translation too long.                               |
 | newlines              | Missing/extra newlines.                             |
 | pipes                 | Missing/extra pipes.                                |
@@ -243,6 +244,12 @@ A header still carrying any of these values was never filled in:
 | `Content-Transfer-Encoding` | `ENCODING`                    |
 
 These are reported as warnings, except `Content-Type`: `charset=CHARSET` leaves the file with no usable encoding declaration, so it is an error. A field reported this way is not reported again as an `invalid value`, so each one yields a single diagnostic. An empty `Language` needs no entry in the table, since `invalid value '' for field 'Language'` already reports it.
+
+The default rule `lang-path` completes this by comparing the `Language` field with the language the file path announces: `fr.po` declaring `Language: de` is a copy-paste that makes gettext apply German plural rules and `spelling-str` load the German dictionary for the whole file.
+
+The language is read from the file stem (`po/pt_BR.po`), or from the directory next to `LC_MESSAGES` in the runtime layout (`po/de/LC_MESSAGES/app.po`, where the file is named after the domain). Only the language code is compared, so `pt_BR.po` accepts both `Language: pt_BR` and `Language: pt`.
+
+A path announcing no language is skipped, as is a header whose `Language` is missing or malformed, which the `header` rule already reports. A file name that is a bare three-letter code is skipped too: `app.po`, `cli.po` and `doc.po` are shaped exactly like `ast.po` or `fil.po`, so nothing is read off them. A three-letter locale directory next to `LC_MESSAGES` is unambiguous and is checked.
 
 ### Spell checking
 

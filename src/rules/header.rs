@@ -306,7 +306,7 @@ impl RuleChecker for HeaderRule {
 ///
 /// Only structural validation is performed (case and length); the actual ISO
 /// code lists are not consulted.
-fn is_valid_language(value: &str) -> bool {
+pub fn is_valid_language(value: &str) -> bool {
     let (lang_country, variant) = match value.split_once('@') {
         Some((lc, v)) => (lc, Some(v)),
         None => (value, None),

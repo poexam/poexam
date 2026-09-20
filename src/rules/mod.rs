@@ -22,6 +22,7 @@ pub mod functions;
 pub mod fuzzy;
 pub mod header;
 pub mod html_tags;
+pub mod lang_path;
 pub mod long;
 pub mod newlines;
 pub mod no_trans;
