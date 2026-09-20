@@ -134,7 +134,7 @@ It can perform a lot of checks via the default rules:
 | encoding              | Incorrect encoding (charset).                       |
 | escapes               | Missing/extra escape characters.                    |
 | formats               | Inconsistent format strings.                        |
-| header                | Invalid/missing required fields in PO file header.  |
+| header                | Invalid/missing/unfilled fields in PO file header.  |
 | long                  | Translation too long.                               |
 | newlines              | Missing/extra newlines.                             |
 | pipes                 | Missing/extra pipes.                                |
@@ -226,6 +226,23 @@ examples/fr.po:42: [info:brackets] missing opening and closing square brackets '
      44 | Test crochets
         |
 ```
+
+### PO file header
+
+The default rule `header` checks the fields of the PO file header: that the required ones are present, that their values are well-formed, and that none of them is still the placeholder `xgettext` and `msginit` write into a fresh template.
+
+A header still carrying any of these values was never filled in:
+
+| Field                       | Template value                |
+|-----------------------------|-------------------------------|
+| `Project-Id-Version`        | `PACKAGE VERSION`             |
+| `PO-Revision-Date`          | `YEAR-MO-DA HO:MI+ZONE`       |
+| `Last-Translator`           | `FULL NAME <EMAIL@ADDRESS>`   |
+| `Language-Team`             | `LANGUAGE <LL@li.org>`        |
+| `Content-Type`              | `text/plain; charset=CHARSET` |
+| `Content-Transfer-Encoding` | `ENCODING`                    |
+
+These are reported as warnings, except `Content-Type`: `charset=CHARSET` leaves the file with no usable encoding declaration, so it is an error. A field reported this way is not reported again as an `invalid value`, so each one yields a single diagnostic. An empty `Language` needs no entry in the table, since `invalid value '' for field 'Language'` already reports it.
 
 ### Spell checking
 

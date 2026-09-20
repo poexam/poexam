@@ -4,7 +4,8 @@
 
 //! Implementation of the `header` rule: check that the PO file header
 //! contains all the required fields (`Project-Id-Version`, `Language`,
-//! `Content-Type`, …) and that their values are well-formed.
+//! `Content-Type`, …), that their values are well-formed, and that none of
+//! them is still the placeholder written into the POT template.
 
 use std::collections::HashSet;
 
@@ -36,6 +37,81 @@ const REQUIRED_FIELDS: &[(&str, Severity)] = &[
     ("Content-Type", Severity::Warning),
     ("Content-Transfer-Encoding", Severity::Warning),
 ];
+
+/// Values `xgettext` and `msginit` write into a fresh template, with the
+/// severity to emit when a translated catalog still carries them. A header
+/// that still says `PACKAGE VERSION` was never filled in, and its contact and
+/// date metadata is worthless to anyone reading the catalog.
+///
+/// `Content-Type` is an error rather than a warning: `charset=CHARSET` leaves
+/// the file with no usable encoding declaration, the same impact as the
+/// `invalid value` diagnostic this one replaces for that field.
+///
+/// Order is the canonical display order, as in [`REQUIRED_FIELDS`].
+const PLACEHOLDER_VALUES: &[(&str, &str, Severity)] = &[
+    ("Project-Id-Version", "PACKAGE VERSION", Severity::Warning),
+    (
+        "PO-Revision-Date",
+        "YEAR-MO-DA HO:MI+ZONE",
+        Severity::Warning,
+    ),
+    (
+        "Last-Translator",
+        "FULL NAME <EMAIL@ADDRESS>",
+        Severity::Warning,
+    ),
+    ("Language-Team", "LANGUAGE <LL@li.org>", Severity::Warning),
+    (
+        "Content-Type",
+        "text/plain; charset=CHARSET",
+        Severity::Error,
+    ),
+    ("Content-Transfer-Encoding", "ENCODING", Severity::Warning),
+];
+
+/// Validators for the fields whose value has a checkable shape, with the
+/// severity to emit when it does not hold: a broken `Content-Type`,
+/// `Plural-Forms` or `Language` makes gettext decode, pluralize or select the
+/// wrong thing (error), while the contact fields are metadata (info).
+///
+/// Order is the order the diagnostics are emitted in, for stable output.
+type FieldValidator = (&'static str, fn(&str) -> bool, Severity);
+const VALUE_VALIDATORS: &[FieldValidator] = &[
+    ("Content-Type", is_valid_content_type, Severity::Error),
+    ("Plural-Forms", is_valid_plural_forms, Severity::Error),
+    ("Language", is_valid_language, Severity::Error),
+    (
+        "Report-Msgid-Bugs-To",
+        is_valid_report_msgid_bugs_to,
+        Severity::Info,
+    ),
+    ("Last-Translator", is_valid_last_translator, Severity::Info),
+    ("Language-Team", is_valid_language_team, Severity::Info),
+];
+
+/// Whether `value` is still the [template value](PLACEHOLDER_VALUES) of the
+/// header field `name`.
+///
+/// Both are compared case-insensitively, like every other field lookup here.
+fn is_placeholder(name: &str, value: &str) -> bool {
+    PLACEHOLDER_VALUES.iter().any(|(field, placeholder, _)| {
+        field.eq_ignore_ascii_case(name) && placeholder.eq_ignore_ascii_case(value)
+    })
+}
+
+/// Return the value of a header field to run the format validators on, or
+/// `None` when the field is absent or still holds its template value.
+///
+/// A template value is reported on its own, in words that name the actual
+/// problem; letting the format validators run on it too would report the same
+/// field twice, the second time as a mere `invalid value`.
+fn value_to_validate<'a>(fields: &[(String, &'a str)], name: &str) -> Option<&'a str> {
+    fields
+        .iter()
+        .find(|(field, _)| field.eq_ignore_ascii_case(name))
+        .map(|(_, value)| *value)
+        .filter(|value| !is_placeholder(name, value))
+}
 
 /// Default value to use when auto-fixing a missing header field. Only fields
 /// whose value is universally safe (any gettext consumer accepts them and the
@@ -82,7 +158,7 @@ impl RuleChecker for HeaderRule {
     }
 
     fn description(&self) -> &'static str {
-        "Missing required fields or invalid field values in PO file header."
+        "Missing required fields, invalid or unfilled field values in PO file header."
     }
 
     fn is_default(&self) -> bool {
@@ -93,7 +169,8 @@ impl RuleChecker for HeaderRule {
         true
     }
 
-    /// Check the PO file header for invalid or missing required fields.
+    /// Check the PO file header for missing required fields, invalid values
+    /// and values still holding their POT template placeholder.
     ///
     /// Field matching is case-insensitive (per RFC 822, which the gettext
     /// header format follows) and tolerates surrounding whitespace.
@@ -102,6 +179,18 @@ impl RuleChecker for HeaderRule {
     /// ```text
     /// msgid ""
     /// msgstr ""
+    /// ```
+    ///
+    /// Wrong header (never filled in after `msginit`):
+    /// ```text
+    /// msgid ""
+    /// msgstr ""
+    /// "Project-Id-Version: PACKAGE VERSION\n"
+    /// "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+    /// "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+    /// "Language-Team: LANGUAGE <LL@li.org>\n"
+    /// "Content-Type: text/plain; charset=CHARSET\n"
+    /// "Content-Transfer-Encoding: ENCODING\n"
     /// ```
     ///
     /// Correct header:
@@ -132,13 +221,24 @@ impl RuleChecker for HeaderRule {
     /// - [`info`](Severity::Info): `invalid value '…' for field 'Report-Msgid-Bugs-To' in header`
     /// - [`info`](Severity::Info): `invalid value '…' for field 'Last-Translator' in header`
     /// - [`info`](Severity::Info): `invalid value '…' for field 'Language-Team' in header`
+    /// - [`error`](Severity::Error): `unchanged template value '…' for field 'Content-Type' in header`
+    /// - [`warning`](Severity::Warning): `unchanged template value '…' for field '…' in header`
+    ///
+    /// A field still holding its [template value](PLACEHOLDER_VALUES) is
+    /// reported only as such: the format validators are skipped for it, so
+    /// `charset=CHARSET` yields one precise diagnostic instead of that one
+    /// plus a vaguer `invalid value`. An empty `Language` needs no entry in
+    /// that table, since `invalid value '' for field 'Language'` already says
+    /// it at the right severity.
     ///
     /// Only the two missing-field diagnostics for `Content-Type` and
     /// `Content-Transfer-Encoding` are auto-fixable: the fix appends the
     /// canonical default value (`text/plain; charset=UTF-8` and `8bit`
     /// respectively). Every other diagnostic either depends on translator
     /// knowledge (language, contacts, dates, project version) or on the
-    /// actual file encoding, so no safe default exists.
+    /// actual file encoding, so no safe default exists. Template values are
+    /// not auto-fixable either: they are exactly the fields whose correct
+    /// value only the translator knows.
     fn check_header(&self, checker: &Checker, _entry: &Entry, msgstr: &Message) -> Vec<Diagnostic> {
         let fields: Vec<(String, &str)> = msgstr
             .value
@@ -163,84 +263,35 @@ impl RuleChecker for HeaderRule {
             })
             .collect();
 
-        if let Some((_, value)) = fields.iter().find(|(name, _)| name == "content-type")
-            && !is_valid_content_type(value)
-        {
+        for (field, placeholder, severity) in PLACEHOLDER_VALUES {
+            let Some((_, value)) = fields.iter().find(|(name, value)| {
+                field.eq_ignore_ascii_case(name) && placeholder.eq_ignore_ascii_case(value)
+            }) else {
+                continue;
+            };
             diagnostics.extend(
                 self.new_diag(
                     checker,
-                    Severity::Error,
-                    format!("invalid value '{value}' for field 'Content-Type' in header"),
+                    *severity,
+                    format!("unchanged template value '{value}' for field '{field}' in header"),
                 )
                 .map(|d| d.with_msg(msgstr)),
             );
         }
 
-        if let Some((_, value)) = fields.iter().find(|(name, _)| name == "plural-forms")
-            && !is_valid_plural_forms(value)
-        {
-            diagnostics.extend(
-                self.new_diag(
-                    checker,
-                    Severity::Error,
-                    format!("invalid value '{value}' for field 'Plural-Forms' in header"),
-                )
-                .map(|d| d.with_msg(msgstr)),
-            );
-        }
-
-        if let Some((_, value)) = fields.iter().find(|(name, _)| name == "language")
-            && !is_valid_language(value)
-        {
-            diagnostics.extend(
-                self.new_diag(
-                    checker,
-                    Severity::Error,
-                    format!("invalid value '{value}' for field 'Language' in header"),
-                )
-                .map(|d| d.with_msg(msgstr)),
-            );
-        }
-
-        if let Some((_, value)) = fields
-            .iter()
-            .find(|(name, _)| name == "report-msgid-bugs-to")
-            && !is_valid_report_msgid_bugs_to(value)
-        {
-            diagnostics.extend(
-                self.new_diag(
-                    checker,
-                    Severity::Info,
-                    format!("invalid value '{value}' for field 'Report-Msgid-Bugs-To' in header"),
-                )
-                .map(|d| d.with_msg(msgstr)),
-            );
-        }
-
-        if let Some((_, value)) = fields.iter().find(|(name, _)| name == "last-translator")
-            && !is_valid_last_translator(value)
-        {
-            diagnostics.extend(
-                self.new_diag(
-                    checker,
-                    Severity::Info,
-                    format!("invalid value '{value}' for field 'Last-Translator' in header"),
-                )
-                .map(|d| d.with_msg(msgstr)),
-            );
-        }
-
-        if let Some((_, value)) = fields.iter().find(|(name, _)| name == "language-team")
-            && !is_valid_language_team(value)
-        {
-            diagnostics.extend(
-                self.new_diag(
-                    checker,
-                    Severity::Info,
-                    format!("invalid value '{value}' for field 'Language-Team' in header"),
-                )
-                .map(|d| d.with_msg(msgstr)),
-            );
+        for (field, is_valid, severity) in VALUE_VALIDATORS {
+            if let Some(value) = value_to_validate(&fields, field)
+                && !is_valid(value)
+            {
+                diagnostics.extend(
+                    self.new_diag(
+                        checker,
+                        *severity,
+                        format!("invalid value '{value}' for field '{field}' in header"),
+                    )
+                    .map(|d| d.with_msg(msgstr)),
+                );
+            }
         }
 
         diagnostics
@@ -1067,5 +1118,112 @@ msgstr \"\"
             fix.edits[0].replacement,
             "Content-Type: text/plain; charset=UTF-8\n"
         );
+    }
+
+    /// The header `msginit` writes and nobody ever filled in.
+    const TEMPLATE_HEADER: &str = "msgid \"\"
+msgstr \"\"
+\"Project-Id-Version: PACKAGE VERSION\\n\"
+\"Report-Msgid-Bugs-To: bugs@example.com\\n\"
+\"POT-Creation-Date: 2026-01-01 12:00+0000\\n\"
+\"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\\n\"
+\"Last-Translator: FULL NAME <EMAIL@ADDRESS>\\n\"
+\"Language-Team: LANGUAGE <LL@li.org>\\n\"
+\"Language: fr\\n\"
+\"MIME-Version: 1.0\\n\"
+\"Content-Type: text/plain; charset=CHARSET\\n\"
+\"Content-Transfer-Encoding: ENCODING\\n\"
+";
+
+    #[test]
+    fn test_template_values_are_all_reported() {
+        let diags = check(TEMPLATE_HEADER);
+        let messages: Vec<&str> = diags.iter().map(|d| d.message.as_ref()).collect();
+        assert_eq!(diags.len(), PLACEHOLDER_VALUES.len(), "got: {messages:?}");
+        // Emitted in the canonical field order of the table.
+        for (idx, (field, placeholder, severity)) in PLACEHOLDER_VALUES.iter().enumerate() {
+            assert_eq!(
+                messages[idx],
+                format!("unchanged template value '{placeholder}' for field '{field}' in header"),
+            );
+            assert_eq!(diags[idx].severity, *severity);
+        }
+    }
+
+    #[test]
+    fn test_template_value_replaces_the_format_diagnostic() {
+        // "charset=CHARSET" is also an invalid Content-Type and
+        // "FULL NAME <EMAIL@ADDRESS>" holds no email: each field must still be
+        // reported once, by the diagnostic that names the actual problem.
+        let diags = check(TEMPLATE_HEADER);
+        for field in ["Content-Type", "Last-Translator"] {
+            let for_field: Vec<&str> = diags
+                .iter()
+                .map(|d| d.message.as_ref())
+                .filter(|m: &&str| m.ends_with(&format!("for field '{field}' in header")))
+                .collect();
+            assert_eq!(
+                for_field.len(),
+                1,
+                "field {field} reported twice: {for_field:?}"
+            );
+            assert!(for_field[0].starts_with("unchanged template value"));
+        }
+    }
+
+    #[test]
+    fn test_template_content_type_keeps_the_error_severity() {
+        // Downgrading it to a warning would lose severity compared to the
+        // "invalid value" diagnostic it replaces.
+        let diags = check(TEMPLATE_HEADER);
+        let d = diag_with_message(
+            &diags,
+            "unchanged template value 'text/plain; charset=CHARSET' for field 'Content-Type' in header",
+        );
+        assert_eq!(d.severity, Severity::Error);
+    }
+
+    #[test]
+    fn test_template_values_are_not_auto_fixable() {
+        let diags = check(TEMPLATE_HEADER);
+        assert!(diags.iter().all(|d| d.fix.is_none()));
+    }
+
+    #[test]
+    fn test_template_value_match_is_case_insensitive() {
+        let header = COMPLETE_HEADER.replace(
+            "\"Project-Id-Version: poexam\\n\"",
+            "\"Project-Id-Version: package version\\n\"",
+        );
+        let diags = check(&header);
+        assert_eq!(diags.len(), 1);
+        assert_eq!(
+            diags[0].message,
+            "unchanged template value 'package version' for field 'Project-Id-Version' in header"
+        );
+    }
+
+    #[test]
+    fn test_filled_values_are_not_template_values() {
+        // A real value that merely resembles the placeholder must pass.
+        let header = COMPLETE_HEADER.replace(
+            "\"Project-Id-Version: poexam\\n\"",
+            "\"Project-Id-Version: PACKAGE VERSION 1.2\\n\"",
+        );
+        assert!(check(&header).is_empty());
+    }
+
+    #[test]
+    fn test_empty_language_needs_no_template_entry() {
+        // The template writes "Language: " with no value; the existing
+        // validator already reports it, at error severity.
+        let header = COMPLETE_HEADER.replace("\"Language: fr\\n\"", "\"Language: \\n\"");
+        let diags = check(&header);
+        assert_eq!(diags.len(), 1);
+        assert_eq!(
+            diags[0].message,
+            "invalid value '' for field 'Language' in header"
+        );
+        assert_eq!(diags[0].severity, Severity::Error);
     }
 }
