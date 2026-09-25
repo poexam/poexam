@@ -160,6 +160,7 @@ For the rule `formats`, the following languages are supported:
 - C (`c-format`): printf format (e.g. `%s %12lld`)
 - Java (`java-format`): Java `MessageFormat` language (e.g. `{0}`, `{1,date,short}`)
 - JavaScript (`javascript-format`): `sprintf`-like format (e.g. `%s %1$05.2f %j`)
+- Perl (`perl-format`): Perl `sprintf` format (e.g. `%s %1$-*vd`)
 - PHP (`php-format`): PHP `sprintf` format (e.g. `%s %1$'*10.2f`)
 - Python (`python-format`): Python % format strings (e.g. `%s %(age)d`)
 - Python brace (`python-brace-format`): Python brace format strings (e.g. `{0!r:20} {1}`)

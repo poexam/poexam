@@ -43,12 +43,13 @@ impl RuleChecker for FormatsRule {
     /// - C (`c-format`): printf format (e.g. `%s`, `%12lld`)
     /// - Java (`java-format`): Java `MessageFormat` language (e.g. `{0}`, `{1,date,short}`)
     /// - JavaScript (`javascript-format`): `sprintf`-like format (e.g. `%s`, `%1$05.2f`)
+    /// - Perl (`perl-format`): Perl `sprintf` format (e.g. `%s`, `%-*vd`)
     /// - PHP (`php-format`): PHP `sprintf` format (e.g. `%s`, `%'*10.2f`)
     /// - Python (`python-format`): Python % format strings (e.g. `%s`, `%(age)d`)
     /// - Python brace (`python-brace-format`): Python brace format strings (e.g. `{0}`, `{1!r:20}`)
     /// - Shell (`sh-format`): variables expanded by `eval_gettext` (e.g. `$name`, `${name}`)
     ///
-    /// For the C, JavaScript and PHP formats, the reordering of format specifiers is supported:
+    /// For the C, JavaScript, Perl and PHP formats, the reordering of format specifiers is supported:
     /// `%3$d %1$s %2$f` is considered equivalent to `%s %f %d`.
     ///
     /// Wrong entries:
@@ -89,11 +90,11 @@ impl RuleChecker for FormatsRule {
         let mut str_fmt: Vec<_> = FormatPos::new(&msgstr.value, entry.format_language).collect();
         let error = if matches!(
             entry.format_language,
-            Language::C | Language::JavaScript | Language::Php
+            Language::C | Language::JavaScript | Language::Perl | Language::Php
         ) {
-            // C, JavaScript and PHP format strings can include reordering position, so we
-            // need to sort them and strip index before comparing. The original order is not
-            // needed after this branch (highlights below only use positions, which sort
+            // C, JavaScript, Perl and PHP format strings can include reordering position, so
+            // we need to sort them and strip index before comparing. The original order is
+            // not needed after this branch (highlights below only use positions, which sort
             // independently).
             id_fmt.sort_by_key(|m| (fmt_sort_index(m.s), m.start, m.end));
             str_fmt.sort_by_key(|m| (fmt_sort_index(m.s), m.start, m.end));
@@ -221,6 +222,40 @@ msgstr "%2$d test (%1$s)"
         let diag = &diags[1];
         assert_eq!(diag.severity, Severity::Error);
         assert_eq!(diag.message, "inconsistent format strings (C)");
+    }
+
+    #[test]
+    fn test_perl_formats_ok() {
+        let diags = check_formats(
+            r#"
+#, perl-format
+msgid "%s has %-*d points, %d%% done"
+msgstr "%2$-*d points pour %1$s, %3$d %% fait"
+"#,
+        );
+        assert!(diags.is_empty());
+    }
+
+    #[test]
+    fn test_perl_format_error() {
+        let diags = check_formats(
+            r#"
+#, perl-format
+msgid "version %vd"
+msgstr "version %d"
+
+#, perl-format
+msgid "%d test (%s)"
+msgstr "%2$d test (%1$s)"
+"#,
+        );
+        assert_eq!(diags.len(), 2);
+        assert!(diags.iter().all(|d| d.severity == Severity::Error));
+        assert!(
+            diags
+                .iter()
+                .all(|d| d.message == "inconsistent format strings (Perl)")
+        );
     }
 
     #[test]

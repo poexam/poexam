@@ -76,6 +76,11 @@ msgid "Received %d items: %j"
 msgstr "%d éléments reçus : %s"
 
 # rule: formats
+#, perl-format
+msgid "Version %vd of %s"
+msgstr "Version %d de %s"
+
+# rule: formats
 #, php-format
 msgid "%s has %'*10.2f points"
 msgstr "%s a %10.2f points"
