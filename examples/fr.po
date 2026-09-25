@@ -71,6 +71,11 @@ msgid "Name: %s, age: %d"
 msgstr "Âge : %2$d, nom : %1$f"
 
 # rule: formats
+#, javascript-format
+msgid "Received %d items: %j"
+msgstr "%d éléments reçus : %s"
+
+# rule: formats
 #, php-format
 msgid "%s has %'*10.2f points"
 msgstr "%s a %10.2f points"

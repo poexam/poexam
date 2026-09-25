@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ### Added
 
+- Add support for format string "javascript-format" in rule "formats".
 - Add support for format string "php-format" in rule "formats".
 - Add non-default rule "markdown" to check for missing, extra or different Markdown syntax in the translation (code spans, link destinations and emphasis markers).
 - Add default rule "compendium" to check for unresolved `msgcat` conflict markers (`#-#-#-#-#`) left in the translation or the header.

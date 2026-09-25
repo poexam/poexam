@@ -10,6 +10,7 @@ use crate::po::format::{
     FormatParser,
     lang_c::FormatC,
     lang_java::FormatJava,
+    lang_javascript::FormatJavaScript,
     lang_null::FormatNull,
     lang_php::FormatPhp,
     lang_python::{FormatPython, FormatPythonBrace},
@@ -21,6 +22,7 @@ pub enum Language {
     Null,
     C,
     Java,
+    JavaScript,
     Php,
     Python,
     PythonBrace,
@@ -31,6 +33,7 @@ impl From<&str> for Language {
         match language {
             "c" => Self::C,
             "java" => Self::Java,
+            "javascript" => Self::JavaScript,
             "php" => Self::Php,
             "python" => Self::Python,
             "python-brace" => Self::PythonBrace,
@@ -45,6 +48,7 @@ impl std::fmt::Display for Language {
             Self::Null => write!(f, "none"),
             Self::C => write!(f, "C"),
             Self::Java => write!(f, "Java"),
+            Self::JavaScript => write!(f, "JavaScript"),
             Self::Php => write!(f, "PHP"),
             Self::Python => write!(f, "Python"),
             Self::PythonBrace => write!(f, "Python brace"),
@@ -58,6 +62,7 @@ impl FormatParser for Language {
         match self {
             Self::C => FormatC.next_char(s, pos),
             Self::Java => FormatJava.next_char(s, pos),
+            Self::JavaScript => FormatJavaScript.next_char(s, pos),
             Self::Php => FormatPhp.next_char(s, pos),
             Self::Python => FormatPython.next_char(s, pos),
             Self::PythonBrace => FormatPythonBrace.next_char(s, pos),
@@ -70,6 +75,7 @@ impl FormatParser for Language {
         match self {
             Self::C => FormatC.find_end_format(s, pos, len),
             Self::Java => FormatJava.find_end_format(s, pos, len),
+            Self::JavaScript => FormatJavaScript.find_end_format(s, pos, len),
             Self::Php => FormatPhp.find_end_format(s, pos, len),
             Self::Python => FormatPython.find_end_format(s, pos, len),
             Self::PythonBrace => FormatPythonBrace.find_end_format(s, pos, len),
@@ -86,6 +92,7 @@ mod tests {
     fn test_language() {
         assert_eq!(Language::from("c"), Language::C);
         assert_eq!(Language::from("java"), Language::Java);
+        assert_eq!(Language::from("javascript"), Language::JavaScript);
         assert_eq!(Language::from("php"), Language::Php);
         assert_eq!(Language::from("python"), Language::Python);
         assert_eq!(Language::from("python-brace"), Language::PythonBrace);
