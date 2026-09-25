@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ### Added
 
+- Add support for format string "qt-format" in rule "formats".
 - Add support for format string "perl-brace-format" in rule "formats".
 - Add support for format string "perl-format" in rule "formats".
 - Add support for format string "sh-format" in rule "formats".

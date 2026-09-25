@@ -13,6 +13,7 @@ use crate::po::format::language::Language;
 use crate::po::format::{
     iter::FormatPos,
     lang_c::{fmt_sort_index, fmt_strip_index},
+    lang_qt::fmt_qt_arg,
     lang_sh::fmt_sh_name,
 };
 use crate::po::message::Message;
@@ -48,6 +49,7 @@ impl RuleChecker for FormatsRule {
     /// - PHP (`php-format`): PHP `sprintf` format (e.g. `%s`, `%'*10.2f`)
     /// - Python (`python-format`): Python % format strings (e.g. `%s`, `%(age)d`)
     /// - Python brace (`python-brace-format`): Python brace format strings (e.g. `{0}`, `{1!r:20}`)
+    /// - Qt (`qt-format`): placeholders of `QString::arg` (e.g. `%1`, `%L2`)
     /// - Shell (`sh-format`): variables expanded by `eval_gettext` (e.g. `$name`, `${name}`)
     ///
     /// For the C, JavaScript, Perl and PHP formats, the reordering of format specifiers is supported:
@@ -102,6 +104,11 @@ impl RuleChecker for FormatsRule {
             let id_fmt2: Vec<_> = id_fmt.iter().map(|m| fmt_strip_index(m.s)).collect();
             let str_fmt2: Vec<_> = str_fmt.iter().map(|m| fmt_strip_index(m.s)).collect();
             id_fmt2 != str_fmt2
+        } else if entry.format_language == Language::Qt {
+            // Qt: "%01" and "%1" are the same placeholder, compare locale flag and number.
+            let id_fmt_hash: HashSet<_> = id_fmt.iter().map(|m| fmt_qt_arg(m.s)).collect();
+            let str_fmt_hash: HashSet<_> = str_fmt.iter().map(|m| fmt_qt_arg(m.s)).collect();
+            id_fmt_hash != str_fmt_hash
         } else if entry.format_language == Language::Sh {
             // Shell: "$name" and "${name}" are the same variable, compare names only.
             let id_fmt_hash: HashSet<_> = id_fmt.iter().map(|m| fmt_sh_name(m.s)).collect();
@@ -350,6 +357,40 @@ msgstr "%2$d test (%1$s)"
             diags
                 .iter()
                 .all(|d| d.message == "inconsistent format strings (JavaScript)")
+        );
+    }
+
+    #[test]
+    fn test_qt_formats_ok() {
+        let diags = check_formats(
+            r#"
+#, qt-format
+msgid "Copying %1 files to %2 (100%)"
+msgstr "Copie vers %02 de %1 fichiers (100 %)"
+"#,
+        );
+        assert!(diags.is_empty());
+    }
+
+    #[test]
+    fn test_qt_format_error() {
+        let diags = check_formats(
+            r#"
+#, qt-format
+msgid "Copying %1 files to %2"
+msgstr "Copie de %1 fichiers vers %3"
+
+#, qt-format
+msgid "Size: %L1"
+msgstr "Taille : %1"
+"#,
+        );
+        assert_eq!(diags.len(), 2);
+        assert!(diags.iter().all(|d| d.severity == Severity::Error));
+        assert!(
+            diags
+                .iter()
+                .all(|d| d.message == "inconsistent format strings (Qt)")
         );
     }
 

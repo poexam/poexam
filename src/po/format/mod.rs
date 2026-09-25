@@ -16,6 +16,7 @@ pub mod lang_null;
 pub mod lang_perl;
 pub mod lang_php;
 pub mod lang_python;
+pub mod lang_qt;
 pub mod lang_sh;
 pub mod language;
 

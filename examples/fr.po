@@ -91,6 +91,11 @@ msgid "%s has %'*10.2f points"
 msgstr "%s a %10.2f points"
 
 # rule: formats
+#, qt-format
+msgid "Copying %1 files to %2"
+msgstr "Copie de %1 fichiers vers %3"
+
+# rule: formats
 #, sh-format
 msgid "Copying $count files to $dir"
 msgstr "Copie de $nombre fichiers vers $dir"
