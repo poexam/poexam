@@ -70,6 +70,11 @@ msgstr "Échappement : \\\\test"
 msgid "Name: %s, age: %d"
 msgstr "Âge : %2$d, nom : %1$f"
 
+# rule: formats
+#, php-format
+msgid "%s has %'*10.2f points"
+msgstr "%s a %10.2f points"
+
 # rule: functions
 msgid "Call connect() to start"
 msgstr "Appeler connecter() pour démarrer"
