@@ -15,9 +15,9 @@ use crate::{
     rules::{
         accelerators, acronyms, blank, brackets, changed, compendium, compilation, double_quotes,
         double_spaces, double_words, emails, encoding, escapes, force_trans, formats, functions,
-        fuzzy, header, html_tags, lang_path, long, newlines, no_trans, noqa, numbers, obsolete,
-        options, paths, pipes, plurals, punc, punc_space, short, spelling, tabs, unchanged,
-        unicode_ctrl, untranslated, urls, variables, whitespace,
+        fuzzy, header, html_tags, lang_path, long, markdown, newlines, no_trans, noqa, numbers,
+        obsolete, options, paths, pipes, plurals, punc, punc_space, short, spelling, tabs,
+        unchanged, unicode_ctrl, untranslated, urls, variables, whitespace,
     },
     table::render_table,
 };
@@ -175,6 +175,7 @@ fn get_all_rules() -> Vec<Rule> {
         Box::new(html_tags::HtmlTagsRule {}),
         Box::new(lang_path::LangPathRule {}),
         Box::new(long::LongRule {}),
+        Box::new(markdown::MarkdownRule {}),
         Box::new(newlines::NewlinesRule {}),
         Box::new(no_trans::NoTransRule {}),
         Box::new(noqa::NoqaRule {}),

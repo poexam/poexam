@@ -82,6 +82,10 @@ msgstr "Bonjour <b>monde</i>"
 msgid "a"
 msgstr "une longue traduction"
 
+# rule: markdown
+msgid "Read [the manual](https://example.com/manual) or run `make help`"
+msgstr "Lisez [le manuel] (https://example.com/manual) ou lancez make help"
+
 # rule: newlines
 msgid "Test\ntwo lines"
 msgstr "\nTest deux lignes\n"

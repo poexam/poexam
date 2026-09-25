@@ -1259,3 +1259,496 @@ impl<'a> Iterator for FormatOptionPos<'a> {
         None
     }
 }
+
+/// Kind of a Markdown construct returned by [`FormatMarkdownPos`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MarkdownKind {
+    /// Code span, including its backticks: `` `code` ``.
+    CodeSpan,
+    /// Destination of an inline link or image: the `url` of `[text](url)`.
+    Link,
+    /// Emphasis delimiter, opening or closing: `*`, `**`, `***`, `_`, `__` or `___`.
+    Emphasis,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct MatchMarkdownPos<'a> {
+    pub kind: MarkdownKind,
+    pub s: &'a str,
+    pub start: usize,
+    pub end: usize,
+}
+
+/// A position the Markdown scan must step over when it reaches it: the closing delimiter
+/// of an emphasis already returned (`emit` is true) or the `](url)` tail of a link whose
+/// destination was already returned.
+struct MarkdownPending {
+    start: usize,
+    end: usize,
+    emit: bool,
+}
+
+/// Class of the character next to a delimiter run, as far as flanking is concerned.
+///
+/// A format string counts as a word character: `*%s*` emphasizes the format string.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum MarkdownSide {
+    Space,
+    /// Punctuation that can start emphasized text: an opening bracket, a backtick or a
+    /// backslash.
+    ///
+    /// Quotes are deliberately left out: a `*` next to a quote is nearly always a literal
+    /// wildcard, e.g. `"*"`, `"log.*"` or `"*,!b"`.
+    Opening,
+    Punct,
+    Word,
+}
+
+impl MarkdownSide {
+    fn of(c: char) -> Self {
+        if c.is_whitespace() {
+            Self::Space
+        } else if c.is_alphanumeric() {
+            Self::Word
+        } else if matches!(c, '(' | '[' | '{' | '`' | '\\') {
+            Self::Opening
+        } else {
+            Self::Punct
+        }
+    }
+
+    fn is_punct(self) -> bool {
+        matches!(self, Self::Opening | Self::Punct)
+    }
+}
+
+pub struct FormatMarkdownPos<'a> {
+    s: &'a str,
+    len: usize,
+    pos: usize,
+    fmt: Language,
+    prev: MarkdownSide,
+    pending: Vec<MarkdownPending>,
+}
+
+impl<'a> FormatMarkdownPos<'a> {
+    pub fn new(s: &'a str, language: Language) -> Self {
+        Self {
+            s,
+            len: s.len(),
+            pos: 0,
+            fmt: language,
+            prev: MarkdownSide::Space,
+            pending: Vec::new(),
+        }
+    }
+
+    /// Return the character at `pos` (`None` for a format string) and the position just
+    /// after it (after the whole format string), or `None` at the end of the string.
+    fn step(&self, pos: usize) -> Option<(Option<char>, usize)> {
+        let (c, new_pos, is_format) = self.fmt.next_char(self.s, pos)?;
+        if is_format {
+            Some((None, self.fmt.find_end_format(self.s, new_pos, self.len)))
+        } else {
+            Some((Some(c), new_pos))
+        }
+    }
+
+    /// Return the class of the character at `pos`, the end of the string counting as a
+    /// space.
+    fn side_at(&self, pos: usize) -> MarkdownSide {
+        match self.step(pos) {
+            None => MarkdownSide::Space,
+            Some((None, _)) => MarkdownSide::Word,
+            Some((Some(c), _)) => MarkdownSide::of(c),
+        }
+    }
+
+    /// Return the position just after the run of `c` starting at `pos`, which is `pos`
+    /// itself when there is no `c` there.
+    fn run_end(&self, pos: usize, c: char) -> usize {
+        let mut end = pos;
+        while let Some((Some(c2), new_pos)) = self.step(end)
+            && c2 == c
+        {
+            end = new_pos;
+        }
+        end
+    }
+
+    /// Return the position just after the backslash escape starting at `pos` (on the
+    /// backslash), or `None` when the backslash does not escape an ASCII punctuation
+    /// character.
+    fn escape_end(&self, pos: usize) -> Option<usize> {
+        match self.step(pos) {
+            Some((Some('\\'), after)) => match self.step(after) {
+                Some((Some(c), end)) if c.is_ascii_punctuation() => Some(end),
+                _ => None,
+            },
+            _ => None,
+        }
+    }
+
+    /// Return the position just after the code span whose content starts at `pos`, opened
+    /// by a run of `count` backticks, or `None` when it is not closed.
+    ///
+    /// The closing run must have exactly `count` backticks and must not be glued to a word:
+    /// the legacy GNU quoting of `` `a' and `b' `` holds two backticks but no code span.
+    fn code_span_end(&self, pos: usize, count: usize) -> Option<usize> {
+        let mut pos = pos;
+        while let Some((c, new_pos)) = self.step(pos) {
+            if c == Some('`') {
+                let end = self.run_end(pos, '`');
+                if end - pos == count && self.side_at(end) != MarkdownSide::Word {
+                    return Some(end);
+                }
+                pos = end;
+            } else {
+                pos = new_pos;
+            }
+        }
+        None
+    }
+
+    /// Return the position just after the code span starting at `pos` (on its first
+    /// backtick), or `None` when there is none.
+    fn code_span_at(&self, pos: usize) -> Option<usize> {
+        let after = self.run_end(pos, '`');
+        self.code_span_end(after, after - pos)
+    }
+
+    /// Return the position of the `]` closing the link text that starts at `pos` (just
+    /// after the `[`), or `None` when the brackets are not balanced.
+    fn link_text_end(&self, pos: usize) -> Option<usize> {
+        let mut pos = pos;
+        let mut depth = 0_usize;
+        while let Some((c, new_pos)) = self.step(pos) {
+            match c {
+                Some('\\') => {
+                    pos = self.escape_end(pos).unwrap_or(new_pos);
+                    continue;
+                }
+                Some('[') => depth += 1,
+                Some(']') if depth == 0 => return Some(pos),
+                Some(']') => depth -= 1,
+                _ => {}
+            }
+            pos = new_pos;
+        }
+        None
+    }
+
+    /// Return the start and end of the link destination and the position just after the
+    /// closing `)`, for the link tail whose content starts at `pos` (just after `](`), or
+    /// `None` when the tail is not a valid destination with an optional title.
+    fn link_tail(&self, pos: usize) -> Option<(usize, usize, usize)> {
+        let skip_spaces = |mut pos: usize| {
+            while let Some((Some(c), new_pos)) = self.step(pos)
+                && c.is_whitespace()
+            {
+                pos = new_pos;
+            }
+            pos
+        };
+        let dest_start = skip_spaces(pos);
+        let mut dest_end = dest_start;
+        let (start, end) = if let Some((Some('<'), after)) = self.step(dest_start) {
+            // Destination between angle brackets: `[text](<url with spaces>)`.
+            let mut pos = after;
+            loop {
+                match self.step(pos)? {
+                    (Some('>'), new_pos) => {
+                        dest_end = new_pos;
+                        break (after, pos);
+                    }
+                    (Some('<' | '\n'), _) => return None,
+                    (_, new_pos) => pos = new_pos,
+                }
+            }
+        } else {
+            // Bare destination: no whitespace, parentheses balanced.
+            let mut depth = 0_usize;
+            while let Some((c, new_pos)) = self.step(dest_end) {
+                match c {
+                    Some(c) if c.is_whitespace() || c.is_control() => break,
+                    Some('(') => depth += 1,
+                    Some(')') if depth == 0 => break,
+                    Some(')') => depth -= 1,
+                    _ => {}
+                }
+                dest_end = new_pos;
+            }
+            (dest_start, dest_end)
+        };
+        let mut pos = skip_spaces(dest_end);
+        // Optional title, which is prose: it is skipped, not compared.
+        if pos > dest_end
+            && let Some((Some(open), after)) = self.step(pos)
+            && let Some(close) = match open {
+                '"' => Some('"'),
+                '\'' => Some('\''),
+                '(' => Some(')'),
+                _ => None,
+            }
+        {
+            pos = after;
+            loop {
+                match self.step(pos)? {
+                    (Some(c), new_pos) if c == close => {
+                        pos = skip_spaces(new_pos);
+                        break;
+                    }
+                    (_, new_pos) => pos = new_pos,
+                }
+            }
+        }
+        match self.step(pos)? {
+            (Some(')'), after) => Some((start, end, after)),
+            _ => None,
+        }
+    }
+
+    /// Return the start and end of the destination and the positions of the `](url)` tail
+    /// of the inline link whose text starts at `pos` (just after the `[`), or `None` when
+    /// there is no inline link there.
+    fn link_at(&self, pos: usize) -> Option<(usize, usize, MarkdownPending)> {
+        let bracket = self.link_text_end(pos)?;
+        let (_, after_bracket) = self.step(bracket)?;
+        let Some((Some('('), after_paren)) = self.step(after_bracket) else {
+            return None;
+        };
+        let (start, end, tail_end) = self.link_tail(after_paren)?;
+        // The destination must look like a URL or a path: `[透明度](_R)` is a label
+        // followed by its accelerator.
+        let dest = &self.s[start..end];
+        if !dest.contains(['/', '.', ':', '#']) && FormatPos::new(dest, self.fmt).next().is_none() {
+            return None;
+        }
+        Some((
+            start,
+            end,
+            MarkdownPending {
+                start: bracket,
+                end: tail_end,
+                emit: false,
+            },
+        ))
+    }
+
+    /// Return whether the run of `marker` ending at `end`, preceded by a character
+    /// of class `prev`, can open and can close an emphasis.
+    ///
+    /// These are the `CommonMark` flanking rules, with two restrictions that keep plain
+    /// text out:
+    /// - an opening run must be followed by a word, or by an [opening](MarkdownSide::Opening)
+    ///   character when it is not itself preceded by punctuation: the `*` of the globs
+    ///   `(*.*)` and `*.icc,*.icm` and the quoted `*` of `"*"` and `"a *"` open nothing,
+    /// - an `_` run must not be glued to a word on the outer side, so that
+    ///   `snake_case_name` holds no emphasis.
+    fn flanking(&self, marker: char, prev: MarkdownSide, end: usize) -> (bool, bool) {
+        let next = self.side_at(end);
+        let left = next != MarkdownSide::Space
+            && (!next.is_punct() || prev == MarkdownSide::Space || prev.is_punct());
+        let right = prev != MarkdownSide::Space
+            && (!prev.is_punct() || next == MarkdownSide::Space || next.is_punct());
+        let can_open = left
+            && (next == MarkdownSide::Word || (next == MarkdownSide::Opening && !prev.is_punct()));
+        if marker == '_' {
+            (
+                can_open && prev != MarkdownSide::Word,
+                right && next != MarkdownSide::Word,
+            )
+        } else {
+            (can_open, right)
+        }
+    }
+
+    /// Return the start and end of the run closing the emphasis opened by the run of
+    /// `count` times `marker` ending at `pos`, or `None` when it is not closed before
+    /// `limit`.
+    ///
+    /// Code spans and escaped characters are stepped over, and nested runs of the same
+    /// length are paired first: in `*a *b* c*`, the outer `*` closes after `c`.
+    fn emphasis_end(
+        &self,
+        pos: usize,
+        marker: char,
+        count: usize,
+        limit: usize,
+    ) -> Option<(usize, usize)> {
+        let mut pos = pos;
+        let mut prev = MarkdownSide::Word;
+        let mut depth = 0_usize;
+        while pos < limit {
+            let (c, new_pos) = self.step(pos)?;
+            match c {
+                Some('\\') => {
+                    if let Some(end) = self.escape_end(pos) {
+                        pos = end;
+                        prev = MarkdownSide::Punct;
+                        continue;
+                    }
+                    prev = MarkdownSide::Punct;
+                }
+                Some('`') => {
+                    let end = self
+                        .code_span_at(pos)
+                        .unwrap_or_else(|| self.run_end(pos, '`'));
+                    pos = end;
+                    prev = MarkdownSide::Punct;
+                    continue;
+                }
+                Some(c) if c == marker => {
+                    let end = self.run_end(pos, marker);
+                    if end - pos == count {
+                        let (can_open, can_close) = self.flanking(marker, prev, end);
+                        if can_close {
+                            if depth == 0 {
+                                return Some((pos, end));
+                            }
+                            depth -= 1;
+                        } else if can_open {
+                            depth += 1;
+                        }
+                    }
+                    pos = end;
+                    prev = MarkdownSide::Punct;
+                    continue;
+                }
+                Some(c) => prev = MarkdownSide::of(c),
+                None => prev = MarkdownSide::Word,
+            }
+            pos = new_pos;
+        }
+        None
+    }
+
+    /// Move the scan to `pos`, just after a construct ending with `last`, and forget the
+    /// pending positions jumped over.
+    fn jump(&mut self, pos: usize, last: MarkdownSide) {
+        self.pos = pos;
+        self.prev = last;
+        self.pending.retain(|p| p.start >= pos);
+    }
+}
+
+/// Iterator returning Markdown constructs of a string, according to the given language,
+/// skipping format strings.
+///
+/// Three constructs are returned, each with its [kind](MarkdownKind):
+/// - code spans, including their backticks: `` `code` ``,
+/// - destinations of inline links and images: the `url` of `[text](url)` and `![alt](url)`
+///   (the text and the optional title are prose, and are skipped),
+/// - emphasis delimiters, opening and closing: `*`, `**`, `***`, `_`, `__` and `___`.
+///
+/// Only well-formed constructs are returned: a lone backtick, a `[text] (url)` with a space
+/// or an unclosed `**` are plain text, which is precisely what they render as.
+///
+/// For example with the string ``See **[the docs](https://example.com)** or run `make` ``,
+/// it will return `**`, `https://example.com`, `**` and `` `make` `` with their positions
+/// in the string.
+impl<'a> Iterator for FormatMarkdownPos<'a> {
+    type Item = MatchMarkdownPos<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some((c, new_pos)) = self.step(self.pos) {
+            let start = self.pos;
+            if !self.pending.is_empty()
+                && let Some(idx) = self.pending.iter().position(|p| p.start == start)
+            {
+                let p = self.pending.swap_remove(idx);
+                self.jump(p.end, MarkdownSide::Punct);
+                if p.emit {
+                    return Some(MatchMarkdownPos {
+                        kind: MarkdownKind::Emphasis,
+                        s: &self.s[p.start..p.end],
+                        start: p.start,
+                        end: p.end,
+                    });
+                }
+                continue;
+            }
+            let Some(c) = c else {
+                // Format string.
+                self.jump(new_pos, MarkdownSide::Word);
+                continue;
+            };
+            match c {
+                '\\' => {
+                    if let Some(end) = self.escape_end(start) {
+                        self.jump(end, MarkdownSide::Punct);
+                        continue;
+                    }
+                }
+                '`' => {
+                    let end = self.run_end(start, '`');
+                    if self.prev != MarkdownSide::Word
+                        && let Some(span_end) = self.code_span_end(end, end - start)
+                    {
+                        self.jump(span_end, MarkdownSide::Punct);
+                        return Some(MatchMarkdownPos {
+                            kind: MarkdownKind::CodeSpan,
+                            s: &self.s[start..span_end],
+                            start,
+                            end: span_end,
+                        });
+                    }
+                    self.jump(end, MarkdownSide::Punct);
+                    continue;
+                }
+                '[' => {
+                    if let Some((dest_start, dest_end, tail)) = self.link_at(new_pos) {
+                        // The link text is scanned next: it may hold emphasis or code.
+                        self.pending.push(tail);
+                        self.pos = new_pos;
+                        self.prev = MarkdownSide::Punct;
+                        return Some(MatchMarkdownPos {
+                            kind: MarkdownKind::Link,
+                            s: &self.s[dest_start..dest_end],
+                            start: dest_start,
+                            end: dest_end,
+                        });
+                    }
+                }
+                '*' | '_' => {
+                    let end = self.run_end(start, c);
+                    let count = end - start;
+                    let (can_open, _) = self.flanking(c, self.prev, end);
+                    if count <= 3 && can_open {
+                        // An emphasis opened inside a link text must close inside it.
+                        let limit = self
+                            .pending
+                            .iter()
+                            .filter(|p| !p.emit && p.start > start)
+                            .map(|p| p.start)
+                            .min()
+                            .unwrap_or(self.len);
+                        if let Some((close_start, close_end)) =
+                            self.emphasis_end(end, c, count, limit)
+                        {
+                            self.pending.push(MarkdownPending {
+                                start: close_start,
+                                end: close_end,
+                                emit: true,
+                            });
+                            self.pos = end;
+                            self.prev = MarkdownSide::Punct;
+                            return Some(MatchMarkdownPos {
+                                kind: MarkdownKind::Emphasis,
+                                s: &self.s[start..end],
+                                start,
+                                end,
+                            });
+                        }
+                    }
+                    self.jump(end, MarkdownSide::Punct);
+                    continue;
+                }
+                _ => {}
+            }
+            self.pos = new_pos;
+            self.prev = MarkdownSide::of(c);
+        }
+        None
+    }
+}

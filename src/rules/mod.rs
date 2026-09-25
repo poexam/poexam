@@ -25,6 +25,7 @@ pub mod header;
 pub mod html_tags;
 pub mod lang_path;
 pub mod long;
+pub mod markdown;
 pub mod newlines;
 pub mod no_trans;
 pub mod noqa;

@@ -197,6 +197,7 @@ You can enable them on-demand:
 | functions      | Missing/extra/different function names.          |
 | fuzzy          | Fuzzy entry.                                     |
 | html-tags      | Missing/extra/different HTML tags.               |
+| markdown       | Missing/extra/different Markdown syntax.         |
 | no-trans       | Words that must not be translated.               |
 | noqa           | Entry has `noqa` comment.                        |
 | numbers        | Missing/extra/different numbers.                 |
@@ -342,6 +343,30 @@ msgstr "Utilisez --niveau=débogage"     # flagged: the option was translated
 
 The word boundary and the leading letter are what keep prose out: the hyphen of `well-known`, `café-restaurant`, `UTF-8` and `5-10` follows an alphanumeric character, while `-5` and a dash surrounded by spaces are not followed by a letter. Format strings are skipped (e.g. `%s`, `{0}`).
 
+### Markdown
+
+The non-default rule `markdown` checks that the Markdown syntax of the source is preserved in the translation, for catalogs of documentation sites, changelogs or in-app help rendered as Markdown: a dropped `](` or an unbalanced backtick renders as garbage.
+
+Three constructs are compared, each one reported separately:
+
+- code spans (`` `code` ``), only counted, since their content often holds translated placeholders (e.g. `` `copy <file>` ``),
+- destinations of inline links and images (the `url` of `[text](url)` and `![alt](url)`), the link text and title being translatable,
+- emphasis markers (`*`, `**`, `***`, `_`, `__`, `___`), compared by length only, since `*text*` and `_text_` render the same.
+
+```text
+msgid "Read [the **manual**](https://example.com/manual) or run `make help`"
+msgstr "Lisez [le __manuel__](https://example.com/manual) ou lancez `make help`"  # ok
+msgstr "Lisez [le manuel] (https://example.com/manual) ou lancez make help"       # flagged
+```
+
+Only well-formed constructs are counted, so a lone backtick or an unclosed `**` in the source is plain text on both sides. A few restrictions keep ordinary prose out, at the cost of missing some rare Markdown:
+
+- a code span must not be glued to a word on the outer side of its closing backticks, so the legacy GNU quoting `` `file' `` is not a code span,
+- an emphasis must open before a word, or before an opening bracket or a backtick when it is not itself preceded by punctuation, so the globs `*.txt` and `(*.*)`, the quoted wildcards `"*"` and `"log.*"` and a `*` surrounded by spaces are not emphasis; an `_` must also not be glued to a word on its outer side, so `snake_case` is not emphasis,
+- a link destination must contain `/`, `.`, `:`, `#` or a format string, so the accelerator of `前景顏色[透明度](_R)` is not a link.
+
+Format strings are skipped (e.g. `%s`, `{0}`), and backslash escapes (e.g. `\*`) are plain text.
+
 ### Force / forbid translation of specific words
 
 Two non-default rules consult external word lists to enforce, for a given vocabulary, whether words found in the source must (or must not) be translated:
@@ -373,7 +398,7 @@ msgstr "ceci est Forbidden"  # ok, different case from the source — counts as 
 
 With the option `--fix`, poexam rewrites each PO file in place, applying every diagnostic that carries a **safe** auto-fix. The file is then re-checked, so the reported diagnostics reflect the post-fix state; any remaining diagnostic is annotated with `Note: no fix available.` (or `Note: unsafe fix available, use --unsafe-fixes to apply it.` when a fix exists but is unsafe).
 
-Each fix is either **safe** or **unsafe** (see the per-rule list below). Safe fixes preserve the translation's meaning (whitespace and punctuation normalization, header defaults, obsolete-entry deletion, …) and are always applied by `--fix`. Unsafe fixes rely on positional heuristics that a reordered translation can defeat (e.g. replacing emails, URLs, paths, numbers, variables, options, function names or HTML tags by position), so `--fix` skips them unless `--unsafe-fixes` is also given:
+Each fix is either **safe** or **unsafe** (see the per-rule list below). Safe fixes preserve the translation's meaning (whitespace and punctuation normalization, header defaults, obsolete-entry deletion, …) and are always applied by `--fix`. Unsafe fixes rely on positional heuristics that a reordered translation can defeat (e.g. replacing emails, URLs, paths, numbers, variables, options, function names, HTML tags or Markdown link targets by position), so `--fix` skips them unless `--unsafe-fixes` is also given:
 
 ```shell
 poexam check --fix po/                 # safe fixes only
@@ -439,6 +464,17 @@ Rules that currently produce auto-fixes (`Safe: no` fixes require `--unsafe-fixe
 - **Safe**: no.
 - **Caveats**: the translator may have reordered tags in the prose; positional pairing then maps
   a translation tag to a different source tag and the fix replaces it incorrectly.
+
+#### markdown
+
+- **Fix**: When the translation has the same number of link destinations as the source but at
+  least one differs, replace each translation link destination in place with the one at the
+  same position in the source. The "missing" and "extra" diagnostics (count mismatch) and the
+  emphasis markers diagnostics are not auto-fixable.
+- **Safe**: no.
+- **Caveats**: the translator may have reordered links in the prose, or used a localized link
+  (e.g. a page with a language prefix such as `/fr/about`); the fix then overwrites it with
+  the wrong source destination.
 
 #### newlines
 
