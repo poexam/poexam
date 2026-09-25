@@ -13,6 +13,7 @@ use crate::po::format::language::Language;
 use crate::po::format::{
     iter::FormatPos,
     lang_c::{fmt_sort_index, fmt_strip_index},
+    lang_sh::fmt_sh_name,
 };
 use crate::po::message::Message;
 use crate::rules::rule::RuleChecker;
@@ -45,6 +46,7 @@ impl RuleChecker for FormatsRule {
     /// - PHP (`php-format`): PHP `sprintf` format (e.g. `%s`, `%'*10.2f`)
     /// - Python (`python-format`): Python % format strings (e.g. `%s`, `%(age)d`)
     /// - Python brace (`python-brace-format`): Python brace format strings (e.g. `{0}`, `{1!r:20}`)
+    /// - Shell (`sh-format`): variables expanded by `eval_gettext` (e.g. `$name`, `${name}`)
     ///
     /// For the C, JavaScript and PHP formats, the reordering of format specifiers is supported:
     /// `%3$d %1$s %2$f` is considered equivalent to `%s %f %d`.
@@ -89,14 +91,20 @@ impl RuleChecker for FormatsRule {
             entry.format_language,
             Language::C | Language::JavaScript | Language::Php
         ) {
-            // C, JavaScript and PHP format strings can include reordering position, so we need to sort them
-            // and strip index before comparing. The original order is not needed after
-            // this branch (highlights below only use positions, which sort independently).
+            // C, JavaScript and PHP format strings can include reordering position, so we
+            // need to sort them and strip index before comparing. The original order is not
+            // needed after this branch (highlights below only use positions, which sort
+            // independently).
             id_fmt.sort_by_key(|m| (fmt_sort_index(m.s), m.start, m.end));
             str_fmt.sort_by_key(|m| (fmt_sort_index(m.s), m.start, m.end));
             let id_fmt2: Vec<_> = id_fmt.iter().map(|m| fmt_strip_index(m.s)).collect();
             let str_fmt2: Vec<_> = str_fmt.iter().map(|m| fmt_strip_index(m.s)).collect();
             id_fmt2 != str_fmt2
+        } else if entry.format_language == Language::Sh {
+            // Shell: "$name" and "${name}" are the same variable, compare names only.
+            let id_fmt_hash: HashSet<_> = id_fmt.iter().map(|m| fmt_sh_name(m.s)).collect();
+            let str_fmt_hash: HashSet<_> = str_fmt.iter().map(|m| fmt_sh_name(m.s)).collect();
+            id_fmt_hash != str_fmt_hash
         } else {
             // Other languages: just check that format strings are the same, in any order.
             let id_fmt_hash: HashSet<_> = id_fmt.iter().map(|m| m.s).collect();
@@ -281,6 +289,32 @@ msgstr "%2$d test (%1$s)"
                 .iter()
                 .all(|d| d.message == "inconsistent format strings (JavaScript)")
         );
+    }
+
+    #[test]
+    fn test_sh_formats_ok() {
+        let diags = check_formats(
+            r#"
+#, sh-format
+msgid "Copying $count files to ${dir}, cost: 5$ ($1)"
+msgstr "Copie de ${count} fichiers vers $dir, coût : 5 $ ($2)"
+"#,
+        );
+        assert!(diags.is_empty());
+    }
+
+    #[test]
+    fn test_sh_format_error() {
+        let diags = check_formats(
+            r#"
+#, sh-format
+msgid "Copying $count files to $dir"
+msgstr "Copie de $nombre fichiers vers $dir"
+"#,
+        );
+        assert_eq!(diags.len(), 1);
+        assert_eq!(diags[0].severity, Severity::Error);
+        assert_eq!(diags[0].message, "inconsistent format strings (Shell)");
     }
 
     #[test]

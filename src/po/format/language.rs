@@ -14,6 +14,7 @@ use crate::po::format::{
     lang_null::FormatNull,
     lang_php::FormatPhp,
     lang_python::{FormatPython, FormatPythonBrace},
+    lang_sh::FormatSh,
 };
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize)]
@@ -26,6 +27,7 @@ pub enum Language {
     Php,
     Python,
     PythonBrace,
+    Sh,
 }
 
 impl From<&str> for Language {
@@ -37,6 +39,7 @@ impl From<&str> for Language {
             "php" => Self::Php,
             "python" => Self::Python,
             "python-brace" => Self::PythonBrace,
+            "sh" => Self::Sh,
             _ => Self::Null,
         }
     }
@@ -52,6 +55,7 @@ impl std::fmt::Display for Language {
             Self::Php => write!(f, "PHP"),
             Self::Python => write!(f, "Python"),
             Self::PythonBrace => write!(f, "Python brace"),
+            Self::Sh => write!(f, "Shell"),
         }
     }
 }
@@ -66,6 +70,7 @@ impl FormatParser for Language {
             Self::Php => FormatPhp.next_char(s, pos),
             Self::Python => FormatPython.next_char(s, pos),
             Self::PythonBrace => FormatPythonBrace.next_char(s, pos),
+            Self::Sh => FormatSh.next_char(s, pos),
             Self::Null => FormatNull.next_char(s, pos),
         }
     }
@@ -79,6 +84,7 @@ impl FormatParser for Language {
             Self::Php => FormatPhp.find_end_format(s, pos, len),
             Self::Python => FormatPython.find_end_format(s, pos, len),
             Self::PythonBrace => FormatPythonBrace.find_end_format(s, pos, len),
+            Self::Sh => FormatSh.find_end_format(s, pos, len),
             Self::Null => FormatNull.find_end_format(s, pos, len),
         }
     }
@@ -96,6 +102,7 @@ mod tests {
         assert_eq!(Language::from("php"), Language::Php);
         assert_eq!(Language::from("python"), Language::Python);
         assert_eq!(Language::from("python-brace"), Language::PythonBrace);
+        assert_eq!(Language::from("sh"), Language::Sh);
         assert_eq!(Language::from(""), Language::Null);
         assert_eq!(Language::from("unknown"), Language::Null);
     }

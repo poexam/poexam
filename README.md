@@ -162,7 +162,8 @@ For the rule `formats`, the following languages are supported:
 - JavaScript (`javascript-format`): `sprintf`-like format (e.g. `%s %1$05.2f %j`)
 - PHP (`php-format`): PHP `sprintf` format (e.g. `%s %1$'*10.2f`)
 - Python (`python-format`): Python % format strings (e.g. `%s %(age)d`)
-- Python brace (`python-brace-format`): Python brace format strings (e.g. `{0!r:20} {1}`).
+- Python brace (`python-brace-format`): Python brace format strings (e.g. `{0!r:20} {1}`)
+- Shell (`sh-format`): variables expanded by `eval_gettext` (e.g. `$name ${name}`), `$name` and `${name}` being the same variable.
 
 The rule `variables` covers the placeholders of the templating syntaxes gettext knows nothing about: such an entry carries no `*-format` flag, so `formats` returns early and the placeholder is otherwise unchecked. The syntaxes to look for are selected with the `variable_styles` option:
 

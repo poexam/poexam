@@ -80,6 +80,11 @@ msgstr "%d éléments reçus : %s"
 msgid "%s has %'*10.2f points"
 msgstr "%s a %10.2f points"
 
+# rule: formats
+#, sh-format
+msgid "Copying $count files to $dir"
+msgstr "Copie de $nombre fichiers vers $dir"
+
 # rule: functions
 msgid "Call connect() to start"
 msgstr "Appeler connecter() pour démarrer"
