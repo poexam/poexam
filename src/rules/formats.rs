@@ -44,6 +44,7 @@ impl RuleChecker for FormatsRule {
     /// - Java (`java-format`): Java `MessageFormat` language (e.g. `{0}`, `{1,date,short}`)
     /// - JavaScript (`javascript-format`): `sprintf`-like format (e.g. `%s`, `%1$05.2f`)
     /// - Perl (`perl-format`): Perl `sprintf` format (e.g. `%s`, `%-*vd`)
+    /// - Perl brace (`perl-brace-format`): named placeholders of `Locale::TextDomain` (e.g. `{name}`)
     /// - PHP (`php-format`): PHP `sprintf` format (e.g. `%s`, `%'*10.2f`)
     /// - Python (`python-format`): Python % format strings (e.g. `%s`, `%(age)d`)
     /// - Python brace (`python-brace-format`): Python brace format strings (e.g. `{0}`, `{1!r:20}`)
@@ -256,6 +257,32 @@ msgstr "%2$d test (%1$s)"
                 .iter()
                 .all(|d| d.message == "inconsistent format strings (Perl)")
         );
+    }
+
+    #[test]
+    fn test_perl_brace_formats_ok() {
+        let diags = check_formats(
+            r#"
+#, perl-brace-format
+msgid "Copying {count} files to {dir} {not a format}"
+msgstr "Copie vers {dir} de {count} fichiers {pas un format}"
+"#,
+        );
+        assert!(diags.is_empty());
+    }
+
+    #[test]
+    fn test_perl_brace_format_error() {
+        let diags = check_formats(
+            r#"
+#, perl-brace-format
+msgid "Copying {count} files to {dir}"
+msgstr "Copie de {nombre} fichiers vers {dir}"
+"#,
+        );
+        assert_eq!(diags.len(), 1);
+        assert_eq!(diags[0].severity, Severity::Error);
+        assert_eq!(diags[0].message, "inconsistent format strings (Perl brace)");
     }
 
     #[test]

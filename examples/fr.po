@@ -81,6 +81,11 @@ msgid "Version %vd of %s"
 msgstr "Version %d de %s"
 
 # rule: formats
+#, perl-brace-format
+msgid "Copying {count} files to {dir}"
+msgstr "Copie de {nombre} fichiers vers {dir}"
+
+# rule: formats
 #, php-format
 msgid "%s has %'*10.2f points"
 msgstr "%s a %10.2f points"
