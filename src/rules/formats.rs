@@ -14,6 +14,7 @@ use crate::po::format::{
     iter::FormatPos,
     lang_c::{fmt_sort_index, fmt_strip_index},
     lang_qt::fmt_qt_arg,
+    lang_ruby::fmt_ruby_name,
     lang_sh::fmt_sh_name,
 };
 use crate::po::message::Message;
@@ -50,6 +51,7 @@ impl RuleChecker for FormatsRule {
     /// - Python (`python-format`): Python % format strings (e.g. `%s`, `%(age)d`)
     /// - Python brace (`python-brace-format`): Python brace format strings (e.g. `{0}`, `{1!r:20}`)
     /// - Qt (`qt-format`): placeholders of `QString::arg` (e.g. `%1`, `%L2`)
+    /// - Ruby (`ruby-format`): Ruby `format` (e.g. `%s`, `%1$d`, `%<name>d`, `%{name}`)
     /// - Shell (`sh-format`): variables expanded by `eval_gettext` (e.g. `$name`, `${name}`)
     ///
     /// For the C, JavaScript, Perl and PHP formats, the reordering of format specifiers is supported:
@@ -101,6 +103,14 @@ impl RuleChecker for FormatsRule {
             // independently).
             id_fmt.sort_by_key(|m| (fmt_sort_index(m.s), m.start, m.end));
             str_fmt.sort_by_key(|m| (fmt_sort_index(m.s), m.start, m.end));
+            let id_fmt2: Vec<_> = id_fmt.iter().map(|m| fmt_strip_index(m.s)).collect();
+            let str_fmt2: Vec<_> = str_fmt.iter().map(|m| fmt_strip_index(m.s)).collect();
+            id_fmt2 != str_fmt2
+        } else if entry.format_language == Language::Ruby {
+            // Ruby: like C, with named references ("%<name>d", "%{name}") that can be
+            // reordered freely, so they are sorted by name.
+            id_fmt.sort_by_key(|m| (fmt_sort_index(m.s), fmt_ruby_name(m.s), m.start));
+            str_fmt.sort_by_key(|m| (fmt_sort_index(m.s), fmt_ruby_name(m.s), m.start));
             let id_fmt2: Vec<_> = id_fmt.iter().map(|m| fmt_strip_index(m.s)).collect();
             let str_fmt2: Vec<_> = str_fmt.iter().map(|m| fmt_strip_index(m.s)).collect();
             id_fmt2 != str_fmt2
@@ -391,6 +401,52 @@ msgstr "Taille : %1"
             diags
                 .iter()
                 .all(|d| d.message == "inconsistent format strings (Qt)")
+        );
+    }
+
+    #[test]
+    fn test_ruby_formats_ok() {
+        let diags = check_formats(
+            r#"
+#, ruby-format
+msgid "%s has %d points, %d%% done"
+msgstr "%s a %d points, %d %% fait"
+
+#, ruby-format
+msgid "%s has %d points"
+msgstr "%2$d points pour %1$s"
+
+#, ruby-format
+msgid "%<user>s has %<count>5d points in %{game}"
+msgstr "%{game} : %<count>5d points pour %<user>s"
+"#,
+        );
+        assert!(diags.is_empty());
+    }
+
+    #[test]
+    fn test_ruby_format_error() {
+        let diags = check_formats(
+            r#"
+#, ruby-format
+msgid "%s has %d points"
+msgstr "%d points pour %s"
+
+#, ruby-format
+msgid "%<user>s has %<count>d points"
+msgstr "%<utilisateur>s a %<count>d points"
+
+#, ruby-format
+msgid "Hello %{name}"
+msgstr "Bonjour %<name>s"
+"#,
+        );
+        assert_eq!(diags.len(), 3);
+        assert!(diags.iter().all(|d| d.severity == Severity::Error));
+        assert!(
+            diags
+                .iter()
+                .all(|d| d.message == "inconsistent format strings (Ruby)")
         );
     }
 

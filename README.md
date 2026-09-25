@@ -166,6 +166,7 @@ For the rule `formats`, the following languages are supported:
 - Python (`python-format`): Python % format strings (e.g. `%s %(age)d`)
 - Python brace (`python-brace-format`): Python brace format strings (e.g. `{0!r:20} {1}`)
 - Qt (`qt-format`): placeholders of `QString::arg` (e.g. `%1 %L2`), `%01` and `%1` being the same placeholder
+- Ruby (`ruby-format`): Ruby `format` (e.g. `%s %1$05.2f %<name>d %{name}`), named references being compared in any order
 - Shell (`sh-format`): variables expanded by `eval_gettext` (e.g. `$name ${name}`), `$name` and `${name}` being the same variable.
 
 The rule `variables` covers the placeholders of the templating syntaxes gettext knows nothing about: such an entry carries no `*-format` flag, so `formats` returns early and the placeholder is otherwise unchecked. The syntaxes to look for are selected with the `variable_styles` option:

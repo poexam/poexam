@@ -16,6 +16,7 @@ use crate::po::format::{
     lang_php::FormatPhp,
     lang_python::{FormatPython, FormatPythonBrace},
     lang_qt::FormatQt,
+    lang_ruby::FormatRuby,
     lang_sh::FormatSh,
 };
 
@@ -32,6 +33,7 @@ pub enum Language {
     Python,
     PythonBrace,
     Qt,
+    Ruby,
     Sh,
 }
 
@@ -47,6 +49,7 @@ impl From<&str> for Language {
             "python" => Self::Python,
             "python-brace" => Self::PythonBrace,
             "qt" => Self::Qt,
+            "ruby" => Self::Ruby,
             "sh" => Self::Sh,
             _ => Self::Null,
         }
@@ -66,6 +69,7 @@ impl std::fmt::Display for Language {
             Self::Python => write!(f, "Python"),
             Self::PythonBrace => write!(f, "Python brace"),
             Self::Qt => write!(f, "Qt"),
+            Self::Ruby => write!(f, "Ruby"),
             Self::Sh => write!(f, "Shell"),
         }
     }
@@ -84,6 +88,7 @@ impl FormatParser for Language {
             Self::Python => FormatPython.next_char(s, pos),
             Self::PythonBrace => FormatPythonBrace.next_char(s, pos),
             Self::Qt => FormatQt.next_char(s, pos),
+            Self::Ruby => FormatRuby.next_char(s, pos),
             Self::Sh => FormatSh.next_char(s, pos),
             Self::Null => FormatNull.next_char(s, pos),
         }
@@ -101,6 +106,7 @@ impl FormatParser for Language {
             Self::Python => FormatPython.find_end_format(s, pos, len),
             Self::PythonBrace => FormatPythonBrace.find_end_format(s, pos, len),
             Self::Qt => FormatQt.find_end_format(s, pos, len),
+            Self::Ruby => FormatRuby.find_end_format(s, pos, len),
             Self::Sh => FormatSh.find_end_format(s, pos, len),
             Self::Null => FormatNull.find_end_format(s, pos, len),
         }
@@ -122,6 +128,7 @@ mod tests {
         assert_eq!(Language::from("python"), Language::Python);
         assert_eq!(Language::from("python-brace"), Language::PythonBrace);
         assert_eq!(Language::from("qt"), Language::Qt);
+        assert_eq!(Language::from("ruby"), Language::Ruby);
         assert_eq!(Language::from("sh"), Language::Sh);
         assert_eq!(Language::from(""), Language::Null);
         assert_eq!(Language::from("unknown"), Language::Null);

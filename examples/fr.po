@@ -96,6 +96,11 @@ msgid "Copying %1 files to %2"
 msgstr "Copie de %1 fichiers vers %3"
 
 # rule: formats
+#, ruby-format
+msgid "%<user>s has %<count>d points"
+msgstr "%<utilisateur>s a %<count>d points"
+
+# rule: formats
 #, sh-format
 msgid "Copying $count files to $dir"
 msgstr "Copie de $nombre fichiers vers $dir"
