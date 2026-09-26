@@ -127,7 +127,6 @@ It can perform a lot of checks via the default rules:
 |-----------------------|-----------------------------------------------------|
 | accelerators          | Missing/extra keyboard accelerators.                |
 | blank                 | Blank translation (only whitespace).                |
-| brackets              | Missing/extra brackets.                             |
 | compendium            | Unresolved msgcat conflict markers.                 |
 | double-quotes         | Missing/extra double quotes.                        |
 | double-spaces         | Missing/extra double spaces.                        |
@@ -197,6 +196,7 @@ You can enable them on-demand:
 | Rule name      | Diagnostic reported                              |
 |----------------|--------------------------------------------------|
 | acronyms       | Acronyms from the source missing in translation. |
+| brackets       | Missing/extra brackets.                          |
 | changed        | Translation is different from the source string. |
 | compilation    | Compilation with `msgfmt`.                       |
 | double-words   | Translation has consecutive repeated words.      |

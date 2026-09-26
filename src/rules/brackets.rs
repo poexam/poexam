@@ -25,7 +25,7 @@ impl RuleChecker for BracketsRule {
     }
 
     fn is_default(&self) -> bool {
-        true
+        false
     }
 
     fn is_check(&self) -> bool {
@@ -36,6 +36,9 @@ impl RuleChecker for BracketsRule {
     ///
     /// Special case: extra parentheses in the translation are ignored, because this is
     /// often used to precise a word in the translated language.
+    ///
+    /// This rule is not enabled by default: brackets are often legitimately
+    /// added or removed in the translation.
     ///
     /// Wrong entry:
     /// ```text
