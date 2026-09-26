@@ -128,7 +128,6 @@ It can perform a lot of checks via the default rules:
 | accelerators          | Missing/extra keyboard accelerators.                |
 | blank                 | Blank translation (only whitespace).                |
 | compendium            | Unresolved msgcat conflict markers.                 |
-| double-quotes         | Missing/extra double quotes.                        |
 | double-spaces         | Missing/extra double spaces.                        |
 | emails                | Missing/extra/different emails.                     |
 | encoding              | Incorrect encoding (charset).                       |
@@ -199,6 +198,7 @@ You can enable them on-demand:
 | brackets       | Missing/extra brackets.                          |
 | changed        | Translation is different from the source string. |
 | compilation    | Compilation with `msgfmt`.                       |
+| double-quotes  | Missing/extra double quotes.                     |
 | double-words   | Translation has consecutive repeated words.      |
 | force-trans    | Words that must be translated.                   |
 | functions      | Missing/extra/different function names.          |

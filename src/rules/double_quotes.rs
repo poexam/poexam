@@ -33,7 +33,7 @@ impl RuleChecker for DoubleQuotesRule {
     }
 
     fn is_default(&self) -> bool {
-        true
+        false
     }
 
     fn is_check(&self) -> bool {
@@ -51,6 +51,9 @@ impl RuleChecker for DoubleQuotesRule {
     /// - double low quotation mark: '„' (U+201E)
     /// - double high-reversed-9 quotation mark: '‟' (U+201F)
     /// - fullwidth quotation mark: '＂' (U+FF02)
+    ///
+    /// This rule is not enabled by default: double quotes are often legitimately
+    /// added, removed or replaced by other quotation marks in the translation.
     ///
     /// Wrong entry:
     /// ```text
