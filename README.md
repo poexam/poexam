@@ -229,11 +229,11 @@ poexam check examples/fr.po
 Example of diagnostic reported:
 
 ```text
-examples/fr.po:42: [info:brackets] missing opening and closing square brackets '[' (1 / 0) and ']' (1 / 0)
+examples/fr.po:37: [info:brackets] missing opening and closing square brackets '[' (1 / 0) and ']' (1 / 0)
         |
-     43 | Test [brackets]
+     37 | Test [brackets]
         |
-     44 | Test crochets
+     38 | Test crochets
         |
 ```
 
