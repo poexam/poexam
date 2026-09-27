@@ -47,6 +47,7 @@ impl RuleChecker for FormatsRule {
     /// - C# (`csharp-format`): `String.Format` composite format (e.g. `{0}`, `{1,-10:N2}`)
     /// - Java (`java-format`): Java `MessageFormat` language (e.g. `{0}`, `{1,date,short}`)
     /// - JavaScript (`javascript-format`): `sprintf`-like format (e.g. `%s`, `%1$05.2f`)
+    /// - Lua (`lua-format`): `string.format` (e.g. `%s`, `%5.2f`, `%q`)
     /// - Object Pascal (`object-pascal-format`): `Format` function (e.g. `%s`, `%1:-10.2f`)
     /// - Perl (`perl-format`): Perl `sprintf` format (e.g. `%s`, `%-*vd`)
     /// - Perl brace (`perl-brace-format`): named placeholders of `Locale::TextDomain` (e.g. `{name}`)
@@ -119,6 +120,9 @@ impl RuleChecker for FormatsRule {
             let id_fmt2: Vec<_> = id_fmt.iter().map(|m| fmt_strip_index(m.s)).collect();
             let str_fmt2: Vec<_> = str_fmt.iter().map(|m| fmt_strip_index(m.s)).collect();
             id_fmt2 != str_fmt2
+        } else if entry.format_language == Language::Lua {
+            // Lua: no reordering of arguments, format strings must be in the same order.
+            id_fmt.iter().map(|m| m.s).ne(str_fmt.iter().map(|m| m.s))
         } else if entry.format_language == Language::ObjectPascal {
             // Object Pascal: like C, with an index ("%1:s") that can reorder arguments,
             // and a type that is case insensitive.
@@ -282,6 +286,40 @@ msgstr "{0} a {{1}} points"
             diags
                 .iter()
                 .all(|d| d.message == "inconsistent format strings (C#)")
+        );
+    }
+
+    #[test]
+    fn test_lua_formats_ok() {
+        let diags = check_formats(
+            r#"
+#, lua-format
+msgid "%s has %5.2f points (%d%%)"
+msgstr "%s a %5.2f points (%d %%)"
+"#,
+        );
+        assert!(diags.is_empty());
+    }
+
+    #[test]
+    fn test_lua_format_error() {
+        let diags = check_formats(
+            r#"
+#, lua-format
+msgid "Loading %q"
+msgstr "Chargement de %s"
+
+#, lua-format
+msgid "%s has %d points"
+msgstr "%d points pour %s"
+"#,
+        );
+        assert_eq!(diags.len(), 2);
+        assert!(diags.iter().all(|d| d.severity == Severity::Error));
+        assert!(
+            diags
+                .iter()
+                .all(|d| d.message == "inconsistent format strings (Lua)")
         );
     }
 

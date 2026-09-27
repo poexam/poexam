@@ -160,6 +160,7 @@ For the rule `formats`, the following languages are supported:
 - C# (`csharp-format`): `String.Format` composite format (e.g. `{0} {1,-10:N2}`)
 - Java (`java-format`): Java `MessageFormat` language (e.g. `{0}`, `{1,date,short}`)
 - JavaScript (`javascript-format`): `sprintf`-like format (e.g. `%s %1$05.2f %j`)
+- Lua (`lua-format`): `string.format` (e.g. `%s %5.2f %q`)
 - Object Pascal (`object-pascal-format`): `Format` function (e.g. `%s %1:-10.2f`)
 - Perl (`perl-format`): Perl `sprintf` format (e.g. `%s %1$-*vd`)
 - Perl brace (`perl-brace-format`): named placeholders of `Locale::TextDomain` (e.g. `{name}`)
