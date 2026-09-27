@@ -142,6 +142,7 @@ It can perform a lot of checks via the default rules:
 | plurals-empty         | Empty plural form among translated ones.            |
 | punc-start            | Inconsistent leading punctuation.                   |
 | punc-end              | Inconsistent trailing punctuation.                  |
+| punc-repeated         | Extra repeated punctuation in translation.          |
 | punc-space-id         | Incorrect spaces around punctuation (source).       |
 | punc-space-str        | Incorrect spaces around punctuation (translation).  |
 | short                 | Translation too short.                              |
@@ -534,6 +535,12 @@ Rules that currently produce auto-fixes (`Safe: no` fixes require `--unsafe-fixe
 #### punc-end
 
 - **Fix**: Replace the trailing punctuation run in the translation with the source's run.
+- **Safe**: yes.
+
+#### punc-repeated
+
+- **Fix**: When the source has no repeated punctuation of this character, collapse each run
+  in the translation to a single character (e.g. `!!` to `!`).
 - **Safe**: yes.
 
 #### punc-space-str

@@ -5,8 +5,10 @@
 //! Implementation of the punctuation rules: check inconsistent punctuation:
 //! - `punc-start`: punctuation at the beginning of the string
 //! - `punc-end`: punctuation at the end of the string
+//! - `punc-repeated`: repeated punctuation in the translation
 
 use std::borrow::Cow;
+use std::ops::Range;
 
 use crate::checker::Checker;
 use crate::diagnostic::{Diagnostic, Severity};
@@ -211,6 +213,179 @@ impl RuleChecker for PuncEndRule {
     }
 }
 
+pub struct PuncRepeatedRule;
+
+impl RuleChecker for PuncRepeatedRule {
+    fn name(&self) -> &'static str {
+        "punc-repeated"
+    }
+
+    fn description(&self) -> &'static str {
+        "Check for repeated punctuation in translation that is not in source."
+    }
+
+    fn is_default(&self) -> bool {
+        true
+    }
+
+    fn is_check(&self) -> bool {
+        true
+    }
+
+    /// Check for repeated punctuation in the translation that is not in the source.
+    ///
+    /// A repeated punctuation is a run of two or more of the same character among
+    /// (half-width and full-width are the same character):
+    /// - colon: `:`, `：`
+    /// - semicolon: `;`, `；`, U+061B (Arabic semicolon)
+    /// - comma: `,`, `，`, `،`, `、` (Japanese/Chinese ideographic comma)
+    /// - exclamation mark: `!`, `！`
+    /// - question mark: `?`, `？`, U+061F (Arabic question mark)
+    ///
+    /// Full stops are not checked, since `..` and `...` are common (ellipsis, paths).
+    ///
+    /// Only the interior of the translation is checked: the leading and trailing
+    /// punctuation are checked by the rules `punc-start` and `punc-end`.
+    ///
+    /// Wrong entry:
+    /// ```text
+    /// msgid "Warning! The file will be deleted."
+    /// msgstr "Attention !! Le fichier sera supprimé."
+    /// ```
+    ///
+    /// Correct entry:
+    /// ```text
+    /// msgid "Warning! The file will be deleted."
+    /// msgstr "Attention ! Le fichier sera supprimé."
+    /// ```
+    ///
+    /// Diagnostics reported:
+    /// - [`info`](Severity::Info): `extra repeated punctuation '…' (# / #)` (auto-fixable
+    ///   only when the source has *no* repeated punctuation of this character)
+    fn check_msg(
+        &self,
+        checker: &Checker,
+        _entry: &Entry,
+        msgid: &Message,
+        msgstr: &Message,
+    ) -> Vec<Diagnostic> {
+        let str_start = get_punc_start(&msgstr.value).len();
+        let str_end = msgstr.value.len() - get_punc_end(&msgstr.value).len();
+        if str_start >= str_end {
+            return vec![];
+        }
+        let str_runs = get_punc_repeated(&msgstr.value[..str_end], str_start);
+        if str_runs.is_empty() {
+            return vec![];
+        }
+        let id_runs = get_punc_repeated(&msgid.value, 0);
+        let mut diags = vec![];
+        let mut seen: Vec<char> = vec![];
+        for (punc, range) in &str_runs {
+            if seen.contains(punc) {
+                continue;
+            }
+            seen.push(*punc);
+            let id_count = id_runs.iter().filter(|(c, _)| c == punc).count();
+            let str_count = str_runs.iter().filter(|(c, _)| c == punc).count();
+            if str_count <= id_count {
+                continue;
+            }
+            // Auto-fix only the unambiguous case: the source has *no* repeated
+            // punctuation of this character, so every run in the translation collapses
+            // to its first character.
+            let fix = (id_count == 0).then(|| Fix {
+                target: FixTarget::Msgstr {
+                    file_byte_range: msgstr.byte_range.clone(),
+                },
+                edits: str_runs
+                    .iter()
+                    .filter(|(c, _)| c == punc)
+                    .filter_map(|(_, r)| {
+                        let first = msgstr.value[r.start..].chars().next()?;
+                        Some(Edit {
+                            range: r.clone(),
+                            replacement: first.to_string(),
+                        })
+                    })
+                    .collect(),
+                safe: true,
+            });
+            diags.extend(
+                self.new_diag(
+                    checker,
+                    Severity::Info,
+                    format!(
+                        "extra repeated punctuation '{}' ({id_count} / {str_count})",
+                        &msgstr.value[range.clone()]
+                    ),
+                )
+                .map(|d| {
+                    d.with_msgs_hl(
+                        msgid,
+                        id_runs
+                            .iter()
+                            .filter(|(c, _)| c == punc)
+                            .map(|(_, r)| (r.start, r.end)),
+                        msgstr,
+                        str_runs
+                            .iter()
+                            .filter(|(c, _)| c == punc)
+                            .map(|(_, r)| (r.start, r.end)),
+                    )
+                    .with_optional_fix(fix)
+                }),
+            );
+        }
+        diags
+    }
+}
+
+/// Normalize a punctuation character checked by the rule `punc-repeated` to its
+/// half-width symbol, or return `None` if the character is not checked.
+const fn punc_repeated_normalize(c: char) -> Option<char> {
+    match c {
+        ':' | '：' => Some(':'),
+        ';' | '；' | '\u{061B}' => Some(';'),
+        ',' | '，' | '،' | '、' => Some(','),
+        '!' | '！' => Some('!'),
+        '?' | '？' | '\u{061F}' => Some('?'),
+        _ => None,
+    }
+}
+
+/// Get the runs of two or more of the same punctuation character (see
+/// [`punc_repeated_normalize`]) in `s`, starting at byte index `start`.
+///
+/// Each run is returned with its normalized punctuation character and its byte range.
+fn get_punc_repeated(s: &str, start: usize) -> Vec<(char, Range<usize>)> {
+    let mut runs = vec![];
+    let mut run: Option<(char, usize, usize, usize)> = None;
+    for (idx, c) in s[start..].char_indices() {
+        let idx = start + idx;
+        let punc = punc_repeated_normalize(c);
+        match (run, punc) {
+            (Some((run_punc, run_start, _, count)), Some(p)) if p == run_punc => {
+                run = Some((run_punc, run_start, idx + c.len_utf8(), count + 1));
+            }
+            _ => {
+                if let Some((run_punc, run_start, run_end, count)) = run
+                    && count >= 2
+                {
+                    runs.push((run_punc, run_start..run_end));
+                }
+                run = punc.map(|p| (p, idx, idx + c.len_utf8(), 1));
+            }
+        }
+    }
+    if let Some((run_punc, run_start, run_end, count)) = run
+        && count >= 2
+    {
+        runs.push((run_punc, run_start..run_end));
+    }
+    runs
+}
+
 /// Check if a character is considered as punctuation for this rule.
 ///
 /// Covers Latin (ASCII and full-width), CJK ideographic, Arabic, and several
@@ -367,6 +542,13 @@ mod tests {
     fn check_punc_end(content: &str) -> Vec<Diagnostic> {
         let mut checker = Checker::new(content.as_bytes());
         let rules = Rules::new(vec![Box::new(PuncEndRule {})]);
+        checker.do_all_checks(&rules);
+        checker.diagnostics
+    }
+
+    fn check_punc_repeated(content: &str) -> Vec<Diagnostic> {
+        let mut checker = Checker::new(content.as_bytes());
+        let rules = Rules::new(vec![Box::new(PuncRepeatedRule {})]);
         checker.do_all_checks(&rules);
         checker.diagnostics
     }
@@ -640,5 +822,126 @@ msgstr "testé"
         // "testé" is 6 bytes; insertion at the end (6..6).
         assert_eq!(fix.edits[0].range, 6..6);
         assert_eq!(fix.edits[0].replacement, ".");
+    }
+
+    #[test]
+    fn test_get_punc_repeated() {
+        assert!(get_punc_repeated("", 0).is_empty());
+        assert!(get_punc_repeated("a, b; c: d! e? f... g", 0).is_empty());
+        assert_eq!(
+            // "!？" is not a run, "!！" is a run (same character, mixed widths).
+            get_punc_repeated("a!! b??? c,, d!？ e!！ f:: g", 0),
+            vec![
+                ('!', 1..3),
+                ('?', 5..8),
+                (',', 10..12),
+                ('!', 20..24),
+                (':', 26..28)
+            ]
+        );
+        assert_eq!(
+            get_punc_repeated("a!? b!! c!!", 0),
+            vec![('!', 5..7), ('!', 9..11)]
+        );
+        assert_eq!(get_punc_repeated("a!! b!!", 4), vec![('!', 5..7)]);
+    }
+
+    #[test]
+    fn test_punc_repeated_ok() {
+        let diags = check_punc_repeated(
+            r#"
+msgid "Warning! Really?! Wait... done."
+msgstr "Attention ! Vraiment ?! Attendez... terminé."
+
+msgid "Warning!! The file will be deleted."
+msgstr "Attention !! Le fichier sera supprimé."
+
+msgid "Use Class::method, then quit."
+msgstr "Utiliser Class::method, puis quitter."
+
+msgid "Oh!"
+msgstr "Oh !!!"
+
+msgid "?? unknown"
+msgstr "?? inconnu"
+"#,
+        );
+        // Leading and trailing punctuation is checked by rules "punc-start" and
+        // "punc-end".
+        assert!(diags.is_empty());
+    }
+
+    #[test]
+    fn test_punc_repeated_error_noqa() {
+        let diags = check_punc_repeated(
+            r#"
+#, noqa:punc-repeated
+msgid "Warning! The file will be deleted."
+msgstr "Attention !! Le fichier sera supprimé."
+"#,
+        );
+        assert!(diags.is_empty());
+    }
+
+    #[test]
+    fn test_punc_repeated_error() {
+        let diags = check_punc_repeated(
+            r#"
+msgid "Warning! The file will be deleted."
+msgstr "Attention !! Le fichier sera supprimé."
+
+msgid "Really? Yes, sure."
+msgstr "Vraiment ??? Oui,, bien sûr."
+
+msgid "Warning!! Really! Sure."
+msgstr "Attention !! Vraiment !! Sûr."
+
+msgid "警告！文件将被删除。"
+msgstr "警告！！文件将被删除。"
+"#,
+        );
+        assert_eq!(diags.len(), 5);
+        assert!(diags.iter().all(|d| d.severity == Severity::Info));
+        assert_eq!(diags[0].message, "extra repeated punctuation '!!' (0 / 1)");
+        assert_eq!(diags[1].message, "extra repeated punctuation '???' (0 / 1)");
+        assert_eq!(diags[2].message, "extra repeated punctuation ',,' (0 / 1)");
+        assert_eq!(diags[3].message, "extra repeated punctuation '!!' (1 / 2)");
+        assert_eq!(
+            diags[4].message,
+            "extra repeated punctuation '！！' (0 / 1)"
+        );
+    }
+
+    #[test]
+    fn test_punc_repeated_fix_collapses_runs() {
+        let diags = check_punc_repeated(
+            r#"
+msgid "Warning! Stop! Now."
+msgstr "Attention !! Stop ！！！ Maintenant."
+"#,
+        );
+        assert_eq!(diags.len(), 1);
+        let fix = diags[0].fix.as_ref().expect("fix attached");
+        assert!(fix.safe);
+        // "Attention !! Stop ！！！": runs at bytes 10..12 and 18..27.
+        assert_eq!(fix.edits.len(), 2);
+        assert_eq!(fix.edits[0].range, 10..12);
+        assert_eq!(fix.edits[0].replacement, "!");
+        assert_eq!(fix.edits[1].range, 18..27);
+        assert_eq!(fix.edits[1].replacement, "！");
+    }
+
+    #[test]
+    fn test_punc_repeated_no_fix_when_source_has_runs() {
+        // Source has a repeated "!", so which run of the translation is surplus is
+        // ambiguous: report but do not fix.
+        let diags = check_punc_repeated(
+            r#"
+msgid "Warning!! Really! Sure."
+msgstr "Attention !! Vraiment !! Sûr."
+"#,
+        );
+        assert_eq!(diags.len(), 1);
+        assert!(diags[0].fix.is_none());
     }
 }

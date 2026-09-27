@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ### Added
 
+- Add default rule "punc-repeated" to check for extra repeated punctuation in the translation (e.g. `!!`, `??`, `,,`).
 - Add support for format string "csharp-format" in rule "formats".
 
 ## [0.2.0] - 2026-09-26

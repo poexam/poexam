@@ -188,6 +188,7 @@ fn get_all_rules() -> Vec<Rule> {
         Box::new(plurals::PluralsEmptyRule {}),
         Box::new(punc::PuncStartRule {}),
         Box::new(punc::PuncEndRule {}),
+        Box::new(punc::PuncRepeatedRule {}),
         Box::new(punc_space::PuncSpaceIdRule {}),
         Box::new(punc_space::PuncSpaceStrRule {}),
         Box::new(short::ShortRule {}),

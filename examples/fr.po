@@ -165,6 +165,10 @@ msgstr[1] ""
 msgid "Test punctuation end."
 msgstr "Test de ponctuation à la fin"
 
+# rule: punc-repeated
+msgid "Warning! The file will be deleted."
+msgstr "Attention !! Le fichier sera supprimé."
+
 # rule: punc-start
 msgid "; test punctuation start"
 msgstr "test de ponctuation au début"
