@@ -11,10 +11,33 @@ use std::ops::Range;
 
 use crate::{po::escape::EscapePoExt, po::format::language::Language, po::message::Message};
 
+/// Comment line of a PO entry, without its prefix (`#`, `#.` or `#:`) and
+/// surrounding whitespace.
+#[derive(Debug, Default, PartialEq, Eq, Serialize)]
+pub struct Comment {
+    pub line_number: usize,
+    pub value: String,
+}
+
+impl Comment {
+    pub fn new<S: Into<String>>(line_number: usize, value: S) -> Self {
+        Self {
+            line_number,
+            value: value.into(),
+        }
+    }
+}
+
 #[derive(Debug, Default, Serialize)]
 #[allow(clippy::struct_excessive_bools)]
 pub struct Entry {
     pub line_number: usize,
+    /// Translator comments (`# comment`).
+    pub translator_comments: Vec<Comment>,
+    /// Extracted comments, written by the developer in the source code (`#. comment`).
+    pub extracted_comments: Vec<Comment>,
+    /// Source references (`#: src/main.c:42`).
+    pub references: Vec<Comment>,
     pub keywords: Vec<String>,
     pub fuzzy: bool,
     pub obsolete: bool,
@@ -37,6 +60,9 @@ pub struct Entry {
 impl PartialEq for Entry {
     fn eq(&self, other: &Self) -> bool {
         self.line_number == other.line_number
+            && self.translator_comments == other.translator_comments
+            && self.extracted_comments == other.extracted_comments
+            && self.references == other.references
             && self.keywords == other.keywords
             && self.fuzzy == other.fuzzy
             && self.obsolete == other.obsolete

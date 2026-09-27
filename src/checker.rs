@@ -172,6 +172,7 @@ impl<'d> Checker<'d> {
     /// Then, for each entry, it calls the function [`check_entry`](crate::checker::Checker::check_entry)
     /// to check the entry with the given rule.
     pub(crate) fn do_all_checks(&mut self, rules: &Rules) {
+        self.parser.set_parse_comments(rules.comments);
         // Load word lists for `force-trans` / `no-trans` rules if enabled. These
         // lists are independent of the PO file's header, so we load them up
         // front and surface any file-read error as a single diagnostic.

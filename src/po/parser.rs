@@ -6,7 +6,11 @@
 
 use std::borrow::Cow;
 
-use crate::{po::entry::Entry, po::format::language::Language, po::message::Message};
+use crate::{
+    po::entry::{Comment, Entry},
+    po::format::language::Language,
+    po::message::Message,
+};
 use encoding_rs::Encoding;
 
 #[derive(Default)]
@@ -36,6 +40,8 @@ pub struct Parser<'a> {
     next_line_number: usize,
     field: Field,
     encoding_error: bool,
+    // Options.
+    parse_comments: bool,
 }
 
 impl<'d> Parser<'d> {
@@ -48,6 +54,12 @@ impl<'d> Parser<'d> {
             next_line_number: 1,
             ..Default::default()
         }
+    }
+
+    /// Keep comments of entries (translator comments, extracted comments and source
+    /// references), which are discarded by default.
+    pub const fn set_parse_comments(&mut self, parse_comments: bool) {
+        self.parse_comments = parse_comments;
     }
 
     /// Return the encoding name.
@@ -191,7 +203,11 @@ impl<'d> Parser<'d> {
                 _ => return Cow::Borrowed(""),
             }
         };
-        let bytes = &line[start + 1..end];
+        self.decode(&line[start + 1..end])
+    }
+
+    /// Decode bytes if necessary (not UTF-8).
+    fn decode(&mut self, bytes: &'d [u8]) -> Cow<'d, str> {
         if let Some(encoding) = self.encoding {
             let (cow, _, errors) = encoding.decode(bytes);
             if errors {
@@ -204,6 +220,11 @@ impl<'d> Parser<'d> {
             self.encoding_error = true;
             String::from_utf8_lossy(bytes)
         }
+    }
+
+    /// Build a comment from the text after its prefix (`#`, `#.` or `#:`).
+    fn new_comment(&mut self, text: &'d [u8]) -> Comment {
+        Comment::new(self.line_number, self.decode(text.trim_ascii()))
     }
 
     /// Parse a message line and update the corresponding field in the `Entry`.
@@ -351,16 +372,40 @@ impl Iterator for Parser<'_> {
                     entry.obsolete = true;
                     self.parse_message(msg, &mut entry);
                 }
-                // Flag "noqa:xxx" in a comment (with rules).
-                [b'#', b' ', b'n', b'o', b'q', b'a', b':', rules @ ..] => {
-                    entry.noqa_rules = rules
-                        .split(|&b| b == b';')
-                        .map(|r| String::from_utf8_lossy(r.trim_ascii()).into_owned())
-                        .collect();
+                // Extracted comment.
+                [b'#', b'.', text @ ..] if self.parse_comments => {
+                    let comment = self.new_comment(text);
+                    entry.extracted_comments.push(comment);
                 }
-                // Flag "noqa" in a comment.
-                [b'#', b' ', b'n', b'o', b'q', b'a', ..] => {
-                    entry.noqa = true;
+                // Source reference.
+                [b'#', b':', text @ ..] if self.parse_comments => {
+                    let comment = self.new_comment(text);
+                    entry.references.push(comment);
+                }
+                // Extracted comments and source references (when comments are not
+                // parsed), previous strings (fuzzy matching) and other obsolete lines:
+                // ignored.
+                [b'#', b'.' | b':' | b'|' | b'~', ..] => {}
+                // Translator comment.
+                [b'#', text @ ..] => {
+                    match text {
+                        // Flag "noqa:xxx" in a comment (with rules).
+                        [b' ', b'n', b'o', b'q', b'a', b':', rules @ ..] => {
+                            entry.noqa_rules = rules
+                                .split(|&b| b == b';')
+                                .map(|r| String::from_utf8_lossy(r.trim_ascii()).into_owned())
+                                .collect();
+                        }
+                        // Flag "noqa" in a comment.
+                        [b' ', b'n', b'o', b'q', b'a', ..] => {
+                            entry.noqa = true;
+                        }
+                        _ => {}
+                    }
+                    if self.parse_comments {
+                        let comment = self.new_comment(text);
+                        entry.translator_comments.push(comment);
+                    }
                 }
                 // Message line (start or continued).
                 [b'm' | b'"', ..] => {
@@ -673,9 +718,25 @@ msgstr[1] "fichiers"
 msgid "hello, %s"
 msgstr "bonjour, %s"
 "#;
+        // Comments are discarded by default.
+        let entries = Parser::new(content.as_bytes()).collect::<Vec<Entry>>();
+        assert!(entries[0].translator_comments.is_empty());
+        assert!(entries[0].extracted_comments.is_empty());
+        assert!(entries[0].references.is_empty());
+        assert!(entries[0].noqa);
         let mut parser = Parser::new(content.as_bytes());
+        parser.set_parse_comments(true);
         let entries = parser.by_ref().collect::<Vec<Entry>>();
         assert_eq!(entries[0].line_number, 2);
+        assert_eq!(
+            entries[0].translator_comments,
+            vec![Comment::new(2, "Translator comment")]
+        );
+        assert!(entries[0].extracted_comments.is_empty());
+        assert_eq!(
+            entries[0].references,
+            vec![Comment::new(5, "src/main.rs:42")]
+        );
         assert_eq!(
             entries[0].keywords,
             vec![
@@ -747,6 +808,99 @@ msgstr "bonjour, %s"
         assert_eq!(
             entries[0].msgstr.get(&0),
             Some(Message::new(5, "bonjour, %s", 0..0)).as_ref()
+        );
+    }
+
+    #[test]
+    fn parse_all_comment_kinds() {
+        let content = r#"
+#  Translator comment 1
+#
+#Translator comment 2
+# noqa:blank
+#. Extracted comment 1
+#.Extracted comment 2
+#: src/main.rs:42 src/lib.rs:7
+#: src/other.rs:1
+#, fuzzy
+#| msgid "hello"
+msgid "hello, world"
+msgstr "bonjour, monde"
+
+#. Obsolete entry
+#~ msgid "old"
+#~ msgstr "vieux"
+"#;
+        let mut parser = Parser::new(content.as_bytes());
+        parser.set_parse_comments(true);
+        let entries = parser.collect::<Vec<Entry>>();
+        assert_eq!(entries.len(), 2);
+        assert_eq!(
+            entries[0].translator_comments,
+            vec![
+                Comment::new(2, "Translator comment 1"),
+                Comment::new(3, ""),
+                Comment::new(4, "Translator comment 2"),
+                Comment::new(5, "noqa:blank"),
+            ]
+        );
+        assert_eq!(entries[0].noqa_rules, vec!["blank"]);
+        assert_eq!(
+            entries[0].extracted_comments,
+            vec![
+                Comment::new(6, "Extracted comment 1"),
+                Comment::new(7, "Extracted comment 2"),
+            ]
+        );
+        assert_eq!(
+            entries[0].references,
+            vec![
+                Comment::new(8, "src/main.rs:42 src/lib.rs:7"),
+                Comment::new(9, "src/other.rs:1"),
+            ]
+        );
+        assert!(entries[0].fuzzy);
+        assert_eq!(
+            entries[0].msgid,
+            Some(Message::new(12, "hello, world", 0..0))
+        );
+        assert!(entries[1].obsolete);
+        assert!(entries[1].translator_comments.is_empty());
+        assert_eq!(
+            entries[1].extracted_comments,
+            vec![Comment::new(15, "Obsolete entry")]
+        );
+        assert!(entries[1].references.is_empty());
+    }
+
+    #[test]
+    fn parse_comments_iso8859() {
+        let content = r#"
+msgid ""
+msgstr "Content-Type: text/plain; charset=ISO-8859-15\n"
+
+# Commentaire du traducteur : testé
+#. Commentaire extrait : testé
+#: src/éléments.c:42
+msgid "tested"
+msgstr "testé"
+"#;
+        let content_iso = encoding_rs::ISO_8859_15.encode(content).0;
+        let mut parser = Parser::new(content_iso.as_ref());
+        parser.set_parse_comments(true);
+        let entries = parser.collect::<Vec<Entry>>();
+        assert!(!entries[1].encoding_error);
+        assert_eq!(
+            entries[1].translator_comments,
+            vec![Comment::new(5, "Commentaire du traducteur : testé")]
+        );
+        assert_eq!(
+            entries[1].extracted_comments,
+            vec![Comment::new(6, "Commentaire extrait : testé")]
+        );
+        assert_eq!(
+            entries[1].references,
+            vec![Comment::new(7, "src/éléments.c:42")]
         );
     }
 

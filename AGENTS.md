@@ -59,6 +59,7 @@ The project is REUSE-compliant. Run `pre-commit run --all-files` (or rely on the
    - `is_default()` — whether the rule is enabled by default.
    - `is_check()` — `true` for real checks, `false` for special rules like `fuzzy`/`noqa`.
    - One or more check methods: `check_file()`, `check_header()`, `check_entry()`, `check_ctxt()`, or `check_msg()`.
+   - Optional: `uses_comments()` returning `true` if the rule reads `entry.translator_comments`, `entry.extracted_comments` or `entry.references` (comments are parsed only when an enabled rule uses them).
 3. Build each diagnostic with `new_diag()`, which takes the severity as an argument: severity is per diagnostic, not per rule, so a single rule can emit several severities (see `src/rules/header.rs`). Pick it by impact:
    - `Severity::Error` — file won't compile or msgid/msgstr structural mismatch that breaks runtime (e.g. `compilation`, `escapes`, `formats`, `newlines`, `plurals`, `tabs`).
    - `Severity::Warning` — translation is likely wrong but file still compiles (e.g. `blank`, `long`, `short`).

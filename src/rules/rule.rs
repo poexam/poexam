@@ -39,6 +39,7 @@ pub struct Rules {
     pub spelling_str_rule: bool,
     pub force_trans_rule: bool,
     pub no_trans_rule: bool,
+    pub comments: bool,
 }
 
 impl std::fmt::Display for Rule {
@@ -58,6 +59,7 @@ impl Rules {
         let spelling_str_rule = rules.iter().any(|r| r.name() == "spelling-str");
         let force_trans_rule = rules.iter().any(|r| r.name() == "force-trans");
         let no_trans_rule = rules.iter().any(|r| r.name() == "no-trans");
+        let comments = rules.iter().any(|r| r.uses_comments());
         Self {
             enabled: rules,
             fuzzy_rule,
@@ -69,6 +71,7 @@ impl Rules {
             spelling_str_rule,
             force_trans_rule,
             no_trans_rule,
+            comments,
         }
     }
 }
@@ -88,6 +91,14 @@ pub trait RuleChecker {
 
     /// Whether the rule is a check (as opposed to a special rule like "fuzzy" or "noqa").
     fn is_check(&self) -> bool;
+
+    /// Whether the rule uses the comments of entries (translator comments, extracted
+    /// comments and source references).
+    ///
+    /// Comments are parsed only if at least one enabled rule uses them.
+    fn uses_comments(&self) -> bool {
+        false
+    }
 
     /// Check a file for diagnostics.
     fn check_file(&self, _checker: &Checker) -> Vec<Diagnostic> {
