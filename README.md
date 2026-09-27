@@ -156,6 +156,7 @@ It can perform a lot of checks via the default rules:
 For the rule `formats`, the following languages are supported:
 
 - C (`c-format`): printf format (e.g. `%s %12lld`)
+- C# (`csharp-format`): `String.Format` composite format (e.g. `{0} {1,-10:N2}`)
 - Java (`java-format`): Java `MessageFormat` language (e.g. `{0}`, `{1,date,short}`)
 - JavaScript (`javascript-format`): `sprintf`-like format (e.g. `%s %1$05.2f %j`)
 - Perl (`perl-format`): Perl `sprintf` format (e.g. `%s %1$-*vd`)

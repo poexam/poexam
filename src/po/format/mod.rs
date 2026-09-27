@@ -10,6 +10,7 @@ use crate::po::format::language::Language;
 
 pub mod iter;
 pub mod lang_c;
+pub mod lang_csharp;
 pub mod lang_java;
 pub mod lang_javascript;
 pub mod lang_null;

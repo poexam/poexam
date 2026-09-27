@@ -71,6 +71,11 @@ msgid "Name: %s, age: %d"
 msgstr "Âge : %2$d, nom : %1$f"
 
 # rule: formats
+#, csharp-format
+msgid "Total: {0:C2} for {1} items"
+msgstr "Total : {0} pour {1} articles"
+
+# rule: formats
 #, javascript-format
 msgid "Received %d items: %j"
 msgstr "%d éléments reçus : %s"

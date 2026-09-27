@@ -9,6 +9,7 @@ use serde::Serialize;
 use crate::po::format::{
     FormatParser,
     lang_c::FormatC,
+    lang_csharp::FormatCSharp,
     lang_java::FormatJava,
     lang_javascript::FormatJavaScript,
     lang_null::FormatNull,
@@ -25,6 +26,7 @@ pub enum Language {
     #[default]
     Null,
     C,
+    CSharp,
     Java,
     JavaScript,
     Perl,
@@ -41,6 +43,7 @@ impl From<&str> for Language {
     fn from(language: &str) -> Self {
         match language {
             "c" => Self::C,
+            "csharp" => Self::CSharp,
             "java" => Self::Java,
             "javascript" => Self::JavaScript,
             "perl" => Self::Perl,
@@ -61,6 +64,7 @@ impl std::fmt::Display for Language {
         match self {
             Self::Null => write!(f, "none"),
             Self::C => write!(f, "C"),
+            Self::CSharp => write!(f, "C#"),
             Self::Java => write!(f, "Java"),
             Self::JavaScript => write!(f, "JavaScript"),
             Self::Perl => write!(f, "Perl"),
@@ -80,6 +84,7 @@ impl FormatParser for Language {
     fn next_char(&self, s: &str, pos: usize) -> Option<(char, usize, bool)> {
         match self {
             Self::C => FormatC.next_char(s, pos),
+            Self::CSharp => FormatCSharp.next_char(s, pos),
             Self::Java => FormatJava.next_char(s, pos),
             Self::JavaScript => FormatJavaScript.next_char(s, pos),
             Self::Perl => FormatPerl.next_char(s, pos),
@@ -98,6 +103,7 @@ impl FormatParser for Language {
     fn find_end_format(&self, s: &str, pos: usize, len: usize) -> usize {
         match self {
             Self::C => FormatC.find_end_format(s, pos, len),
+            Self::CSharp => FormatCSharp.find_end_format(s, pos, len),
             Self::Java => FormatJava.find_end_format(s, pos, len),
             Self::JavaScript => FormatJavaScript.find_end_format(s, pos, len),
             Self::Perl => FormatPerl.find_end_format(s, pos, len),
@@ -120,6 +126,7 @@ mod tests {
     #[test]
     fn test_language() {
         assert_eq!(Language::from("c"), Language::C);
+        assert_eq!(Language::from("csharp"), Language::CSharp);
         assert_eq!(Language::from("java"), Language::Java);
         assert_eq!(Language::from("javascript"), Language::JavaScript);
         assert_eq!(Language::from("perl"), Language::Perl);

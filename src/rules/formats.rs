@@ -43,6 +43,7 @@ impl RuleChecker for FormatsRule {
     ///
     /// The following languages are supported:
     /// - C (`c-format`): printf format (e.g. `%s`, `%12lld`)
+    /// - C# (`csharp-format`): `String.Format` composite format (e.g. `{0}`, `{1,-10:N2}`)
     /// - Java (`java-format`): Java `MessageFormat` language (e.g. `{0}`, `{1,date,short}`)
     /// - JavaScript (`javascript-format`): `sprintf`-like format (e.g. `%s`, `%1$05.2f`)
     /// - Perl (`perl-format`): Perl `sprintf` format (e.g. `%s`, `%-*vd`)
@@ -240,6 +241,40 @@ msgstr "%2$d test (%1$s)"
         let diag = &diags[1];
         assert_eq!(diag.severity, Severity::Error);
         assert_eq!(diag.message, "inconsistent format strings (C)");
+    }
+
+    #[test]
+    fn test_csharp_formats_ok() {
+        let diags = check_formats(
+            r#"
+#, csharp-format
+msgid "{0} has {1,5:N2} points, {{literal}}"
+msgstr "{1,5:N2} points pour {0}, {{littéral}}"
+"#,
+        );
+        assert!(diags.is_empty());
+    }
+
+    #[test]
+    fn test_csharp_format_error() {
+        let diags = check_formats(
+            r#"
+#, csharp-format
+msgid "Total: {0:C2} for {1} items"
+msgstr "Total : {0} pour {1} articles"
+
+#, csharp-format
+msgid "{0} has {1} points"
+msgstr "{0} a {{1}} points"
+"#,
+        );
+        assert_eq!(diags.len(), 2);
+        assert!(diags.iter().all(|d| d.severity == Severity::Error));
+        assert!(
+            diags
+                .iter()
+                .all(|d| d.message == "inconsistent format strings (C#)")
+        );
     }
 
     #[test]
