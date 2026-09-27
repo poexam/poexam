@@ -34,7 +34,8 @@ impl RuleChecker for ShortRule {
     /// This rule reports the entry if one of both conditions is met (leading and trailing
     /// whitespace in strings are ignored):
     ///
-    /// - The source has at least 10 times more UTF-8 characters than the translation.
+    /// - The source has at least `check.short_factor` times (default: 8) more UTF-8
+    ///   characters than the translation.
     /// - The translation has one UTF-8 character and the source has more than one character.
     ///
     /// Wrong entry:

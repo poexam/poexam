@@ -34,7 +34,8 @@ impl RuleChecker for LongRule {
     /// This rule reports the entry if one of both conditions is met (leading and trailing
     /// whitespace in strings are ignored):
     ///
-    /// - The translation has at least 10 times more UTF-8 characters than the source.
+    /// - The translation has at least `check.long_factor` times (default: 8) more UTF-8
+    ///   characters than the source.
     /// - The source has one UTF-8 character and the translation has more than one character.
     ///
     /// Wrong entry:
