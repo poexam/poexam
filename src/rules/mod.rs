@@ -41,6 +41,7 @@ pub mod rule;
 pub mod short;
 pub mod spelling;
 pub mod tabs;
+pub mod todo_comments;
 pub mod unchanged;
 pub mod unicode_ctrl;
 pub mod untranslated;

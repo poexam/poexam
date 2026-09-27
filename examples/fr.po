@@ -266,3 +266,8 @@ msgstr "Ceci est une faute"
 # rule: spelling-str
 msgid "This is a typo"
 msgstr "Ceci est une fôte"
+
+# rule: todo-comments
+# TODO: check the translation of "bookmark"
+msgid "Add a bookmark"
+msgstr "Ajouter un marque-page"
