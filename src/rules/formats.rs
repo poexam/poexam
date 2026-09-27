@@ -13,6 +13,7 @@ use crate::po::format::language::Language;
 use crate::po::format::{
     iter::FormatPos,
     lang_c::{fmt_sort_index, fmt_strip_index},
+    lang_object_pascal::fmt_object_pascal_args,
     lang_qt::fmt_qt_arg,
     lang_ruby::fmt_ruby_name,
     lang_sh::fmt_sh_name,
@@ -46,6 +47,7 @@ impl RuleChecker for FormatsRule {
     /// - C# (`csharp-format`): `String.Format` composite format (e.g. `{0}`, `{1,-10:N2}`)
     /// - Java (`java-format`): Java `MessageFormat` language (e.g. `{0}`, `{1,date,short}`)
     /// - JavaScript (`javascript-format`): `sprintf`-like format (e.g. `%s`, `%1$05.2f`)
+    /// - Object Pascal (`object-pascal-format`): `Format` function (e.g. `%s`, `%1:-10.2f`)
     /// - Perl (`perl-format`): Perl `sprintf` format (e.g. `%s`, `%-*vd`)
     /// - Perl brace (`perl-brace-format`): named placeholders of `Locale::TextDomain` (e.g. `{name}`)
     /// - PHP (`php-format`): PHP `sprintf` format (e.g. `%s`, `%'*10.2f`)
@@ -57,6 +59,8 @@ impl RuleChecker for FormatsRule {
     ///
     /// For the C, JavaScript, Perl and PHP formats, the reordering of format specifiers is supported:
     /// `%3$d %1$s %2$f` is considered equivalent to `%s %f %d`.
+    /// The same applies to the Object Pascal format with index: `%2:d %0:s %1:f` is
+    /// considered equivalent to `%s %f %d`.
     ///
     /// Wrong entries:
     /// ```text
@@ -115,6 +119,10 @@ impl RuleChecker for FormatsRule {
             let id_fmt2: Vec<_> = id_fmt.iter().map(|m| fmt_strip_index(m.s)).collect();
             let str_fmt2: Vec<_> = str_fmt.iter().map(|m| fmt_strip_index(m.s)).collect();
             id_fmt2 != str_fmt2
+        } else if entry.format_language == Language::ObjectPascal {
+            // Object Pascal: like C, with an index ("%1:s") that can reorder arguments,
+            // and a type that is case insensitive.
+            fmt_object_pascal_args(&id_fmt) != fmt_object_pascal_args(&str_fmt)
         } else if entry.format_language == Language::Qt {
             // Qt: "%01" and "%1" are the same placeholder, compare locale flag and number.
             let id_fmt_hash: HashSet<_> = id_fmt.iter().map(|m| fmt_qt_arg(m.s)).collect();
@@ -274,6 +282,44 @@ msgstr "{0} a {{1}} points"
             diags
                 .iter()
                 .all(|d| d.message == "inconsistent format strings (C#)")
+        );
+    }
+
+    #[test]
+    fn test_object_pascal_formats_ok() {
+        let diags = check_formats(
+            r#"
+#, object-pascal-format
+msgid "%s has %-8.2f points (%d%%)"
+msgstr "%0:s a %1:-8.2F points (%2:d %%)"
+
+#, object-pascal-format
+msgid "%s copied to %s"
+msgstr "%1:s copié depuis %0:s"
+"#,
+        );
+        assert!(diags.is_empty());
+    }
+
+    #[test]
+    fn test_object_pascal_format_error() {
+        let diags = check_formats(
+            r#"
+#, object-pascal-format
+msgid "%s has %d points"
+msgstr "%s a %s points"
+
+#, object-pascal-format
+msgid "%s has %d points"
+msgstr "%1:s a %0:d points"
+"#,
+        );
+        assert_eq!(diags.len(), 2);
+        assert!(diags.iter().all(|d| d.severity == Severity::Error));
+        assert!(
+            diags
+                .iter()
+                .all(|d| d.message == "inconsistent format strings (Object Pascal)")
         );
     }
 

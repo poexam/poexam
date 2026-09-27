@@ -13,6 +13,7 @@ use crate::po::format::{
     lang_java::FormatJava,
     lang_javascript::FormatJavaScript,
     lang_null::FormatNull,
+    lang_object_pascal::FormatObjectPascal,
     lang_perl::{FormatPerl, FormatPerlBrace},
     lang_php::FormatPhp,
     lang_python::{FormatPython, FormatPythonBrace},
@@ -29,6 +30,7 @@ pub enum Language {
     CSharp,
     Java,
     JavaScript,
+    ObjectPascal,
     Perl,
     PerlBrace,
     Php,
@@ -46,6 +48,7 @@ impl From<&str> for Language {
             "csharp" => Self::CSharp,
             "java" => Self::Java,
             "javascript" => Self::JavaScript,
+            "object-pascal" => Self::ObjectPascal,
             "perl" => Self::Perl,
             "perl-brace" => Self::PerlBrace,
             "php" => Self::Php,
@@ -67,6 +70,7 @@ impl std::fmt::Display for Language {
             Self::CSharp => write!(f, "C#"),
             Self::Java => write!(f, "Java"),
             Self::JavaScript => write!(f, "JavaScript"),
+            Self::ObjectPascal => write!(f, "Object Pascal"),
             Self::Perl => write!(f, "Perl"),
             Self::PerlBrace => write!(f, "Perl brace"),
             Self::Php => write!(f, "PHP"),
@@ -87,6 +91,7 @@ impl FormatParser for Language {
             Self::CSharp => FormatCSharp.next_char(s, pos),
             Self::Java => FormatJava.next_char(s, pos),
             Self::JavaScript => FormatJavaScript.next_char(s, pos),
+            Self::ObjectPascal => FormatObjectPascal.next_char(s, pos),
             Self::Perl => FormatPerl.next_char(s, pos),
             Self::PerlBrace => FormatPerlBrace.next_char(s, pos),
             Self::Php => FormatPhp.next_char(s, pos),
@@ -106,6 +111,7 @@ impl FormatParser for Language {
             Self::CSharp => FormatCSharp.find_end_format(s, pos, len),
             Self::Java => FormatJava.find_end_format(s, pos, len),
             Self::JavaScript => FormatJavaScript.find_end_format(s, pos, len),
+            Self::ObjectPascal => FormatObjectPascal.find_end_format(s, pos, len),
             Self::Perl => FormatPerl.find_end_format(s, pos, len),
             Self::PerlBrace => FormatPerlBrace.find_end_format(s, pos, len),
             Self::Php => FormatPhp.find_end_format(s, pos, len),
@@ -129,6 +135,7 @@ mod tests {
         assert_eq!(Language::from("csharp"), Language::CSharp);
         assert_eq!(Language::from("java"), Language::Java);
         assert_eq!(Language::from("javascript"), Language::JavaScript);
+        assert_eq!(Language::from("object-pascal"), Language::ObjectPascal);
         assert_eq!(Language::from("perl"), Language::Perl);
         assert_eq!(Language::from("perl-brace"), Language::PerlBrace);
         assert_eq!(Language::from("php"), Language::Php);

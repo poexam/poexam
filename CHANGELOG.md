@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ### Added
 
+- Add support for format string "object-pascal-format" in rule "formats".
 - Add default rule "punc-repeated" to check for extra repeated punctuation in the translation (e.g. `!!`, `??`, `,,`).
 - Add support for format string "csharp-format" in rule "formats".
 

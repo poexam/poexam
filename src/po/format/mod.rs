@@ -14,6 +14,7 @@ pub mod lang_csharp;
 pub mod lang_java;
 pub mod lang_javascript;
 pub mod lang_null;
+pub mod lang_object_pascal;
 pub mod lang_perl;
 pub mod lang_php;
 pub mod lang_python;
