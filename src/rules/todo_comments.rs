@@ -6,7 +6,7 @@
 
 use crate::checker::Checker;
 use crate::diagnostic::{Diagnostic, Severity};
-use crate::po::entry::Entry;
+use crate::po::entry::{CommentKinds, Entry};
 use crate::rules::rule::RuleChecker;
 
 /// Markers of unfinished work, matched as whole words (case sensitive).
@@ -31,8 +31,8 @@ impl RuleChecker for TodoCommentsRule {
         true
     }
 
-    fn uses_comments(&self) -> bool {
-        true
+    fn uses_comments(&self) -> CommentKinds {
+        CommentKinds::TRANSLATOR
     }
 
     /// Check for markers of unfinished work left in translator comments.

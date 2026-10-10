@@ -19,6 +19,49 @@ pub struct Comment {
     pub value: String,
 }
 
+/// Kinds of comments kept by the parser in the entries.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct CommentKinds {
+    /// Translator comments (`# comment`).
+    pub translator: bool,
+    /// Extracted comments (`#. comment`).
+    pub extracted: bool,
+    /// Source references (`#: reference`).
+    pub references: bool,
+}
+
+impl CommentKinds {
+    /// No comments.
+    pub const NONE: Self = Self {
+        translator: false,
+        extracted: false,
+        references: false,
+    };
+
+    /// Translator comments only.
+    pub const TRANSLATOR: Self = Self {
+        translator: true,
+        ..Self::NONE
+    };
+
+    /// All kinds of comments.
+    pub const ALL: Self = Self {
+        translator: true,
+        extracted: true,
+        references: true,
+    };
+
+    /// Return the kinds of comments in `self` or in `other`.
+    #[must_use]
+    pub const fn union(self, other: Self) -> Self {
+        Self {
+            translator: self.translator || other.translator,
+            extracted: self.extracted || other.extracted,
+            references: self.references || other.references,
+        }
+    }
+}
+
 impl Comment {
     pub fn new<S: Into<String>>(line_number: usize, value: S) -> Self {
         Self {

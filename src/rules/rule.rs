@@ -11,7 +11,10 @@ use crate::{
     checker::Checker,
     config::Config,
     diagnostic::{Diagnostic, Severity},
-    po::{entry::Entry, message::Message},
+    po::{
+        entry::{CommentKinds, Entry},
+        message::Message,
+    },
     rules::{
         accelerators, acronyms, blank, brackets, changed, compendium, compilation, double_quotes,
         double_spaces, double_words, emails, encoding, escapes, force_trans, formats, functions,
@@ -39,7 +42,7 @@ pub struct Rules {
     pub spelling_str_rule: bool,
     pub force_trans_rule: bool,
     pub no_trans_rule: bool,
-    pub comments: bool,
+    pub comments: CommentKinds,
 }
 
 impl std::fmt::Display for Rule {
@@ -59,7 +62,9 @@ impl Rules {
         let spelling_str_rule = rules.iter().any(|r| r.name() == "spelling-str");
         let force_trans_rule = rules.iter().any(|r| r.name() == "force-trans");
         let no_trans_rule = rules.iter().any(|r| r.name() == "no-trans");
-        let comments = rules.iter().any(|r| r.uses_comments());
+        let comments = rules.iter().fold(CommentKinds::NONE, |kinds, r| {
+            kinds.union(r.uses_comments())
+        });
         Self {
             enabled: rules,
             fuzzy_rule,
@@ -92,12 +97,12 @@ pub trait RuleChecker {
     /// Whether the rule is a check (as opposed to a special rule like "fuzzy" or "noqa").
     fn is_check(&self) -> bool;
 
-    /// Whether the rule uses the comments of entries (translator comments, extracted
+    /// Kinds of comments of entries used by the rule (translator comments, extracted
     /// comments and source references).
     ///
-    /// Comments are parsed only if at least one enabled rule uses them.
-    fn uses_comments(&self) -> bool {
-        false
+    /// Each kind of comment is parsed only if at least one enabled rule uses it.
+    fn uses_comments(&self) -> CommentKinds {
+        CommentKinds::NONE
     }
 
     /// Check a file for diagnostics.

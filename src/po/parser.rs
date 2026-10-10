@@ -7,7 +7,7 @@
 use std::borrow::Cow;
 
 use crate::{
-    po::entry::{Comment, Entry},
+    po::entry::{Comment, CommentKinds, Entry},
     po::format::language::Language,
     po::message::Message,
 };
@@ -41,7 +41,7 @@ pub struct Parser<'a> {
     field: Field,
     encoding_error: bool,
     // Options.
-    parse_comments: bool,
+    parse_comments: CommentKinds,
 }
 
 impl<'d> Parser<'d> {
@@ -56,9 +56,9 @@ impl<'d> Parser<'d> {
         }
     }
 
-    /// Keep comments of entries (translator comments, extracted comments and source
-    /// references), which are discarded by default.
-    pub const fn set_parse_comments(&mut self, parse_comments: bool) {
+    /// Keep the given kinds of comments of entries (translator comments, extracted
+    /// comments and source references), which are discarded by default.
+    pub const fn set_parse_comments(&mut self, parse_comments: CommentKinds) {
         self.parse_comments = parse_comments;
     }
 
@@ -373,12 +373,12 @@ impl Iterator for Parser<'_> {
                     self.parse_message(msg, &mut entry);
                 }
                 // Extracted comment.
-                [b'#', b'.', text @ ..] if self.parse_comments => {
+                [b'#', b'.', text @ ..] if self.parse_comments.extracted => {
                     let comment = self.new_comment(text);
                     entry.extracted_comments.push(comment);
                 }
                 // Source reference.
-                [b'#', b':', text @ ..] if self.parse_comments => {
+                [b'#', b':', text @ ..] if self.parse_comments.references => {
                     let comment = self.new_comment(text);
                     entry.references.push(comment);
                 }
@@ -402,7 +402,7 @@ impl Iterator for Parser<'_> {
                         }
                         _ => {}
                     }
-                    if self.parse_comments {
+                    if self.parse_comments.translator {
                         let comment = self.new_comment(text);
                         entry.translator_comments.push(comment);
                     }
@@ -725,7 +725,7 @@ msgstr "bonjour, %s"
         assert!(entries[0].references.is_empty());
         assert!(entries[0].noqa);
         let mut parser = Parser::new(content.as_bytes());
-        parser.set_parse_comments(true);
+        parser.set_parse_comments(CommentKinds::ALL);
         let entries = parser.by_ref().collect::<Vec<Entry>>();
         assert_eq!(entries[0].line_number, 2);
         assert_eq!(
@@ -832,7 +832,7 @@ msgstr "bonjour, monde"
 #~ msgstr "vieux"
 "#;
         let mut parser = Parser::new(content.as_bytes());
-        parser.set_parse_comments(true);
+        parser.set_parse_comments(CommentKinds::ALL);
         let entries = parser.collect::<Vec<Entry>>();
         assert_eq!(entries.len(), 2);
         assert_eq!(
@@ -874,6 +874,47 @@ msgstr "bonjour, monde"
     }
 
     #[test]
+    fn parse_some_comment_kinds() {
+        let content = r#"
+# Translator comment
+#. Extracted comment
+#: src/main.rs:42
+msgid "hello"
+msgstr "bonjour"
+"#;
+        // Translator comments only.
+        let mut parser = Parser::new(content.as_bytes());
+        parser.set_parse_comments(CommentKinds::TRANSLATOR);
+        let entries = parser.collect::<Vec<Entry>>();
+        assert_eq!(entries.len(), 1);
+        assert_eq!(
+            entries[0].translator_comments,
+            vec![Comment::new(2, "Translator comment")]
+        );
+        assert!(entries[0].extracted_comments.is_empty());
+        assert!(entries[0].references.is_empty());
+
+        // Extracted comments and references.
+        let mut parser = Parser::new(content.as_bytes());
+        parser.set_parse_comments(CommentKinds {
+            extracted: true,
+            references: true,
+            ..CommentKinds::NONE
+        });
+        let entries = parser.collect::<Vec<Entry>>();
+        assert_eq!(entries.len(), 1);
+        assert!(entries[0].translator_comments.is_empty());
+        assert_eq!(
+            entries[0].extracted_comments,
+            vec![Comment::new(3, "Extracted comment")]
+        );
+        assert_eq!(
+            entries[0].references,
+            vec![Comment::new(4, "src/main.rs:42")]
+        );
+    }
+
+    #[test]
     fn parse_comments_iso8859() {
         let content = r#"
 msgid ""
@@ -887,7 +928,7 @@ msgstr "testé"
 "#;
         let content_iso = encoding_rs::ISO_8859_15.encode(content).0;
         let mut parser = Parser::new(content_iso.as_ref());
-        parser.set_parse_comments(true);
+        parser.set_parse_comments(CommentKinds::ALL);
         let entries = parser.collect::<Vec<Entry>>();
         assert!(!entries[1].encoding_error);
         assert_eq!(
