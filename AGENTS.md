@@ -161,4 +161,5 @@ Breaking changes are specified like this:
 ## Commits
 
 - Keep the subject line short: a compact summary of the effect, not a restatement of the changelog entry.
+- For a new rule, say whether it is enabled by default, with the same wording as the changelog: `Add default rule "my-rule"` or `Add non-default rule "my-rule"`.
 - Do not add a `Co-Authored-By` trailer.
