@@ -114,7 +114,8 @@ The format is automatically picked up by the parser — no changes needed in `sr
   // SPDX-License-Identifier: GPL-3.0-or-later
   ```
 
-- **Clippy pedantic**: Code must pass `cargo clippy -- -D clippy::pedantic` with no warnings.
+- **Clippy pedantic**: Code must pass `cargo clippy -- -D clippy::pedantic` with no warnings (pedantic is also denied in `[lints.clippy]` of `Cargo.toml`). Fix the code rather than adding `#[allow(...)]`.
+- **No unsafe code**: `unsafe_code` is forbidden in `Cargo.toml`.
 - **Rust edition**: 2024 (minimum Rust version: 1.87).
 - **Tests**: Use inline `#[cfg(test)]` modules within each source file (no separate test files).
 - **Rule naming**: Use kebab-case for rule names (e.g. `double-quotes`, `punc-start`).
@@ -133,10 +134,12 @@ Performance matters: poexam is meant to lint large PO trees in milliseconds. Hot
 
 Avoid adding new dependencies unless strictly necessary. Current key dependencies:
 `clap`, `colored`, `rayon`, `spellbook`, `encoding_rs`, `ignore`, `globset`, `serde`, `serde_json`, `toml`, `memchr`, `unicode-linebreak`, `unicode-width`, `tower-lsp` and `tokio` (the last two used only by the `lsp` command).
+Dev-dependency: `tempfile` (tests only).
 
 ## Changelog
 
-Update `CHANGELOG.md` for every user-facing change, under the current development version.
+Update `CHANGELOG.md` for every user-facing change, under the `[Unreleased]` section.
+Do not add an entry for a fix or change to a feature that is not released yet (already listed under `[Unreleased]`).
 The format follows [Keep a Changelog 2.0.0](https://keepachangelog.com/en/2.0.0/), with these sections, in this order:
 
 - `Added` for new features.
@@ -153,3 +156,8 @@ Breaking changes are specified like this:
 ``` markdown
 - **Breaking:** add new breaking feature.
 ```
+
+## Commits
+
+- Keep the subject line short: a compact summary of the effect, not a restatement of the changelog entry.
+- Do not add a `Co-Authored-By` trailer.
