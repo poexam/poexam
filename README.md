@@ -147,6 +147,7 @@ It can perform a lot of checks via the default rules:
 | punc-space-str        | Incorrect spaces around punctuation (translation).  |
 | short                 | Translation too short.                              |
 | tabs                  | Missing/extra tabs.                                 |
+| todo-comments         | TODO/FIXME/XXX markers in translator comments.      |
 | unicode-ctrl          | Stray Unicode control chars in translation.         |
 | variables             | Missing/extra/different variables (placeholders).   |
 | whitespace-end        | Missing/extra whitespace at the end.                |
@@ -218,7 +219,6 @@ You can enable them on-demand:
 | spelling-ctxt  | Spelling error in the context.                   |
 | spelling-id    | Spelling error in the source.                    |
 | spelling-str   | Spelling error in the translation.               |
-| todo-comments  | TODO/FIXME/XXX markers in translator comments.   |
 | unchanged      | Translation is the same as the source string.    |
 | untranslated   | Untranslated entry.                              |
 | urls           | Missing/extra/different URLs.                    |

@@ -24,7 +24,7 @@ impl RuleChecker for TodoCommentsRule {
     }
 
     fn is_default(&self) -> bool {
-        false
+        true
     }
 
     fn is_check(&self) -> bool {
@@ -40,8 +40,6 @@ impl RuleChecker for TodoCommentsRule {
     /// The markers `TODO`, `FIXME` and `XXX` are searched as whole words, in upper case,
     /// in translator comments only (`# comment`): extracted comments (`#.`) are written
     /// by developers, and are not the translator's responsibility.
-    ///
-    /// This rule is not enabled by default.
     ///
     /// Wrong entry:
     /// ```text
