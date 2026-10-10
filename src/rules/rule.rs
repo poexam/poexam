@@ -40,6 +40,7 @@ pub struct Rules {
     pub spelling_ctxt_rule: bool,
     pub spelling_id_rule: bool,
     pub spelling_str_rule: bool,
+    pub spelling_translators_rule: bool,
     pub force_trans_rule: bool,
     pub no_trans_rule: bool,
     pub comments: CommentKinds,
@@ -60,6 +61,7 @@ impl Rules {
         let spelling_ctxt_rule = rules.iter().any(|r| r.name() == "spelling-ctxt");
         let spelling_id_rule = rules.iter().any(|r| r.name() == "spelling-id");
         let spelling_str_rule = rules.iter().any(|r| r.name() == "spelling-str");
+        let spelling_translators_rule = rules.iter().any(|r| r.name() == "spelling-translators");
         let force_trans_rule = rules.iter().any(|r| r.name() == "force-trans");
         let no_trans_rule = rules.iter().any(|r| r.name() == "no-trans");
         let comments = rules.iter().fold(CommentKinds::NONE, |kinds, r| {
@@ -74,6 +76,7 @@ impl Rules {
             spelling_ctxt_rule,
             spelling_id_rule,
             spelling_str_rule,
+            spelling_translators_rule,
             force_trans_rule,
             no_trans_rule,
             comments,
@@ -211,6 +214,7 @@ fn get_all_rules() -> Vec<Rule> {
         Box::new(spelling::SpellingCtxtRule {}),
         Box::new(spelling::SpellingIdRule {}),
         Box::new(spelling::SpellingStrRule {}),
+        Box::new(spelling::SpellingTranslatorsRule {}),
         Box::new(tabs::TabsRule {}),
         Box::new(todo_comments::TodoCommentsRule {}),
         Box::new(unchanged::UnchangedRule {}),
@@ -466,10 +470,12 @@ mod tests {
             Box::new(spelling::SpellingCtxtRule {}),
             Box::new(spelling::SpellingIdRule {}),
             Box::new(spelling::SpellingStrRule {}),
+            Box::new(spelling::SpellingTranslatorsRule {}),
         ]);
         assert!(rules.spelling_ctxt_rule);
         assert!(rules.spelling_id_rule);
         assert!(rules.spelling_str_rule);
+        assert!(rules.spelling_translators_rule);
         assert!(!rules.fuzzy_rule);
     }
 
@@ -639,7 +645,8 @@ mod tests {
         assert!(names.contains(&"spelling-ctxt"));
         assert!(names.contains(&"spelling-id"));
         assert!(names.contains(&"spelling-str"));
-        assert_eq!(rules.enabled.len(), 3);
+        assert!(names.contains(&"spelling-translators"));
+        assert_eq!(rules.enabled.len(), 4);
     }
 
     #[test]

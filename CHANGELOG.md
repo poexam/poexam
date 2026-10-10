@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ### Added
 
+- Add non-default rule "spelling-translators" to check spelling in indications for translators (extracted comments).
 - Add default rule "todo-comments" to check for TODO, FIXME and XXX markers left in translator comments.
 - Add support for format string "lua-format" in rule "formats".
 - Add support for format string "object-pascal-format" in rule "formats".

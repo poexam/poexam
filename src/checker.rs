@@ -192,7 +192,9 @@ impl<'d> Checker<'d> {
         let mut error_dict_str = false;
         while let Some(entry) = self.parser.next() {
             if entry.is_header() {
-                if (rules.spelling_ctxt_rule || rules.spelling_id_rule)
+                if (rules.spelling_ctxt_rule
+                    || rules.spelling_id_rule
+                    || rules.spelling_translators_rule)
                     && self
                         .config
                         .check

@@ -267,6 +267,11 @@ msgstr "Ceci est une faute"
 msgid "This is a typo"
 msgstr "Ceci est une fôte"
 
+# rule: spelling-translators
+#. TRANSLATORS: this is a tyypo
+msgid "This is a typo"
+msgstr "Ceci est une faute"
+
 # rule: todo-comments
 # TODO: check the translation of "bookmark"
 msgid "Add a bookmark"
