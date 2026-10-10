@@ -72,7 +72,7 @@ pub struct CheckArgs {
     #[arg(long)]
     pub obsolete: bool,
 
-    /// Exclude files matching these patterns (comma-separated list of glob patterns, matched against the file path and the file name, e.g. `vendor/**,test_*.po`); by default no files are excluded
+    /// Exclude files matching these patterns (comma-separated list of glob patterns, matched against the file path relative to the current directory and the file name, e.g. `vendor/**,test_*.po`); by default no files are excluded
     #[arg(long)]
     pub exclude: Option<String>,
 

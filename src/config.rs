@@ -225,6 +225,18 @@ impl Config {
             .map(Path::to_path_buf)
     }
 
+    /// Root directory of the project the loaded config file belongs to: the
+    /// directory of the config file, or its parent for `.poexam/poexam.toml`.
+    pub fn root_dir(&self) -> Option<PathBuf> {
+        let dir = self.config_dir()?;
+        if dir.file_name().is_some_and(|name| name == ".poexam")
+            && let Some(parent) = dir.parent()
+        {
+            return Some(parent.to_path_buf());
+        }
+        Some(dir)
+    }
+
     /// Resolve relative `path_words` / `force_trans_file` / `no_trans_file`
     /// values against the directory of the loaded config file, canonicalizing
     /// when possible. A no-op for absolute paths or when no config file path is

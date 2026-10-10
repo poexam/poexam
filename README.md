@@ -117,6 +117,8 @@ The following options are available in the `check` section (each option can be o
 | width                | Integer          | Output page width for `--fix` (default: 79); 0 disables wrapping. |
 | unsafe_fixes         | Boolean          | Also apply unsafe auto-fixes with `--fix` (see auto-fix section). |
 
+Patterns in `exclude` are matched relative to the project root (the directory containing the config file, or containing `.poexam/`), whatever the current directory; patterns given with `--exclude` are matched relative to the current directory.
+
 See configuration file example: [poexam.toml](examples/poexam.toml).
 
 ### Rules

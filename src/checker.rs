@@ -414,13 +414,29 @@ fn error_result(path: &Path, rule: &'static str, message: String) -> CheckFileRe
 
 /// Return `true` if the path matches any of the `exclude` glob patterns.
 ///
-/// Each pattern is matched against both the whole path and the file name, so
-/// `test_*.po` excludes a file at any depth while `vendor/**` excludes a whole
-/// directory tree.
-fn path_excluded(path: &Path, exclude: &[String]) -> Result<bool, globset::Error> {
+/// Each pattern is matched against the path relative to `base_dir` (when the
+/// file is under it), the absolute path and the file name, so `test_*.po`
+/// excludes a file at any depth while `vendor/**` excludes a whole directory
+/// tree under `base_dir`.
+fn path_excluded(
+    path: &Path,
+    base_dir: Option<&Path>,
+    exclude: &[String],
+) -> Result<bool, globset::Error> {
+    if exclude.is_empty() {
+        return Ok(false);
+    }
+    let abs_path = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
+    let rel_path = base_dir
+        .and_then(|dir| dir.canonicalize().ok())
+        .and_then(|dir| abs_path.strip_prefix(dir).ok().map(Path::to_path_buf));
     for pattern in exclude {
         let matcher = globset::Glob::new(pattern)?.compile_matcher();
-        if matcher.is_match(path) || path.file_name().is_some_and(|name| matcher.is_match(name)) {
+        if rel_path.as_deref().is_some_and(|rel| matcher.is_match(rel))
+            || matcher.is_match(&abs_path)
+            || matcher.is_match(path)
+            || path.file_name().is_some_and(|name| matcher.is_match(name))
+        {
             return Ok(true);
         }
     }
@@ -469,7 +485,14 @@ fn check_file(path: &PathBuf, args: &args::CheckArgs) -> Option<CheckFileResult>
             ));
         }
     };
-    match path_excluded(path, &config.check.exclude) {
+    // Patterns from the command line are relative to the current directory,
+    // patterns from the config file are relative to the project root.
+    let exclude_base = if args.exclude.is_some() {
+        std::env::current_dir().ok()
+    } else {
+        config.root_dir()
+    };
+    match path_excluded(path, exclude_base.as_deref(), &config.check.exclude) {
         Ok(true) => return None,
         Ok(false) => {}
         Err(err) => {
@@ -762,17 +785,50 @@ msgstr \"olá\"
     fn test_path_excluded() {
         let path = PathBuf::from("i18n/vendor/fr.po");
         // File name match, at any depth.
-        assert!(path_excluded(&path, &["fr.po".to_string()]).unwrap());
-        assert!(path_excluded(&path, &["fr*".to_string()]).unwrap());
+        assert!(path_excluded(&path, None, &["fr.po".to_string()]).unwrap());
+        assert!(path_excluded(&path, None, &["fr*".to_string()]).unwrap());
         // Whole path match.
-        assert!(path_excluded(&path, &["i18n/vendor/**".to_string()]).unwrap());
-        assert!(path_excluded(&path, &["**/vendor/**".to_string()]).unwrap());
+        assert!(path_excluded(&path, None, &["i18n/vendor/**".to_string()]).unwrap());
+        assert!(path_excluded(&path, None, &["**/vendor/**".to_string()]).unwrap());
         // No match.
-        assert!(!path_excluded(&path, &["de.po".to_string()]).unwrap());
-        assert!(!path_excluded(&path, &["po/**".to_string()]).unwrap());
-        assert!(!path_excluded(&path, &[]).unwrap());
+        assert!(!path_excluded(&path, None, &["de.po".to_string()]).unwrap());
+        assert!(!path_excluded(&path, None, &["po/**".to_string()]).unwrap());
+        assert!(!path_excluded(&path, None, &[]).unwrap());
         // Invalid pattern.
-        assert!(path_excluded(&path, &["ab[cd".to_string()]).is_err());
+        assert!(path_excluded(&path, None, &["ab[cd".to_string()]).is_err());
+    }
+
+    #[test]
+    fn test_path_excluded_relative_to_base_dir() {
+        let tmp = tmp_dir("exclude-base");
+        let vendor = tmp.path().join("i18n/vendor");
+        std::fs::create_dir_all(&vendor).expect("create dirs");
+        let po_path = write_po(&vendor, "fr.po", PO_PT_BR);
+        let exclude = ["i18n/vendor/**".to_string()];
+        assert!(path_excluded(&po_path, Some(tmp.path()), &exclude).unwrap());
+        assert!(!path_excluded(&po_path, Some(&vendor), &exclude).unwrap());
+        assert!(!path_excluded(&po_path, None, &exclude).unwrap());
+    }
+
+    #[test]
+    fn test_check_file_exclude_from_config_relative_to_root() {
+        // `exclude` in `<root>/.poexam/poexam.toml` applies from `<root>`,
+        // whatever the current directory.
+        let tmp = tmp_dir("exclude-config-root");
+        let cfg_dir = tmp.path().join(".poexam");
+        let vendor = tmp.path().join("ext/vendor");
+        std::fs::create_dir_all(&cfg_dir).expect("create config dir");
+        std::fs::create_dir_all(&vendor).expect("create vendor dir");
+        std::fs::write(
+            cfg_dir.join("poexam.toml"),
+            "[check]\nexclude = [\"ext/**\"]\n",
+        )
+        .expect("write config");
+        let excluded = write_po(&vendor, "fr.po", PO_PT_BR);
+        let checked = write_po(tmp.path(), "fr.po", PO_PT_BR);
+        let args = default_check_args();
+        assert!(check_file(&excluded, &args).is_none());
+        assert!(check_file(&checked, &args).is_some());
     }
 
     #[test]
