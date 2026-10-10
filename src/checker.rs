@@ -194,7 +194,7 @@ impl<'d> Checker<'d> {
             if entry.is_header() {
                 if (rules.spelling_ctxt_rule
                     || rules.spelling_id_rule
-                    || rules.spelling_translators_rule)
+                    || rules.spelling_extracted_rule)
                     && self
                         .config
                         .check

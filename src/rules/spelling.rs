@@ -4,9 +4,9 @@
 
 //! Implementation of the spelling rules: check spelling:
 //! - `spelling-ctxt`: in the context (`msgctxt`)
+//! - `spelling-extracted`: in the indications for translators (extracted comments `#.`)
 //! - `spelling-id`: in the source (`msgid`)
 //! - `spelling-str`: in the translation (`msgstr`)
-//! - `spelling-translators`: in the indications for translators (extracted comments `#.`)
 
 use std::collections::HashSet;
 
@@ -201,11 +201,11 @@ impl RuleChecker for SpellingStrRule {
     }
 }
 
-pub struct SpellingTranslatorsRule;
+pub struct SpellingExtractedRule;
 
-impl RuleChecker for SpellingTranslatorsRule {
+impl RuleChecker for SpellingExtractedRule {
     fn name(&self) -> &'static str {
-        "spelling-translators"
+        "spelling-extracted"
     }
 
     fn description(&self) -> &'static str {
@@ -386,9 +386,9 @@ mod tests {
         let mut checker = Checker::new(content.as_bytes()).with_config(config);
         let rules = Rules::new(vec![
             Box::new(SpellingCtxtRule {}),
+            Box::new(SpellingExtractedRule {}),
             Box::new(SpellingIdRule {}),
             Box::new(SpellingStrRule {}),
-            Box::new(SpellingTranslatorsRule {}),
         ]);
         checker.do_all_checks(&rules);
         checker.diagnostics
@@ -486,7 +486,7 @@ msgstr "ceci est unz fôte, ceci est unz fôte"
     }
 
     #[test]
-    fn test_spelling_translators_ok() {
+    fn test_spelling_extracted_ok() {
         let diags = check_spelling(
             r#"
 msgid ""
@@ -502,13 +502,13 @@ msgstr "testé"
     }
 
     #[test]
-    fn test_spelling_translators_noqa() {
+    fn test_spelling_extracted_noqa() {
         let diags = check_spelling(
             r#"
 msgid ""
 msgstr "Language: fr\n"
 
-#, noqa:spelling-translators
+#, noqa:spelling-extracted
 #. TRANSLATORS: this is a tyypo
 msgid "tested"
 msgstr "testé"
@@ -518,7 +518,7 @@ msgstr "testé"
     }
 
     #[test]
-    fn test_spelling_translators_error() {
+    fn test_spelling_extracted_error() {
         let diags = check_spelling(
             r#"
 msgid ""
@@ -534,7 +534,7 @@ msgstr "testé"
         );
         assert_eq!(diags.len(), 1);
         let diag = &diags[0];
-        assert_eq!(diag.rule, "spelling-translators");
+        assert_eq!(diag.rule, "spelling-extracted");
         assert_eq!(diag.severity, Severity::Info);
         assert_eq!(
             diag.build_message(),
@@ -581,7 +581,7 @@ msgstr "testé"
     }
 
     #[test]
-    fn test_spelling_translators_skipped() {
+    fn test_spelling_extracted_skipped() {
         let diags = check_spelling(
             r#"
 msgid ""

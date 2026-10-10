@@ -259,6 +259,11 @@ msgctxt "Month of the yearr"
 msgid "May"
 msgstr "Mai"
 
+# rule: spelling-extracted
+#. TRANSLATORS: this is a tyypo
+msgid "This is a typo"
+msgstr "Ceci est une faute"
+
 # rule: spelling-id
 msgid "This is a tyypo"
 msgstr "Ceci est une faute"
@@ -266,11 +271,6 @@ msgstr "Ceci est une faute"
 # rule: spelling-str
 msgid "This is a typo"
 msgstr "Ceci est une fôte"
-
-# rule: spelling-translators
-#. TRANSLATORS: this is a tyypo
-msgid "This is a typo"
-msgstr "Ceci est une faute"
 
 # rule: todo-comments
 # TODO: check the translation of "bookmark"

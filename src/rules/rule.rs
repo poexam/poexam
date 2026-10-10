@@ -38,9 +38,9 @@ pub struct Rules {
     pub obsolete_rule: bool,
     pub untranslated_rule: bool,
     pub spelling_ctxt_rule: bool,
+    pub spelling_extracted_rule: bool,
     pub spelling_id_rule: bool,
     pub spelling_str_rule: bool,
-    pub spelling_translators_rule: bool,
     pub force_trans_rule: bool,
     pub no_trans_rule: bool,
     pub comments: CommentKinds,
@@ -59,9 +59,9 @@ impl Rules {
         let obsolete_rule = rules.iter().any(|r| r.name() == "obsolete");
         let untranslated_rule = rules.iter().any(|r| r.name() == "untranslated");
         let spelling_ctxt_rule = rules.iter().any(|r| r.name() == "spelling-ctxt");
+        let spelling_extracted_rule = rules.iter().any(|r| r.name() == "spelling-extracted");
         let spelling_id_rule = rules.iter().any(|r| r.name() == "spelling-id");
         let spelling_str_rule = rules.iter().any(|r| r.name() == "spelling-str");
-        let spelling_translators_rule = rules.iter().any(|r| r.name() == "spelling-translators");
         let force_trans_rule = rules.iter().any(|r| r.name() == "force-trans");
         let no_trans_rule = rules.iter().any(|r| r.name() == "no-trans");
         let comments = rules.iter().fold(CommentKinds::NONE, |kinds, r| {
@@ -74,9 +74,9 @@ impl Rules {
             obsolete_rule,
             untranslated_rule,
             spelling_ctxt_rule,
+            spelling_extracted_rule,
             spelling_id_rule,
             spelling_str_rule,
-            spelling_translators_rule,
             force_trans_rule,
             no_trans_rule,
             comments,
@@ -212,9 +212,9 @@ fn get_all_rules() -> Vec<Rule> {
         Box::new(punc_space::PuncSpaceStrRule {}),
         Box::new(short::ShortRule {}),
         Box::new(spelling::SpellingCtxtRule {}),
+        Box::new(spelling::SpellingExtractedRule {}),
         Box::new(spelling::SpellingIdRule {}),
         Box::new(spelling::SpellingStrRule {}),
-        Box::new(spelling::SpellingTranslatorsRule {}),
         Box::new(tabs::TabsRule {}),
         Box::new(todo_comments::TodoCommentsRule {}),
         Box::new(unchanged::UnchangedRule {}),
@@ -468,14 +468,14 @@ mod tests {
     fn test_rules_new_spelling_flags() {
         let rules = Rules::new(vec![
             Box::new(spelling::SpellingCtxtRule {}),
+            Box::new(spelling::SpellingExtractedRule {}),
             Box::new(spelling::SpellingIdRule {}),
             Box::new(spelling::SpellingStrRule {}),
-            Box::new(spelling::SpellingTranslatorsRule {}),
         ]);
         assert!(rules.spelling_ctxt_rule);
+        assert!(rules.spelling_extracted_rule);
         assert!(rules.spelling_id_rule);
         assert!(rules.spelling_str_rule);
-        assert!(rules.spelling_translators_rule);
         assert!(!rules.fuzzy_rule);
     }
 
@@ -643,9 +643,9 @@ mod tests {
         let rules = get_selected_rules(&config).unwrap();
         let names = rule_names(&rules);
         assert!(names.contains(&"spelling-ctxt"));
+        assert!(names.contains(&"spelling-extracted"));
         assert!(names.contains(&"spelling-id"));
         assert!(names.contains(&"spelling-str"));
-        assert!(names.contains(&"spelling-translators"));
         assert_eq!(rules.enabled.len(), 4);
     }
 
