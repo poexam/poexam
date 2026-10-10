@@ -23,7 +23,9 @@ cargo fmt --check      # Formatting (must report no diffs)
 cargo fmt              # Auto-format all Rust source files
 ```
 
-All four commands must pass before submitting changes — they mirror `.github/workflows/ci.yml` exactly.
+`cargo fmt --check`, `cargo clippy`, `cargo build` and `cargo test` must all pass before submitting changes — they mirror the `build` job of `.github/workflows/ci.yml`. CI also has a `musl` job that builds and packages the static Linux binary with `tools/build-musl.sh --package`.
+
+The tests need GNU gettext installed (`msgfmt`, default path `/usr/bin/msgfmt`), used by the `compilation` rule: CI installs the `gettext` package on Ubuntu.
 
 **Formatting is mandatory**: every Rust file must be formatted with stock `cargo fmt` (no `rustfmt.toml` overrides). Always run `cargo fmt` after editing — `cargo fmt --check` must report no diffs, otherwise CI fails.
 
@@ -44,11 +46,21 @@ The project is REUSE-compliant. Run `pre-commit run --all-files` (or rely on the
 - `src/lsp.rs` — Language server (LSP) over stdin/stdout for editor integration (`poexam lsp`).
 - `src/stats.rs` — Statistics command implementation.
 - `src/table.rs` — Table rendering, used by the `rules` command.
-- `src/po/` — PO file parser (entry, escape, message, format strings).
+- `src/po/` — PO file handling:
+  - `parser.rs` — PO file parser (hot path).
+  - `entry.rs`, `message.rs`, `escape.rs` — entry and message types, escape handling.
+  - `wrap.rs` — wrapping of message blocks, matching GNU `msgcat` output.
+  - `writer.rs` — splicing of byte-range replacements into a PO file (used by `--fix`).
+  - `format/` — format strings: `language.rs` (`Language` enum and `FormatParser` dispatch), `iter.rs` (format string iterator) and one `lang_*.rs` parser per language.
 - `src/rules/` — All lint rules, one file per rule, or per closely related rule group.
 - `src/rules/rule.rs` — `RuleChecker` trait and rule loading.
 - `src/rules/mod.rs` — Module declarations for all rules.
 - `editors/zed/` — Zed editor extension (standalone WASM crate, excluded from the package): launches `poexam lsp` and registers the `PO` language + tree-sitter grammar. Not part of the main `cargo` build.
+- `examples/` — Example files (`fr.po` with one `# rule: …` entry per rule, `poexam.toml`, Hunspell dictionaries), excluded from the package.
+- `resources/test/` — Test fixtures: Hunspell dictionaries and PO files for the `compilation` rule, excluded from the package.
+- `tools/` — Maintainer scripts: `build-musl.sh` (static musl binary), `release.sh` and `release-notes.sh`.
+
+The crate is binary-only on purpose: do not add a `src/lib.rs`, it would make clippy pedantic enforce public-API lints (docs, `#[must_use]`, etc.) on every `pub` item.
 
 ## Adding a new rule
 
