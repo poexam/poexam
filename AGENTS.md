@@ -151,6 +151,7 @@ The format follows [Keep a Changelog 2.0.0](https://keepachangelog.com/en/2.0.0/
 
 Only the sections with entries are written.
 Always add new entries on top of the section.
+A new rule entry always says whether the rule is enabled by default, e.g. `Add default rule "my-rule" to check …` or `Add non-default rule "my-rule" to check …`; default and non-default rules go in separate entries.
 Breaking changes are specified like this:
 
 ``` markdown

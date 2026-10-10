@@ -14,7 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ### Added
 
-- Add rule "todo-comments" to check for TODO, FIXME and XXX markers left in translator comments.
+- Add non-default rule "todo-comments" to check for TODO, FIXME and XXX markers left in translator comments.
 - Add support for format string "lua-format" in rule "formats".
 - Add support for format string "object-pascal-format" in rule "formats".
 - Add default rule "punc-repeated" to check for extra repeated punctuation in the translation (e.g. `!!`, `??`, `,,`).
@@ -166,7 +166,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 - Add support for configuration file "poexam.toml", add options `--config` and `--no-config`.
 - Add support for format strings "python-format" and "python-brace-format".
-- Add rules "changed", "long" and "short".
+- Add default rules "long" and "short".
+- Add non-default rule "changed".
 
 ### Changed
 
@@ -217,7 +218,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ### Added
 
-- Add rules "spelling-ctxt", "spelling-id" and "spelling-str".
+- Add non-default rules "spelling-ctxt", "spelling-id" and "spelling-str".
 - Add special rule "spelling" to select all spelling rules.
 - Add special rule "checks" to select all rules except fuzzy, obsolete and untranslated.
 
