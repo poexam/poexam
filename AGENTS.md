@@ -72,15 +72,16 @@ The crate is binary-only on purpose: do not add a `src/lib.rs`, it would make cl
    - `is_check()` — `true` for real checks, `false` for special rules like `fuzzy`/`noqa`.
    - One or more check methods: `check_file()`, `check_header()`, `check_entry()`, `check_ctxt()`, or `check_msg()`.
    - Optional: `uses_comments()` returning `true` if the rule reads `entry.translator_comments`, `entry.extracted_comments` or `entry.references` (comments are parsed only when an enabled rule uses them).
-3. Build each diagnostic with `new_diag()`, which takes the severity as an argument: severity is per diagnostic, not per rule, so a single rule can emit several severities (see `src/rules/header.rs`). Pick it by impact:
+3. Build each diagnostic with `new_diag()`, which returns `Option<Diagnostic>` (`None` when the configured `severity` filter excludes it) and is completed with the builder methods of `src/diagnostic.rs` (`with_entry()`, `with_msg_hl()`, `with_msgs_hl()`, …). It takes the severity as an argument: severity is per diagnostic, not per rule, so a single rule can emit several severities (see `src/rules/header.rs`). Pick it by impact:
    - `Severity::Error` — file won't compile or msgid/msgstr structural mismatch that breaks runtime (e.g. `compilation`, `escapes`, `formats`, `newlines`, `plurals`, `tabs`).
    - `Severity::Warning` — translation is likely wrong but file still compiles (e.g. `blank`, `long`, `short`).
    - `Severity::Info` — stylistic or informational (default for most rules).
-4. Add `pub mod my_rule;` in `src/rules/mod.rs`.
-5. Register the rule in `src/rules/rule.rs`: add the module to the `use crate::rules::{…}` block and the rule to `get_all_rules()` (both alphabetical). A rule that must influence entry filtering (like `fuzzy` or `obsolete`) also needs a boolean field in `struct Rules`, set by name in `Rules::new()`.
-6. Add tests in the same file using `#[cfg(test)]` module.
-7. Add a `# rule: my-rule` example entry in `examples/fr.po`.
-8. Update `README.md` rules table and `CHANGELOG.md`.
+4. Optional: if the error can be corrected automatically, attach a `Fix` (from `src/fix.rs`) with `with_fix()` or `with_optional_fix()` so that `--fix` can apply it (see `src/rules/whitespace.rs` or `src/rules/double_spaces.rs`), and document it in the "Auto-fix" section of `README.md`.
+5. Add `pub mod my_rule;` in `src/rules/mod.rs`.
+6. Register the rule in `src/rules/rule.rs`: add the module to the `use crate::rules::{…}` block and the rule to `get_all_rules()` (both alphabetical). A rule that must influence entry filtering (like `fuzzy` or `obsolete`) also needs a boolean field in `struct Rules`, set by name in `Rules::new()`.
+7. Add tests in the same file using `#[cfg(test)]` module.
+8. Add a `# rule: my-rule` example entry in `examples/fr.po`, then update the `examples/fr.po:NN` line number in the example diagnostic of `README.md` if it moved.
+9. Update `README.md` rules table and `CHANGELOG.md`.
 
 ## Adding a new format language
 
@@ -97,8 +98,9 @@ To add support for a new format language (e.g. `ruby-format`):
    - Add a match arm in both `next_char()` and `find_end_format()` of `impl FormatParser for Language`, delegating to the new parser (e.g. `Self::Ruby => FormatRuby.next_char(s, pos)`).
    - Add a test case in `test_language()`.
 4. Add tests in `lang_ruby.rs` using a `#[cfg(test)]` module (test `strip_formats`, `FormatPos`, etc.).
-5. Update the `formats` rule documentation in `README.md`.
-6. Update `CHANGELOG.md`.
+5. Add a `# rule: formats` example entry with the new `#, ruby-format` flag in `examples/fr.po` (next to the other languages), then update the `examples/fr.po:NN` line number in the example diagnostic of `README.md` if it moved.
+6. Update the `formats` rule documentation in `README.md`.
+7. Update `CHANGELOG.md`.
 
 The format is automatically picked up by the parser — no changes needed in `src/po/parser.rs` (it already strips `-format` and calls `Language::from()`).
 
