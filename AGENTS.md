@@ -29,7 +29,7 @@ The tests need GNU gettext installed (`msgfmt`, default path `/usr/bin/msgfmt`),
 
 **Formatting is mandatory**: every Rust file must be formatted with stock `cargo fmt` (no `rustfmt.toml` overrides). Always run `cargo fmt` after editing — `cargo fmt --check` must report no diffs, otherwise CI fails.
 
-The project is REUSE-compliant. Run `pre-commit run --all-files` (or rely on the pre-commit hook) to verify SPDX/license headers — `.github/workflows/reuse.yml` runs the same check on every push.
+The project is REUSE-compliant. Run `pre-commit run --all-files` (or rely on the pre-commit hook) to verify SPDX/license headers — the `reuse` job of `.github/workflows/ci.yml` runs the same check on every push.
 
 ## Project structure
 
@@ -106,7 +106,7 @@ The format is automatically picked up by the parser — no changes needed in `sr
 
 ## Code conventions
 
-- **SPDX headers**: Every file must start with the SPDX copyright and license header (update year, author and comment type accordingly on each file change). This is enforced by the REUSE tool via the pre-commit hook and the `reuse.yml` workflow — missing or malformed headers fail CI:
+- **SPDX headers**: Every file must start with the SPDX copyright and license header (update year, author and comment type accordingly on each file change). This is enforced by the REUSE tool via the pre-commit hook and the `reuse` job of the CI workflow — missing or malformed headers fail CI:
 
   ```rust
   // SPDX-FileCopyrightText: 2026 Sébastien Helleu <flashcode@flashtux.org>

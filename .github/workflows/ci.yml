@@ -72,3 +72,12 @@ jobs:
 
       - name: Build and package the static musl binary
         run: tools/build-musl.sh --package
+
+  reuse:
+    runs-on: ubuntu-26.04
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: REUSE Compliance Check
+        uses: fsfe/reuse-action@v6
