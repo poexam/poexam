@@ -19,8 +19,8 @@ use crate::{
         accelerators, acronyms, blank, brackets, changed, compendium, compilation, double_quotes,
         double_spaces, double_words, emails, encoding, escapes, force_trans, formats, functions,
         fuzzy, header, html_tags, lang_path, long, markdown, newlines, no_trans, noqa, numbers,
-        obsolete, options, paths, pipes, plurals, punc, punc_space, short, spelling, tabs,
-        todo_comments, unchanged, unicode_ctrl, untranslated, urls, variables, whitespace,
+        obsolete, options, paths, pipes, plural_forms, plurals, punc, punc_space, short, spelling,
+        tabs, todo_comments, unchanged, unicode_ctrl, untranslated, urls, variables, whitespace,
     },
     table::render_table,
 };
@@ -203,6 +203,7 @@ fn get_all_rules() -> Vec<Rule> {
         Box::new(options::OptionsRule {}),
         Box::new(paths::PathsRule {}),
         Box::new(pipes::PipesRule {}),
+        Box::new(plural_forms::PluralFormsRule {}),
         Box::new(plurals::PluralsRule {}),
         Box::new(plurals::PluralsEmptyRule {}),
         Box::new(plurals::PluralsSameRule {}),

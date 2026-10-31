@@ -48,6 +48,7 @@ The project is REUSE-compliant. Run `pre-commit run --all-files` (or rely on the
 - `src/table.rs` — Table rendering, used by the `rules` command.
 - `src/po/` — PO file handling:
   - `parser.rs` — PO file parser (hot path).
+  - `plural.rs` — parser and evaluator of the plural expression of the `Plural-Forms` header.
   - `entry.rs`, `message.rs`, `escape.rs` — entry and message types, escape handling.
   - `wrap.rs` — wrapping of message blocks, matching GNU `msgcat` output.
   - `writer.rs` — splicing of byte-range replacements into a PO file (used by `--fix`).

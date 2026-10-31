@@ -34,6 +34,7 @@ pub mod obsolete;
 pub mod options;
 pub mod paths;
 pub mod pipes;
+pub mod plural_forms;
 pub mod plurals;
 pub mod punc;
 pub mod punc_space;

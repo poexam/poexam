@@ -9,5 +9,6 @@ pub mod escape;
 pub mod format;
 pub mod message;
 pub mod parser;
+pub mod plural;
 pub mod wrap;
 pub mod writer;

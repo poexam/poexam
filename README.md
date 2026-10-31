@@ -140,6 +140,7 @@ It can perform a lot of checks via the default rules:
 | long                  | Translation too long.                               |
 | newlines              | Missing/extra newlines.                             |
 | pipes                 | Missing/extra pipes.                                |
+| plural-forms          | Invalid plural forms or not matching language.      |
 | plurals               | Incorrect number of plurals.                        |
 | plurals-empty         | Empty plural form among translated ones.            |
 | punc-start            | Inconsistent leading punctuation.                   |
@@ -287,6 +288,13 @@ The default rule `lang-path` completes this by comparing the `Language` field wi
 The language is read from the file stem (`po/pt_BR.po`), or from the directory next to `LC_MESSAGES` in the runtime layout (`po/de/LC_MESSAGES/app.po`, where the file is named after the domain). Only the language code is compared, so `pt_BR.po` accepts both `Language: pt_BR` and `Language: pt`.
 
 A path announcing no language is skipped, as is a header whose `Language` is missing or malformed, which the `header` rule already reports. A file name that is a bare three-letter code is skipped too: `app.po`, `cli.po` and `doc.po` are shaped exactly like `ast.po` or `fil.po`, so nothing is read off them. A three-letter locale directory next to `LC_MESSAGES` is unambiguous and is checked.
+
+The default rule `plural-forms` checks the plural expression of the `Plural-Forms` field, which gettext evaluates at runtime to select the `msgstr[N]` to display:
+
+- the expression must be valid, must not divide by zero and must return an index lower than `nplurals` (errors, whatever the language)
+- the plural forms must match the plural rules of the `Language` field (warning): `nplurals=2; plural=(n != 1);` in a French file displays "0 fichiers" instead of "0 fichier", and two forms in a Russian or Polish file make gettext use the wrong form for 5 or 22 items.
+
+The expressions are compared by evaluating them for many values of `n`: what matters is that the same numbers share a plural form, so equivalent expressions written differently, forms in another order (`msgstr[N]` follow the header) or an extra form never used for integers (e.g. Transifex forms for fractions) are accepted. Several variants are accepted for some languages (GNU gettext, CLDR, Django), and languages without known plural forms are not checked.
 
 ### Spell checking
 
@@ -534,6 +542,19 @@ Rules that currently produce auto-fixes (`Safe: no` fixes require `--unsafe-fixe
 - **Caveats**: the translator may have intentionally used a localized path (e.g. a directory
   name that is part of an example string rather than a real filesystem reference); the fix
   overwrites that choice with the source's path.
+
+#### plural-forms
+
+- **Fix**: Replace the value of the `Plural-Forms` header field with the plural forms of the
+  language (e.g. `nplurals=2; plural=(n > 1);` for French), only when the number of forms is the
+  same: a different `nplurals` would require adding or removing a `msgstr[N]` in every plural
+  entry, so it is not auto-fixable. Plural forms not matching the language are fixed only when
+  each form keeps its meaning (e.g. `n != 1` in a French file: form 0 is the singular, form 1 the
+  plural), not when forms would be swapped (e.g. `n == 1`, where form 1 is the singular).
+- **Safe**: yes with 2 forms; no with 3 forms or more, and for an invalid expression.
+- **Caveats**: with 3 forms or more, the meaning of each form is guessed from the numbers it is
+  used for, so some numbers may switch to a form the translator did not write for them; an
+  invalid expression gives no hint about the meaning of the forms.
 
 #### punc-start
 
