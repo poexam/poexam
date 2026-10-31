@@ -38,7 +38,7 @@ It reports very few false positives and can be used in CI jobs and pre-commit ho
 
 ## Installation
 
-With cargo:
+With cargo, which compiles poexam and all its dependencies from sources:
 
 ```shell
 cargo install poexam
@@ -48,7 +48,13 @@ cargo install poexam
 
 Each release ships a static binary for Linux `x86_64` and `aarch64`, built against musl libc: it does not depend on the system libc and runs on any distribution, including Alpine and `scratch` containers.
 
-Download it, check it against its `sha256` sidecar and install it (replace `x86_64` with `aarch64` on ARM):
+With [cargo-binstall](https://github.com/cargo-bins/cargo-binstall) (poexam 0.4.0 or later), which installs the static binary on Linux `x86_64` and `aarch64` and compiles from source on other platforms:
+
+```shell
+cargo binstall poexam
+```
+
+Or manually: download it, check it against its `sha256` sidecar and install it (replace `x86_64` with `aarch64` on ARM):
 
 ```shell
 url=https://github.com/poexam/poexam/releases/latest/download
