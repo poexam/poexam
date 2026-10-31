@@ -23,6 +23,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 - **Breaking:** rename rule "spelling-translators" to "spelling-extracted".
 
+### Fixed
+
+- Fix option `--noqa`: check entries marked as "noqa" (with or without rules), including the header.
+
 ## [0.3.0] - 2026-10-10
 
 ### Added

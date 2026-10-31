@@ -264,7 +264,7 @@ msgid "Error: %s."
 msgstr "Erreur : %s"
 ```
 
-The non-default rule `noqa` reports the entries marked this way.
+The option `--noqa` (or `noqa` in the configuration file) checks these entries anyway, and the non-default rule `noqa` reports them.
 
 Note: the GNU gettext tools (`msgmerge`, `msgcat`, …) drop the flags they do not know, including `noqa`, whereas translator comments are kept: prefer the comment form in files updated by these tools.
 

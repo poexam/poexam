@@ -247,6 +247,7 @@ impl<'d> Checker<'d> {
                 if let Some(msgstr_0) = entry.msgstr.get(&0) {
                     for rule in &rules.enabled {
                         if rule.name() != "noqa"
+                            && !self.config.check.noqa
                             && (entry.noqa || entry.noqa_rules.iter().any(|r| r == rule.name()))
                         {
                             continue;
@@ -266,6 +267,7 @@ impl<'d> Checker<'d> {
             }
             for rule in &rules.enabled {
                 if rule.name() != "noqa"
+                    && !self.config.check.noqa
                     && (entry.noqa || entry.noqa_rules.iter().any(|r| r == rule.name()))
                 {
                     continue;
@@ -1339,6 +1341,43 @@ msgstr \"Guillemets : « test »\"
         let config = config_with_select(&["fuzzy"]);
         let diags = check_bytes(PO_PT_BR.as_bytes(), Path::new("fr.po"), config);
         assert!(diags.is_empty(), "expected no diagnostics, got {diags:?}");
+    }
+
+    #[test]
+    fn test_check_bytes_noqa() {
+        let content = "msgid \"\"\nmsgstr \"Language: fr\\n\"\n\n\
+                       #, noqa\nmsgid \"a \"\nmsgstr \"b\"\n\n\
+                       # noqa:whitespace-end\nmsgid \"c \"\nmsgstr \"d\"\n\n\
+                       #, noqa:whitespace-end\nmsgid \"e \"\nmsgstr \"f\"\n";
+        let count = |config: Config| {
+            check_bytes(content.as_bytes(), Path::new("fr.po"), config)
+                .iter()
+                .filter(|d| d.rule == "whitespace-end")
+                .count()
+        };
+        // Entries marked as "noqa" are not checked by default.
+        assert_eq!(count(config_with_select(&["whitespace-end"])), 0);
+        // The rule "noqa" does not check them either.
+        assert_eq!(count(config_with_select(&["whitespace-end", "noqa"])), 0);
+        // With option `--noqa`, they are checked.
+        let mut config = config_with_select(&["whitespace-end"]);
+        config.check.noqa = true;
+        assert_eq!(count(config), 3);
+    }
+
+    #[test]
+    fn test_check_bytes_noqa_header() {
+        let content = "#, noqa:header\nmsgid \"\"\nmsgstr \"\"\n";
+        let count = |config: Config| {
+            check_bytes(content.as_bytes(), Path::new("fr.po"), config)
+                .iter()
+                .filter(|d| d.rule == "header")
+                .count()
+        };
+        assert_eq!(count(config_with_select(&["header"])), 0);
+        let mut config = config_with_select(&["header"]);
+        config.check.noqa = true;
+        assert!(count(config) > 0);
     }
 
     #[test]
