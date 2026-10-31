@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ### Added
 
+- Add non-default rule "caps-start" to check for inconsistent capitalization of the first letter between source and translation.
 - Add default rule "plural-forms" to check that the plural expression in header is valid and matches the language.
 - Add non-default rule "plurals-same" to check for identical plural forms in translation while the source forms differ.
 

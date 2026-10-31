@@ -8,6 +8,7 @@ pub mod accelerators;
 pub mod acronyms;
 pub mod blank;
 pub mod brackets;
+pub mod caps_start;
 pub mod changed;
 pub mod compendium;
 pub mod compilation;

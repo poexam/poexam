@@ -37,6 +37,10 @@ msgstr " "
 msgid "Test [brackets]"
 msgstr "Test crochets"
 
+# rule: caps-start
+msgid "Delete the file"
+msgstr "supprimer le fichier"
+
 # rule: compendium
 msgid "Conflicting translation"
 msgstr ""

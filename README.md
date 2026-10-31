@@ -204,6 +204,7 @@ You can enable them on-demand:
 |----------------------|--------------------------------------------------|
 | acronyms             | Acronyms from the source missing in translation. |
 | brackets             | Missing/extra brackets.                          |
+| caps-start           | Inconsistent capitalization of the first letter. |
 | changed              | Translation is different from the source string. |
 | compilation          | Compilation with `msgfmt`.                       |
 | double-quotes        | Missing/extra double quotes.                     |
@@ -435,6 +436,15 @@ poexam check --fix --unsafe-fixes po/  # safe and unsafe fixes
 The rewriter wraps each replaced `msgstr` block the same way GNU `msgcat` does (Unicode Line Breaking + display width, default page width 79), so running `msgcat` on a fixed file is a no-op. The page width is configurable with `--width N` (or `check.width` in the config file); `--width 0` disables wrapping entirely (matches `msgcat --width=0` / `msgcat --no-wrap`).
 
 Rules that currently produce auto-fixes (`Safe: no` fixes require `--unsafe-fixes`):
+
+#### caps-start
+
+- **Fix**: Change the case of the first letter of the translation to the case of the first letter
+  of the source (`supprimer le fichier` becomes `Supprimer le fichier`), with the special cases of
+  Turkish and Azerbaijani dotted and dotless `i`, Dutch `IJ` and Latin digraphs (`ǅ`). No fix when
+  the letter has no single-letter counterpart (e.g. `ß`).
+- **Safe**: yes to uppercase the first letter; no to lowercase it.
+- **Caveats**: the translation may start with a proper noun, which must not be lowercased.
 
 #### double-spaces
 
