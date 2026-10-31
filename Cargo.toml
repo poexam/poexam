@@ -22,6 +22,17 @@ categories = [
     "internationalization",
 ]
 
+# Prebuilt static Linux binaries of the GitHub releases, for "cargo binstall".
+[package.metadata.binstall.overrides.x86_64-unknown-linux-musl]
+pkg-url = "{ repo }/releases/download/v{ version }/{ name }-linux-x86_64{ archive-suffix }"
+bin-dir = "{ name }-linux-x86_64/{ bin }{ binary-ext }"
+pkg-fmt = "tgz"
+
+[package.metadata.binstall.overrides.aarch64-unknown-linux-musl]
+pkg-url = "{ repo }/releases/download/v{ version }/{ name }-linux-aarch64{ archive-suffix }"
+bin-dir = "{ name }-linux-aarch64/{ bin }{ binary-ext }"
+pkg-fmt = "tgz"
+
 [dependencies]
 clap = { version = "4.6.6", features = ["derive"] }
 colored = "3.1.1"
