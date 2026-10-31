@@ -171,6 +171,12 @@ msgid_plural "%d directories"
 msgstr[0] "%d répertoire"
 msgstr[1] ""
 
+# rule: plurals-same
+msgid "%d link"
+msgid_plural "%d links"
+msgstr[0] "%d lien"
+msgstr[1] "%d lien"
+
 # rule: punc-end
 msgid "Test punctuation end."
 msgstr "Test de ponctuation à la fin"

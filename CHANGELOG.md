@@ -12,6 +12,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Add non-default rule "plurals-same" to check for identical plural forms in translation while the source forms differ.
+
 ### Changed
 
 - **Breaking:** rename rule "spelling-translators" to "spelling-extracted".

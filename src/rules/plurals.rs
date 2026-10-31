@@ -2,8 +2,9 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Implementation of the rules `plurals` (check incorrect number of plurals)
-//! and `plurals-empty` (check empty plural form among translated ones).
+//! Implementation of the rules `plurals` (check incorrect number of plurals),
+//! `plurals-empty` (check empty plural form among translated ones) and
+//! `plurals-same` (check identical plural forms).
 
 use std::fmt::Write as _;
 
@@ -14,6 +15,7 @@ use crate::rules::rule::RuleChecker;
 
 pub struct PluralsRule;
 pub struct PluralsEmptyRule;
+pub struct PluralsSameRule;
 
 impl RuleChecker for PluralsRule {
     fn name(&self) -> &'static str {
@@ -169,6 +171,81 @@ impl RuleChecker for PluralsEmptyRule {
     }
 }
 
+impl RuleChecker for PluralsSameRule {
+    fn name(&self) -> &'static str {
+        "plurals-same"
+    }
+
+    fn description(&self) -> &'static str {
+        "Check for identical plural forms in translation when source forms differ."
+    }
+
+    fn is_default(&self) -> bool {
+        false
+    }
+
+    fn is_check(&self) -> bool {
+        true
+    }
+
+    /// Check for identical plural forms in translation while `msgid` and `msgid_plural` differ.
+    ///
+    /// This often means the singular form was copied into the other forms and not adapted.
+    ///
+    /// Entries with a single translated form (e.g. `nplurals=1`), with an empty form (reported
+    /// by the `plurals-empty` and `untranslated` rules) or with identical source forms are not
+    /// reported.
+    ///
+    /// The rule is not enabled by default because identical forms are legit in some cases:
+    /// invariable words (e.g. French "%d fois") or languages that don't mark the plural after
+    /// a number (e.g. Turkish, Hungarian).
+    ///
+    /// Wrong entry:
+    /// ```text
+    /// msgid "%d file"
+    /// msgid_plural "%d files"
+    /// msgstr[0] "%d fichier"
+    /// msgstr[1] "%d fichier"
+    /// ```
+    ///
+    /// Correct entry:
+    /// ```text
+    /// msgid "%d file"
+    /// msgid_plural "%d files"
+    /// msgstr[0] "%d fichier"
+    /// msgstr[1] "%d fichiers"
+    /// ```
+    ///
+    /// Diagnostics reported:
+    /// - [`warning`](Severity::Warning): `identical plural forms in translation (#)`
+    fn check_entry(&self, checker: &Checker, entry: &Entry) -> Vec<Diagnostic> {
+        let (Some(msgid), Some(msgid_plural)) = (&entry.msgid, &entry.msgid_plural) else {
+            return vec![];
+        };
+        if entry.msgstr.len() < 2 || msgid.value == msgid_plural.value {
+            return vec![];
+        }
+        let mut strs = entry.msgstr.values();
+        let Some(first) = strs.next() else {
+            return vec![];
+        };
+        if first.value.is_empty() || !strs.all(|msgstr| msgstr.value == first.value) {
+            return vec![];
+        }
+        self.new_diag(
+            checker,
+            Severity::Warning,
+            format!(
+                "identical plural forms in translation ({})",
+                entry.msgstr.len()
+            ),
+        )
+        .map(|d| d.with_entry(entry))
+        .into_iter()
+        .collect()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -184,6 +261,13 @@ mod tests {
     fn check_plurals_empty(content: &str) -> Vec<Diagnostic> {
         let mut checker = Checker::new(content.as_bytes());
         let rules = Rules::new(vec![Box::new(PluralsEmptyRule {})]);
+        checker.do_all_checks(&rules);
+        checker.diagnostics
+    }
+
+    fn check_plurals_same(content: &str) -> Vec<Diagnostic> {
+        let mut checker = Checker::new(content.as_bytes());
+        let rules = Rules::new(vec![Box::new(PluralsSameRule {})]);
         checker.do_all_checks(&rules);
         checker.diagnostics
     }
@@ -386,5 +470,130 @@ msgstr[2] ""
         assert_eq!(diags.len(), 1);
         assert_eq!(diags[0].severity, Severity::Error);
         assert_eq!(diags[0].message, "empty plural forms msgstr[1], msgstr[2]");
+    }
+
+    #[test]
+    fn test_plurals_same_ok() {
+        // Different plural forms.
+        let diags = check_plurals_same(
+            r#"
+msgid "%d file"
+msgid_plural "%d files"
+msgstr[0] "%d fichier"
+msgstr[1] "%d fichiers"
+"#,
+        );
+        assert!(diags.is_empty());
+        // Entry without plural form.
+        let diags = check_plurals_same(
+            r#"
+msgid "tested"
+msgstr "tested"
+"#,
+        );
+        assert!(diags.is_empty());
+        // Only some forms identical (3 forms).
+        let diags = check_plurals_same(
+            r#"
+msgid "%d file"
+msgid_plural "%d files"
+msgstr[0] "%d файл"
+msgstr[1] "%d файла"
+msgstr[2] "%d файла"
+"#,
+        );
+        assert!(diags.is_empty());
+        // Single form (nplurals=1).
+        let diags = check_plurals_same(
+            r#"
+msgid "%d file"
+msgid_plural "%d files"
+msgstr[0] "%d 個のファイル"
+"#,
+        );
+        assert!(diags.is_empty());
+    }
+
+    #[test]
+    fn test_plurals_same_identical_source() {
+        // Identical source forms: identical translations are expected.
+        let diags = check_plurals_same(
+            r#"
+msgid "%d sheep"
+msgid_plural "%d sheep"
+msgstr[0] "%d mouton"
+msgstr[1] "%d mouton"
+"#,
+        );
+        assert!(diags.is_empty());
+    }
+
+    #[test]
+    fn test_plurals_same_empty() {
+        // Untranslated or partially translated entries are reported by other rules.
+        let diags = check_plurals_same(
+            r#"
+msgid "%d file"
+msgid_plural "%d files"
+msgstr[0] ""
+msgstr[1] ""
+"#,
+        );
+        assert!(diags.is_empty());
+        let diags = check_plurals_same(
+            r#"
+msgid "%d file"
+msgid_plural "%d files"
+msgstr[0] "%d fichier"
+msgstr[1] ""
+"#,
+        );
+        assert!(diags.is_empty());
+    }
+
+    #[test]
+    fn test_plurals_same_error_noqa() {
+        let diags = check_plurals_same(
+            r#"
+#, noqa:plurals-same
+msgid "%d time"
+msgid_plural "%d times"
+msgstr[0] "%d fois"
+msgstr[1] "%d fois"
+"#,
+        );
+        assert!(diags.is_empty());
+    }
+
+    #[test]
+    fn test_plurals_same_error() {
+        let diags = check_plurals_same(
+            r#"
+msgid "%d file"
+msgid_plural "%d files"
+msgstr[0] "%d fichier"
+msgstr[1] "%d fichier"
+"#,
+        );
+        assert_eq!(diags.len(), 1);
+        assert_eq!(diags[0].severity, Severity::Warning);
+        assert_eq!(
+            diags[0].message,
+            "identical plural forms in translation (2)"
+        );
+        let diags = check_plurals_same(
+            r#"
+msgid "%d file"
+msgid_plural "%d files"
+msgstr[0] "%d файл"
+msgstr[1] "%d файл"
+msgstr[2] "%d файл"
+"#,
+        );
+        assert_eq!(diags.len(), 1);
+        assert_eq!(
+            diags[0].message,
+            "identical plural forms in translation (3)"
+        );
     }
 }

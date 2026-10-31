@@ -218,6 +218,7 @@ You can enable them on-demand:
 | obsolete             | Obsolete entry.                                  |
 | options              | Missing/extra/different command-line options.    |
 | paths                | Missing/extra/different paths.                   |
+| plurals-same         | Identical plural forms in translation.           |
 | spelling-ctxt        | Spelling error in the context.                   |
 | spelling-extracted   | Spelling error in indications for translators.   |
 | spelling-id          | Spelling error in the source.                    |
