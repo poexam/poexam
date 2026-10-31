@@ -249,6 +249,25 @@ examples/fr.po:37: [info:brackets] missing opening and closing square brackets '
         |
 ```
 
+### Ignoring entries (noqa)
+
+An entry can be excluded from all checks with `noqa`, or from some rules only with `noqa:` followed by rule names separated by `;`, either in the flags or in a translator comment:
+
+```text
+#, c-format, noqa:punc-space-str;punc-end
+msgid "Error: %s."
+msgstr "Erreur : %s"
+
+# noqa:punc-space-str;punc-end
+#, c-format
+msgid "Error: %s."
+msgstr "Erreur : %s"
+```
+
+The non-default rule `noqa` reports the entries marked this way.
+
+Note: the GNU gettext tools (`msgmerge`, `msgcat`, …) drop the flags they do not know, including `noqa`, whereas translator comments are kept: prefer the comment form in files updated by these tools.
+
 ### Merge conflicts
 
 When `msgcat` merges catalogs that hold conflicting translations for the same `msgid`, it does not pick one: it writes every alternative into the `msgstr`, each introduced by a `#-#-#-#-#` line naming where it came from.
