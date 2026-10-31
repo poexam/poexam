@@ -138,6 +138,7 @@ It can perform a lot of checks via the default rules:
 | header                | Invalid/missing/unfilled fields in PO file header.  |
 | lang-path             | Language in header different from the file path.    |
 | long                  | Translation too long.                               |
+| max-length            | Translation longer than the `max-length:N` flag.    |
 | newlines              | Missing/extra newlines.                             |
 | pipes                 | Missing/extra pipes.                                |
 | plural-forms          | Invalid plural forms or not matching language.      |
@@ -368,6 +369,26 @@ msgstr "Utilisez --niveau=débogage"     # flagged: the option was translated
 ```
 
 The word boundary and the leading letter are what keep prose out: the hyphen of `well-known`, `café-restaurant`, `UTF-8` and `5-10` follows an alphanumeric character, while `-5` and a dash surrounded by spaces are not followed by a letter. Format strings are skipped (e.g. `%s`, `{0}`).
+
+### Maximum length
+
+The default rule `max-length` checks that the translation does not exceed the maximum length set on an entry by the flag `max-length:N`, for strings that must fit a fixed space (buttons, menus, small displays):
+
+```text
+#, max-length:10
+msgid "Save file"
+msgstr "Enregistrer le fichier"
+```
+
+The flag and its companions are the ones of [Weblate](https://docs.weblate.org/en/latest/user/checks.html), so the same file is checked the same way in both tools:
+
+- the length is the number of Unicode characters, each plural form being checked
+- with the flag `xml-text`, XML tags (e.g. `<b>`) are not counted
+- the flag `ignore-max-length` disables the check for the entry.
+
+Entries without the flag are not checked, so the rule never reports anything on files that do not use it. An invalid value (e.g. `max-length:0`) is reported.
+
+Note: `xgettext` can not add custom flags, and the GNU gettext tools (`msgmerge`, `msgcat`, …) drop the flags they do not know, so the flag must be added to the PO files after extraction and merge, or by a translation platform like Weblate.
 
 ### Markdown
 

@@ -140,6 +140,11 @@ msgstr "une longue traduction"
 msgid "Read [the manual](https://example.com/manual) or run `make help`"
 msgstr "Lisez [le manuel] (https://example.com/manual) ou lancez make help"
 
+# rule: max-length
+#, max-length:10
+msgid "Save file"
+msgstr "Enregistrer le fichier"
+
 # rule: newlines
 msgid "Test\ntwo lines"
 msgstr "\nTest deux lignes\n"
