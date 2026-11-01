@@ -174,7 +174,7 @@ fn language_plural_forms(language: &str) -> Option<&'static [PluralForms]> {
     })
 }
 
-/// Return `true` if the expression splits the [samples](samples) into the same
+/// Return `true` if the expression splits the [samples] into the same
 /// groups of numbers as the expected one, whatever the index of each group.
 ///
 /// The indices are only labels for the `msgstr[N]` of the file: plural forms
@@ -201,7 +201,7 @@ fn same_plural_groups(expr: &PluralExpr, expected: &PluralExpr) -> bool {
 
 /// Return `true` if each plural form of the expression has the same meaning as
 /// the form with the same index in the expected expression: for each index
-/// returned by the expression, most of the [samples](samples) with this index
+/// returned by the expression, most of the [samples] with this index
 /// have the same index in the expected expression.
 ///
 /// For example with French, `n != 1` has the same meaning as `n > 1` (form 0

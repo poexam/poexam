@@ -6,7 +6,7 @@
 //!
 //! Runs poexam over stdin/stdout so editors can show diagnostics in real time
 //! while a PO file is being edited. The buffer the editor holds (which may be
-//! unsaved) is checked with [`check_bytes`](crate::checker::check_bytes), and
+//! unsaved) is checked with [`check_bytes`], and
 //! every poexam [`Diagnostic`](crate::diagnostic::Diagnostic) is mapped to an
 //! LSP diagnostic.
 //!
