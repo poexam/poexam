@@ -145,6 +145,10 @@ msgstr "Lisez [le manuel] (https://example.com/manual) ou lancez make help"
 msgid "Save file"
 msgstr "Enregistrer le fichier"
 
+# rule: multiple-capitals
+msgid "Click on the lock to make changes."
+msgstr "CLiquez sur le cadenas pour faire des changements."
+
 # rule: newlines
 msgid "Test\ntwo lines"
 msgstr "\nTest deux lignes\n"

@@ -145,6 +145,7 @@ It can perform a lot of checks via the default rules:
 | lang-path             | Language in header different from the file path.    |
 | long                  | Translation too long.                               |
 | max-length            | Translation longer than the `max-length:N` flag.    |
+| multiple-capitals     | Misplaced capital letters in a word (`HEllo`).      |
 | newlines              | Missing/extra newlines.                             |
 | pipes                 | Missing/extra pipes.                                |
 | plural-forms          | Invalid plural forms or not matching language.      |
@@ -556,6 +557,13 @@ Rules that currently produce auto-fixes (`Safe: no` fixes require `--unsafe-fixe
 - **Caveats**: the translator may have reordered links in the prose, or used a localized link
   (e.g. a page with a language prefix such as `/fr/about`); the fix then overwrites it with
   the wrong source destination.
+
+#### multiple-capitals
+
+- **Fix**: Lowercase the second capital letter of the word (`CLiquez` becomes `Cliquez`), with
+  the special case of Turkish and Azerbaijani dotless `ı`.
+- **Safe**: no.
+- **Caveats**: the word may be a name not found in the source (e.g. `GFlare`, `LCh`).
 
 #### newlines
 
