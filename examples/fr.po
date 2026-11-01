@@ -210,6 +210,13 @@ msgstr "Espace supplémentaire avant le point d'exclamation dans le source !"
 msgid "Space must be a non-breaking space before exclamation mark in translation!"
 msgstr "L'espace doit être un espace insécable avant le point d'exclamation dans la traduction !"
 
+# rule: reused-translation
+msgid "Open the selected file"
+msgstr "Ouvrir le fichier sélectionné"
+
+msgid "Close the current window"
+msgstr "Ouvrir le fichier sélectionné"
+
 # rule: short
 msgid "this is an example of a very long message in English"
 msgstr "ceci"

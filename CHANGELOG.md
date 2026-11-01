@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ### Added
 
+- Add non-default rule "reused-translation" to check for translations used for different source strings.
 - Add default rule "multiple-capitals" to check for words starting with misplaced capital letters in the translation, like `HEllo`.
 
 ## [0.4.0] - 2026-11-01

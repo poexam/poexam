@@ -163,6 +163,73 @@ impl<'d> Checker<'d> {
         diags
     }
 
+    /// Return `true` if the rule must not check the entry, because of a
+    /// `noqa` flag (except for the rule `noqa` and with option `--noqa`).
+    fn rule_skipped(&self, entry: &Entry, rule: &Rule) -> bool {
+        rule.name() != "noqa"
+            && !self.config.check.noqa
+            && (entry.noqa || entry.noqa_rules.iter().any(|r| r == rule.name()))
+    }
+
+    /// Load the dictionaries used by the spelling rules (called when the
+    /// header is parsed, as the dictionary of translations depends on the
+    /// language of the file).
+    ///
+    /// An error loading a dictionary is reported once, setting the
+    /// `error_dict_id` / `error_dict_str` flags.
+    fn load_dicts(&mut self, rules: &Rules, error_dict_id: &mut bool, error_dict_str: &mut bool) {
+        if (rules.spelling_ctxt_rule || rules.spelling_id_rule || rules.spelling_extracted_rule)
+            && self
+                .config
+                .check
+                .spelling_enabled(&self.config.check.spelling_lang_id)
+        {
+            self.dict_id = match dict::get_dict(
+                self.config.check.path_dicts.as_path(),
+                self.config.check.path_words.as_ref(),
+                &self.config.check.spelling_lang_id,
+            ) {
+                Ok(dict) => Some(CachedDict::new(dict)),
+                Err(err) => {
+                    if !*error_dict_id {
+                        self.diagnostics.push(Diagnostic::new(
+                            &self.path,
+                            "spelling-ctxt-id",
+                            Severity::Warning,
+                            err.to_string(),
+                        ));
+                    }
+                    *error_dict_id = true;
+                    None
+                }
+            }
+        }
+        let language = self.parser.language();
+        if (rules.spelling_str_rule && self.dict_str.is_none())
+            && self.config.check.spelling_enabled(language)
+        {
+            self.dict_str = match dict::get_dict(
+                self.config.check.path_dicts.as_path(),
+                self.config.check.path_words.as_ref(),
+                language,
+            ) {
+                Ok(dict) => Some(CachedDict::new(dict)),
+                Err(err) => {
+                    if !*error_dict_str {
+                        self.diagnostics.push(Diagnostic::new(
+                            &self.path,
+                            "spelling-str",
+                            Severity::Warning,
+                            err.to_string(),
+                        ));
+                    }
+                    *error_dict_str = true;
+                    None
+                }
+            };
+        }
+    }
+
     /// Perform all checks on every entry of the PO file.
     ///
     /// This function calls the following function defined in the rule that implements
@@ -190,66 +257,14 @@ impl<'d> Checker<'d> {
         }
         let mut error_dict_id = false;
         let mut error_dict_str = false;
+        // Entries kept for the rules checking all the entries at once.
+        let mut entries = vec![];
         while let Some(entry) = self.parser.next() {
             if entry.is_header() {
-                if (rules.spelling_ctxt_rule
-                    || rules.spelling_id_rule
-                    || rules.spelling_extracted_rule)
-                    && self
-                        .config
-                        .check
-                        .spelling_enabled(&self.config.check.spelling_lang_id)
-                {
-                    self.dict_id = match dict::get_dict(
-                        self.config.check.path_dicts.as_path(),
-                        self.config.check.path_words.as_ref(),
-                        &self.config.check.spelling_lang_id,
-                    ) {
-                        Ok(dict) => Some(CachedDict::new(dict)),
-                        Err(err) => {
-                            if !error_dict_id {
-                                self.diagnostics.push(Diagnostic::new(
-                                    &self.path,
-                                    "spelling-ctxt-id",
-                                    Severity::Warning,
-                                    err.to_string(),
-                                ));
-                            }
-                            error_dict_id = true;
-                            None
-                        }
-                    }
-                }
-                let language = self.parser.language();
-                if (rules.spelling_str_rule && self.dict_str.is_none())
-                    && self.config.check.spelling_enabled(language)
-                {
-                    self.dict_str = match dict::get_dict(
-                        self.config.check.path_dicts.as_path(),
-                        self.config.check.path_words.as_ref(),
-                        language,
-                    ) {
-                        Ok(dict) => Some(CachedDict::new(dict)),
-                        Err(err) => {
-                            if !error_dict_str {
-                                self.diagnostics.push(Diagnostic::new(
-                                    &self.path,
-                                    "spelling-str",
-                                    Severity::Warning,
-                                    err.to_string(),
-                                ));
-                            }
-                            error_dict_str = true;
-                            None
-                        }
-                    };
-                }
+                self.load_dicts(rules, &mut error_dict_id, &mut error_dict_str);
                 if let Some(msgstr_0) = entry.msgstr.get(&0) {
                     for rule in &rules.enabled {
-                        if rule.name() != "noqa"
-                            && !self.config.check.noqa
-                            && (entry.noqa || entry.noqa_rules.iter().any(|r| r == rule.name()))
-                        {
+                        if self.rule_skipped(&entry, rule) {
                             continue;
                         }
                         self.diagnostics
@@ -266,15 +281,31 @@ impl<'d> Checker<'d> {
                 continue;
             }
             for rule in &rules.enabled {
-                if rule.name() != "noqa"
-                    && !self.config.check.noqa
-                    && (entry.noqa || entry.noqa_rules.iter().any(|r| r == rule.name()))
-                {
+                if self.rule_skipped(&entry, rule) {
                     continue;
                 }
                 self.diagnostics
                     .extend(self.check_entry(&entry, rule, rules.untranslated_rule));
             }
+            if rules.entries {
+                entries.push(entry);
+            }
+        }
+        if rules.entries {
+            self.check_all_entries(rules, &entries);
+        }
+    }
+
+    /// Run the rules checking all the entries of the file at once, each rule
+    /// receiving the entries without a `noqa` flag for this rule.
+    fn check_all_entries(&mut self, rules: &Rules, entries: &[Entry]) {
+        for rule in rules.enabled.iter().filter(|r| r.uses_entries()) {
+            let rule_entries: Vec<&Entry> = entries
+                .iter()
+                .filter(|entry| !self.rule_skipped(entry, rule))
+                .collect();
+            let diags = rule.check_entries(self, &rule_entries);
+            self.diagnostics.extend(diags);
         }
     }
 }

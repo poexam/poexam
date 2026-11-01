@@ -20,8 +20,8 @@ use crate::{
         double_quotes, double_spaces, double_words, emails, encoding, escapes, force_trans,
         formats, functions, fuzzy, header, html_tags, lang_path, long, markdown, max_length,
         multiple_capitals, newlines, no_trans, noqa, numbers, obsolete, options, paths, pipes,
-        plural_forms, plurals, punc, punc_space, short, spelling, tabs, todo_comments, unchanged,
-        unicode_ctrl, untranslated, urls, variables, whitespace,
+        plural_forms, plurals, punc, punc_space, reused_translation, short, spelling, tabs,
+        todo_comments, unchanged, unicode_ctrl, untranslated, urls, variables, whitespace,
     },
     table::render_table,
 };
@@ -45,6 +45,9 @@ pub struct Rules {
     pub force_trans_rule: bool,
     pub no_trans_rule: bool,
     pub comments: CommentKinds,
+    /// At least one enabled rule checks all the entries of the file at once
+    /// (see [`RuleChecker::uses_entries`]).
+    pub entries: bool,
 }
 
 impl std::fmt::Display for Rule {
@@ -68,6 +71,7 @@ impl Rules {
         let comments = rules.iter().fold(CommentKinds::NONE, |kinds, r| {
             kinds.union(r.uses_comments())
         });
+        let entries = rules.iter().any(|r| r.uses_entries());
         Self {
             enabled: rules,
             fuzzy_rule,
@@ -81,6 +85,7 @@ impl Rules {
             force_trans_rule,
             no_trans_rule,
             comments,
+            entries,
         }
     }
 }
@@ -109,8 +114,28 @@ pub trait RuleChecker {
         CommentKinds::NONE
     }
 
+    /// Whether the rule checks all the entries of the file at once, with
+    /// [`check_entries`](RuleChecker::check_entries).
+    ///
+    /// The entries are kept in memory only if at least one enabled rule uses
+    /// them.
+    fn uses_entries(&self) -> bool {
+        false
+    }
+
     /// Check a file for diagnostics.
     fn check_file(&self, _checker: &Checker) -> Vec<Diagnostic> {
+        vec![]
+    }
+
+    /// Check all the entries of the file for diagnostics, called after all
+    /// the other checks, if [`uses_entries`](RuleChecker::uses_entries)
+    /// returns `true`.
+    ///
+    /// The entries are the ones checked by the other check methods (filtered
+    /// according to the fuzzy, obsolete and untranslated states), except the
+    /// ones with a `noqa` flag for this rule. The header is not included.
+    fn check_entries(&self, _checker: &Checker, _entries: &[&Entry]) -> Vec<Diagnostic> {
         vec![]
     }
 
@@ -216,6 +241,7 @@ fn get_all_rules() -> Vec<Rule> {
         Box::new(punc::PuncRepeatedRule {}),
         Box::new(punc_space::PuncSpaceIdRule {}),
         Box::new(punc_space::PuncSpaceStrRule {}),
+        Box::new(reused_translation::ReusedTranslationRule {}),
         Box::new(short::ShortRule {}),
         Box::new(spelling::SpellingCtxtRule {}),
         Box::new(spelling::SpellingExtractedRule {}),

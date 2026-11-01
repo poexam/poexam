@@ -41,6 +41,7 @@ pub mod plural_forms;
 pub mod plurals;
 pub mod punc;
 pub mod punc_space;
+pub mod reused_translation;
 pub mod rule;
 pub mod short;
 pub mod spelling;
