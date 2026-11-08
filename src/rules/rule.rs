@@ -21,7 +21,8 @@ use crate::{
         formats, functions, fuzzy, header, html_tags, lang_path, long, markdown, max_length,
         multiple_capitals, newlines, no_trans, noqa, numbers, obsolete, options, paths, pipes,
         plural_forms, plurals, punc, punc_space, reused_translation, short, spelling, tabs,
-        todo_comments, unchanged, unicode_ctrl, untranslated, urls, variables, whitespace,
+        todo_comments, unchanged, unicode_ctrl, unpluralised, untranslated, urls, variables,
+        whitespace,
     },
     table::render_table,
 };
@@ -251,6 +252,7 @@ fn get_all_rules() -> Vec<Rule> {
         Box::new(todo_comments::TodoCommentsRule {}),
         Box::new(unchanged::UnchangedRule {}),
         Box::new(unicode_ctrl::UnicodeCtrlRule {}),
+        Box::new(unpluralised::UnpluralisedRule {}),
         Box::new(untranslated::UntranslatedRule {}),
         Box::new(urls::UrlsRule {}),
         Box::new(variables::VariablesRule {}),

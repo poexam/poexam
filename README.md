@@ -235,6 +235,7 @@ You can enable them on-demand:
 | spelling-id          | Spelling error in the source.                    |
 | spelling-str         | Spelling error in the translation.               |
 | unchanged            | Translation is the same as the source string.    |
+| unpluralised         | Count and plural word without plural forms.      |
 | untranslated         | Untranslated entry.                              |
 | urls                 | Missing/extra/different URLs.                    |
 

@@ -229,6 +229,11 @@ msgstr "Test tabulation"
 msgid "Save"
 msgstr "Sa​ve"
 
+# rule: unpluralised
+#, c-format
+msgid "%d files deleted"
+msgstr "%d fichiers supprimés"
+
 # rule: urls
 msgid "URL example: https://github.com/about"
 msgstr "Exemple d'URL : https://github.com/à_propos"

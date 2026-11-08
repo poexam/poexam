@@ -49,6 +49,7 @@ pub mod tabs;
 pub mod todo_comments;
 pub mod unchanged;
 pub mod unicode_ctrl;
+pub mod unpluralised;
 pub mod untranslated;
 pub mod urls;
 pub mod variables;
