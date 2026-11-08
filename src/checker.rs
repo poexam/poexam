@@ -12,6 +12,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use colored::Colorize;
 use rayon::prelude::*;
 
 use crate::{
@@ -589,6 +590,12 @@ fn check_file(path: &PathBuf, args: &args::CheckArgs) -> Option<CheckFileResult>
 
 /// Check and display result for all PO files.
 pub fn run_check(args: &args::CheckArgs) -> i32 {
+    // Rules given on the command line override the ones of any config file:
+    // validate them once here, instead of reporting an error for each file.
+    if let Err(err) = get_selected_rules(&Config::default().with_args_check(args)) {
+        eprintln!("{}: {err}", "Error".red());
+        return 2;
+    }
     let start = std::time::Instant::now();
     let result: Vec<CheckFileResult> = find_po_files(&args.files)
         .par_iter()
@@ -931,16 +938,19 @@ msgstr \"olá\"
     }
 
     #[test]
-    fn test_run_check_invalid_rule_returns_one() {
+    fn test_run_check_invalid_rule_returns_two() {
         let tmp = tmp_dir("run-bad-rule");
         let po_path = write_po(tmp.path(), "fr.po", PO_PT_BR);
 
         let mut args = default_check_args();
         args.no_config = true;
         args.select = Some("does-not-exist-rule".to_string());
-        args.files = vec![po_path];
-        let code = run_check(&args);
-        assert_eq!(code, 1);
+        args.files = vec![po_path.clone()];
+        assert_eq!(run_check(&args), 2);
+
+        args.select = None;
+        args.ignore = Some("does-not-exist-rule".to_string());
+        assert_eq!(run_check(&args), 2);
     }
 
     /// PO content with one whitespace-end and one whitespace-start issue.
