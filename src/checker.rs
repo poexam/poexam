@@ -23,7 +23,8 @@ use crate::{
     dir::find_po_files,
     fix::{Edit, FixTarget, apply_msgstr_fixes},
     po::{
-        entry::Entry, parser::Parser, wrap::format_msgstr_block, writer::write_with_replacements,
+        entry::Entry, format::language::Language, parser::Parser, wrap::format_message_block,
+        writer::write_with_replacements,
     },
     result::display_result,
     rules::rule::{Rule, Rules, get_selected_rules},
@@ -94,6 +95,11 @@ impl<'d> Checker<'d> {
     /// Get the country of the file being checked (e.g. `BR`).
     pub fn country(&self) -> &str {
         self.parser.country()
+    }
+
+    /// Return the data of the file being checked (raw bytes).
+    pub const fn data(&self) -> &'d [u8] {
+        self.parser.data()
     }
 
     /// Return the encoding name.
@@ -274,11 +280,19 @@ impl<'d> Checker<'d> {
                 }
                 continue;
             }
-            if (!entry.is_translated() && !rules.untranslated_rule)
+            let filtered = (!entry.is_translated() && !rules.untranslated_rule)
                 || (entry.fuzzy && !self.config.check.fuzzy && !rules.fuzzy_rule)
                 || (entry.noqa && !self.config.check.noqa && !rules.noqa_rule)
-                || (entry.obsolete && !self.config.check.obsolete && !rules.obsolete_rule)
-            {
+                || (entry.obsolete && !self.config.check.obsolete && !rules.obsolete_rule);
+            if filtered {
+                // Only the rules checking all the entries see this entry.
+                if rules.all_entries {
+                    for rule in rules.enabled.iter().filter(|r| r.checks_all_entries()) {
+                        if !self.rule_skipped(&entry, rule) {
+                            self.diagnostics.extend(rule.check_entry(self, &entry));
+                        }
+                    }
+                }
                 continue;
             }
             for rule in &rules.enabled {
@@ -328,6 +342,7 @@ fn apply_fixes_to_data(
     // Bucket fixes by target kind.
     let mut edits_by_range: BTreeMap<(usize, usize), Vec<Edit>> = BTreeMap::new();
     let mut entry_deletions: BTreeSet<(usize, usize)> = BTreeSet::new();
+    let mut blocks: BTreeMap<(usize, usize), &[u8]> = BTreeMap::new();
     for diag in diagnostics {
         let Some(fix) = &diag.fix else { continue };
         if !fix.safe && !allow_unsafe {
@@ -344,9 +359,15 @@ fn apply_fixes_to_data(
             FixTarget::Entry { file_byte_range } => {
                 entry_deletions.insert((file_byte_range.start, file_byte_range.end));
             }
+            FixTarget::Block {
+                file_byte_range,
+                bytes,
+            } => {
+                blocks.insert((file_byte_range.start, file_byte_range.end), bytes);
+            }
         }
     }
-    if edits_by_range.is_empty() && entry_deletions.is_empty() {
+    if edits_by_range.is_empty() && entry_deletions.is_empty() && blocks.is_empty() {
         return None;
     }
     let mut replacements: Vec<(Range<usize>, Vec<u8>)> = Vec::new();
@@ -354,27 +375,30 @@ fn apply_fixes_to_data(
     for (start, end) in &entry_deletions {
         replacements.push((*start..*end, Vec::new()));
     }
-    // Re-parse so we can look up each msgstr's decoded value by its byte range.
-    let mut msgstr_values: HashMap<(usize, usize), String> = HashMap::new();
+    // Re-parse so we can look up each msgstr's decoded value by its byte range,
+    // with the `no-wrap` flag and the format language of its entry.
+    let mut msgstr_values: HashMap<(usize, usize), (String, bool, Language)> = HashMap::new();
     for entry in Parser::new(data) {
         for msg in entry.msgstr.values() {
             msgstr_values.insert(
                 (msg.byte_range.start, msg.byte_range.end),
-                msg.value.clone(),
+                (msg.value.clone(), entry.nowrap, entry.format_language),
             );
         }
     }
+    let in_deleted_entry = |key: (usize, usize)| {
+        entry_deletions
+            .iter()
+            .any(|(es, ee)| *es <= key.0 && key.1 <= *ee)
+    };
     for (key, edits) in edits_by_range {
         // Skip msgstr fixes whose target lives inside an entry that's being
         // deleted: the msgstr edit would conflict with the parent deletion,
         // and the change is moot since the whole entry is going away.
-        if entry_deletions
-            .iter()
-            .any(|(es, ee)| *es <= key.0 && key.1 <= *ee)
-        {
+        if in_deleted_entry(key) {
             continue;
         }
-        let Some(value) = msgstr_values.get(&key) else {
+        let Some((value, nowrap, format)) = msgstr_values.get(&key) else {
             continue;
         };
         let Ok(new_value) = apply_msgstr_fixes(value, &edits) else {
@@ -385,8 +409,17 @@ fn apply_fixes_to_data(
         }
         let range = key.0..key.1;
         let original_block = &data[range.clone()];
-        let bytes = format_msgstr_block(original_block, &new_value, page_width);
+        let width = if *nowrap { 0 } else { page_width };
+        let bytes = format_message_block(original_block, &new_value, width, *format);
         replacements.push((range, bytes));
+    }
+    // Replacements of whole blocks, skipped when the block is in a deleted
+    // entry or already rewritten by the edits of its msgstr (rewrapped anyway).
+    for (key, bytes) in blocks {
+        if in_deleted_entry(key) || replacements.iter().any(|(r, _)| (r.start, r.end) == key) {
+            continue;
+        }
+        replacements.push((key.0..key.1, bytes.to_vec()));
     }
     if replacements.is_empty() {
         return None;
@@ -993,6 +1026,34 @@ msgstr \"monde\"
         let fixed = std::fs::read_to_string(&po_path).expect("read fixed file");
         assert!(fixed.contains("msgstr \"bonjour \""));
         assert!(fixed.contains("msgstr \" monde\""));
+    }
+
+    #[test]
+    fn test_fix_wrapping() {
+        let tmp = tmp_dir("fix-wrapping");
+        let po_path = write_po(
+            tmp.path(),
+            "fr.po",
+            "msgid \"\"\nmsgstr \"Content-Type: text/plain; charset=UTF-8\\n\"\n\n\
+             msgid \"Hello\"\nmsgstr \"\"\n\"Bonjour \"\n\n\
+             msgid \"Test\"\nmsgstr \"\"\n\"Test\"\n\n\
+             #, no-wrap\nmsgid \"Test \"\nmsgstr \"word word word word word word word word word \
+             word word word word word word\"\n",
+        );
+        let mut args = default_check_args();
+        args.no_config = true;
+        args.select = Some("wrapping,whitespace-end".to_string());
+        args.fix = true;
+        let result = check_file(&po_path, &args).expect("file is checked");
+        assert!(result.diagnostics.is_empty(), "{:?}", result.diagnostics);
+        let fixed = std::fs::read_to_string(&po_path).expect("read fixed file");
+        // Both fixes on the same msgstr: whitespace removed and rewrapped.
+        assert!(fixed.contains("msgid \"Hello\"\nmsgstr \"Bonjour\"\n"));
+        assert!(fixed.contains("msgid \"Test\"\nmsgstr \"Test\"\n"));
+        // The no-wrap entry is not wrapped by the whitespace fix.
+        assert!(fixed.contains(
+            "msgstr \"word word word word word word word word word word word word word word word \"\n"
+        ));
     }
 
     #[test]

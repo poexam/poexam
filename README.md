@@ -238,6 +238,7 @@ You can enable them on-demand:
 | unpluralised         | Count and plural word without plural forms.      |
 | untranslated         | Untranslated entry.                              |
 | urls                 | Missing/extra/different URLs.                    |
+| wrapping             | Messages not wrapped like `msgcat`.              |
 
 The result is very clear, almost all errors are highlighted in the strings so you can immediately see where the issue is.
 
@@ -482,7 +483,7 @@ poexam check --fix --unsafe-fixes po/  # safe and unsafe fixes
 
 `--unsafe-fixes` (or the `unsafe_fixes` config key) has no effect on its own; it must be combined with `--fix`.
 
-The rewriter wraps each replaced `msgstr` block the same way GNU `msgcat` does (Unicode Line Breaking + display width, default page width 79), so running `msgcat` on a fixed file is a no-op. The page width is configurable with `--width N` (or `check.width` in the config file); `--width 0` disables wrapping entirely (matches `msgcat --width=0` / `msgcat --no-wrap`).
+The rewriter wraps each replaced `msgstr` block exactly like GNU `msgcat` does, with the line breaking rules and character widths of GNU libunistring (used by `msgcat`), no line break inside escape sequences and format string directives, and a default page width of 79, so running `msgcat` on a fixed file does not change the fixed messages. The page width is configurable with `--width N` (or `check.width` in the config file); `--width 0` disables wrapping (matches `msgcat --width=0` / `msgcat --no-wrap`): the messages are then split only after newlines, like the messages of entries with the flag `no-wrap`.
 
 Rules that currently produce auto-fixes (`Safe: no` fixes require `--unsafe-fixes`):
 
@@ -692,6 +693,15 @@ Rules that currently produce auto-fixes (`Safe: no` fixes require `--unsafe-fixe
 - **Fix**: Replace the trailing whitespace run of each interior line in the translation with the
   source's run. Only the lines before an embedded newline are touched (the string end is handled
   by `whitespace-end`), and only when source and translation have the same number of lines.
+- **Safe**: yes.
+
+#### wrapping
+
+- **Fix**: Rewrite each message (`msgctxt`, `msgid`, `msgid_plural`, `msgstr`) like GNU `msgcat`
+  would, with the page width of `--width` (79 by default). All entries are fixed, including
+  untranslated, fuzzy and obsolete ones. Files not encoded in UTF-8, messages with CRLF line
+  endings and entries with a format not supported by poexam (e.g. `lisp-format`) are not changed.
+  Only the messages are rewritten: comments and the order of entries are kept.
 - **Safe**: yes.
 
 ### Output

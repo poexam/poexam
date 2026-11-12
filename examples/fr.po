@@ -150,8 +150,12 @@ msgid "Click on the lock to make changes."
 msgstr "CLiquez sur le cadenas pour faire des changements."
 
 # rule: newlines
-msgid "Test\ntwo lines"
-msgstr "\nTest deux lignes\n"
+msgid ""
+"Test\n"
+"two lines"
+msgstr ""
+"\n"
+"Test deux lignes\n"
 
 # rule: numbers
 msgid "Press 3 times to confirm"
@@ -166,10 +170,8 @@ msgid "Path: /tmp/output.txt"
 msgstr "Chemin : /tmp/sortie.txt"
 
 # rule: pipes
-msgid ""
-"list || add || rename || del"
-msgstr ""
-"list || add || rename"
+msgid "list || add || rename || del"
+msgstr "list || add || rename"
 
 # rule: plurals
 msgid "%d file"
@@ -207,8 +209,11 @@ msgid "Extra space before exclamation mark in source !"
 msgstr "Espace supplémentaire avant le point d'exclamation dans le source !"
 
 # rule: punc-space-str
-msgid "Space must be a non-breaking space before exclamation mark in translation!"
-msgstr "L'espace doit être un espace insécable avant le point d'exclamation dans la traduction !"
+msgid ""
+"Space must be a non-breaking space before exclamation mark in translation!"
+msgstr ""
+"L'espace doit être un espace insécable avant le point d'exclamation dans la "
+"traduction !"
 
 # rule: reused-translation
 msgid "Open the selected file"
@@ -247,16 +252,29 @@ msgid "Test whitespace end"
 msgstr "Test espace à la fin "
 
 # rule: whitespace-line-end
-msgid "Line one \nLine two"
-msgstr "Ligne un\nLigne deux"
+msgid ""
+"Line one \n"
+"Line two"
+msgstr ""
+"Ligne un\n"
+"Ligne deux"
 
 # rule: whitespace-line-start
-msgid "Line one\n Line two"
-msgstr "Ligne un\nLigne deux"
+msgid ""
+"Line one\n"
+" Line two"
+msgstr ""
+"Ligne un\n"
+"Ligne deux"
 
 # rule: whitespace-start
 msgid "Test whitespace start"
 msgstr " Test espace au début"
+
+# rule: wrapping
+msgid "Line wrapping"
+msgstr ""
+"Retour à la ligne"
 
 # rule: fuzzy
 #, fuzzy

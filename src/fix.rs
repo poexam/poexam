@@ -33,6 +33,14 @@ pub enum FixTarget {
     /// entry, including any leading comments and the trailing blank-line
     /// separator. [`Fix::edits`] is unused for this variant.
     Entry { file_byte_range: Range<usize> },
+    /// Replace a message block (`msgctxt`, `msgid`, `msgid_plural`, `msgstr`
+    /// or `msgstr[N]`) with the given bytes, e.g. the block wrapped like GNU
+    /// `msgcat`. The byte range spans the whole block, like for
+    /// [`FixTarget::Msgstr`]. [`Fix::edits`] is unused for this variant.
+    Block {
+        file_byte_range: Range<usize>,
+        bytes: Vec<u8>,
+    },
 }
 
 /// A set of edits to apply to one msgstr value, plus where to splice the result.

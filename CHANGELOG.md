@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ### Added
 
+- Add non-default rule "wrapping" to check that messages are wrapped like GNU msgcat would do.
 - Add non-default rule "unpluralised" to check for sources with a count and a plural word without plural forms (e.g. `%d files`).
 - Add non-default rule "reused-translation" to check for translations used for different source strings.
 - Add default rule "multiple-capitals" to check for words starting with misplaced capital letters in the translation, like `HEllo`.
@@ -21,6 +22,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 ### Changed
 
 - Report unknown rules given with `--select` or `--ignore` only once instead of once per file, and exit with code 2.
+
+### Fixed
+
+- Fix wrapping of messages rewritten by `--fix`, now identical to GNU msgcat: line breaking rules and character widths of GNU libunistring, no line break inside format string directives.
+- Fix messages rewritten by `--fix` with `--width 0` or in entries with flag `no-wrap`: split them after newlines, without wrapping.
+- Fix parsing of escape sequences `\a`, `\b`, `\f` and `\v`.
 
 ## [0.4.0] - 2026-11-01
 

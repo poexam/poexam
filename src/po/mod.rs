@@ -7,6 +7,8 @@
 pub mod entry;
 pub mod escape;
 pub mod format;
+pub mod linebreak;
+pub mod linebreak_table;
 pub mod message;
 pub mod parser;
 pub mod plural;

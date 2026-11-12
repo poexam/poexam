@@ -13,73 +13,56 @@ pub trait EscapePoExt {
 }
 
 impl EscapePoExt for str {
-    /// Escape special characters in a string for PO file format.
+    /// Escape special characters in a string for PO file format, like GNU
+    /// gettext: `\a`, `\b`, `\f`, `\n`, `\r`, `\t`, `\v`, `\"` and `\\`.
     fn escape_po(&self) -> String {
         let mut out = String::with_capacity(self.len() * 2);
         for ch in self.chars() {
-            match ch {
-                '\n' => {
-                    out.push('\\');
-                    out.push('n');
+            let escaped = match ch {
+                '\u{07}' => 'a',
+                '\u{08}' => 'b',
+                '\u{0c}' => 'f',
+                '\n' => 'n',
+                '\r' => 'r',
+                '\t' => 't',
+                '\u{0b}' => 'v',
+                '"' | '\\' => ch,
+                _ => {
+                    out.push(ch);
+                    continue;
                 }
-                '\r' => {
-                    out.push('\\');
-                    out.push('r');
-                }
-                '\t' => {
-                    out.push('\\');
-                    out.push('t');
-                }
-                '"' => {
-                    out.push('\\');
-                    out.push('"');
-                }
-                '\\' => {
-                    out.push('\\');
-                    out.push('\\');
-                }
-                _ => out.push(ch),
-            }
+            };
+            out.push('\\');
+            out.push(escaped);
         }
         out
     }
 
-    /// Unescape special character sequences in a string from a PO file.
+    /// Unescape special character sequences in a string from a PO file:
+    /// `\a`, `\b`, `\f`, `\n`, `\r`, `\t`, `\v`, `\"` and `\\` (other sequences
+    /// are kept as-is).
     fn unescape_po(&self) -> String {
         let mut out = String::with_capacity(self.len());
-        let mut it = self.chars().peekable();
+        let mut it = self.chars();
         while let Some(ch) = it.next() {
-            if ch == '\\' {
-                match it.peek().copied() {
-                    Some('n') => {
-                        out.push('\n');
-                        it.next();
-                    }
-                    Some('r') => {
-                        out.push('\r');
-                        it.next();
-                    }
-                    Some('t') => {
-                        out.push('\t');
-                        it.next();
-                    }
-                    Some('"') => {
-                        out.push('"');
-                        it.next();
-                    }
-                    Some('\\') => {
-                        out.push('\\');
-                        it.next();
-                    }
-                    Some(other) => {
-                        out.push('\\');
-                        out.push(other);
-                        it.next();
-                    }
-                    None => out.push('\\'),
-                }
-            } else {
+            if ch != '\\' {
                 out.push(ch);
+                continue;
+            }
+            match it.next() {
+                Some('a') => out.push('\u{07}'),
+                Some('b') => out.push('\u{08}'),
+                Some('f') => out.push('\u{0c}'),
+                Some('n') => out.push('\n'),
+                Some('r') => out.push('\r'),
+                Some('t') => out.push('\t'),
+                Some('v') => out.push('\u{0b}'),
+                Some(other @ ('"' | '\\')) => out.push(other),
+                Some(other) => {
+                    out.push('\\');
+                    out.push(other);
+                }
+                None => out.push('\\'),
             }
         }
         out
@@ -103,6 +86,7 @@ mod tests {
         assert_eq!("\t".escape_po(), "\\t");
         assert_eq!("\"".escape_po(), "\\\"");
         assert_eq!("\\".escape_po(), "\\\\");
+        assert_eq!("\u{07}\u{08}\u{0c}\u{0b}".escape_po(), "\\a\\b\\f\\v");
     }
 
     #[test]
@@ -126,6 +110,9 @@ mod tests {
         assert_eq!("\\\"".unescape_po(), "\"");
         assert_eq!("\\".unescape_po(), "\\");
         assert_eq!("\\\\".unescape_po(), "\\");
+        assert_eq!("\\a\\b\\f\\v".unescape_po(), "\u{07}\u{08}\u{0c}\u{0b}");
+        // An escaped backslash followed by "v" is not a vertical tab.
+        assert_eq!("\\\\v".unescape_po(), "\\v");
     }
 
     #[test]
@@ -144,6 +131,7 @@ mod tests {
             "quote:\"",
             "backslash \\",
             "mix\r\n\t\"end",
+            "controls: \u{07}\u{08}\u{0c}\u{0b}",
             "utf8: café – 測試",
         ];
         for &s in &samples {

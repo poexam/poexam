@@ -22,7 +22,7 @@ use crate::{
         multiple_capitals, newlines, no_trans, noqa, numbers, obsolete, options, paths, pipes,
         plural_forms, plurals, punc, punc_space, reused_translation, short, spelling, tabs,
         todo_comments, unchanged, unicode_ctrl, unpluralised, untranslated, urls, variables,
-        whitespace,
+        whitespace, wrapping,
     },
     table::render_table,
 };
@@ -49,6 +49,10 @@ pub struct Rules {
     /// At least one enabled rule checks all the entries of the file at once
     /// (see [`RuleChecker::uses_entries`]).
     pub entries: bool,
+    /// At least one enabled rule checks all the entries, including the ones
+    /// filtered out for the other rules (see
+    /// [`RuleChecker::checks_all_entries`]).
+    pub all_entries: bool,
 }
 
 impl std::fmt::Display for Rule {
@@ -73,6 +77,7 @@ impl Rules {
             kinds.union(r.uses_comments())
         });
         let entries = rules.iter().any(|r| r.uses_entries());
+        let all_entries = rules.iter().any(|r| r.checks_all_entries());
         Self {
             enabled: rules,
             fuzzy_rule,
@@ -87,6 +92,7 @@ impl Rules {
             no_trans_rule,
             comments,
             entries,
+            all_entries,
         }
     }
 }
@@ -121,6 +127,16 @@ pub trait RuleChecker {
     /// The entries are kept in memory only if at least one enabled rule uses
     /// them.
     fn uses_entries(&self) -> bool {
+        false
+    }
+
+    /// Whether [`check_entry`](RuleChecker::check_entry) is called for all the
+    /// entries, including the ones filtered out for the other rules
+    /// (untranslated, fuzzy and obsolete entries, according to the options),
+    /// e.g. for a rule checking the format of the file. The entries with a
+    /// `noqa` flag for the rule are still skipped. For these filtered entries,
+    /// only [`check_entry`](RuleChecker::check_entry) is called.
+    fn checks_all_entries(&self) -> bool {
         false
     }
 
@@ -260,6 +276,7 @@ fn get_all_rules() -> Vec<Rule> {
         Box::new(whitespace::WhitespaceLineEndRule {}),
         Box::new(whitespace::WhitespaceLineStartRule {}),
         Box::new(whitespace::WhitespaceStartRule {}),
+        Box::new(wrapping::WrappingRule {}),
     ]
 }
 

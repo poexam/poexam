@@ -5,199 +5,254 @@
 //! Wrapping of PO message blocks, matching GNU `msgcat`'s output so a
 //! subsequent `msgcat` pass is a no-op.
 //!
-//! Uses Unicode Line Breaking (UAX #14) plus display width, with the two
-//! overrides `msgcat` applies: no break inside a `\X` escape pair, and no
-//! break immediately before a trailing `\n`.
+//! This follows the function `wrap` of GNU gettext (`write-po.c`): the value
+//! is split after each newline, then each portion is escaped and wrapped
+//! with the line breaking of GNU libunistring (see
+//! [`linebreak`](crate::po::linebreak)), with these overrides: no break inside
+//! an escape sequence (e.g. `\n`) or a format string directive (e.g. `%s`),
+//! and no break immediately before a trailing `\n`.
 
-use std::collections::HashSet;
-
-use unicode_linebreak::{BreakOpportunity, linebreaks};
-use unicode_width::UnicodeWidthChar;
-
-use crate::po::escape::EscapePoExt;
+use crate::po::format::{FormatParser, language::Language};
+use crate::po::linebreak::{
+    Break, apply_overrides, char_width, insert_linebreaks, possible_linebreaks,
+};
 
 /// Default page width used by GNU `msgcat` (and other gettext tools).
 pub const DEFAULT_PAGE_WIDTH: usize = 79;
 
-/// Build the replacement bytes for one msgstr block. The value is wrapped
-/// to fit `page_width` columns the same way GNU `msgcat` would; passing
-/// `page_width = 0` disables wrapping (matching `msgcat --width=0` and
-/// `msgcat --no-wrap`) and emits the value verbatim on a single line. The
-/// keyword form is copied from `original_block` so plural and
+/// Return the escape char of `c` (e.g. `n` for a newline), as written by
+/// GNU gettext, or `None` if `c` is not escaped.
+const fn escape_char(c: char) -> Option<char> {
+    match c {
+        '\u{07}' => Some('a'),
+        '\u{08}' => Some('b'),
+        '\u{0c}' => Some('f'),
+        '\n' => Some('n'),
+        '\r' => Some('r'),
+        '\t' => Some('t'),
+        '\u{0b}' => Some('v'),
+        '\\' | '"' => Some(c),
+        _ => None,
+    }
+}
+
+/// Return for each byte of `value` whether it is inside a format string
+/// directive, except its first byte: no line break is allowed there. An
+/// escaped percent (`%%`) is a directive too.
+fn format_directives(value: &str, format: Language) -> Vec<bool> {
+    let mut inside = vec![false; value.len()];
+    if format == Language::Null {
+        return inside;
+    }
+    let mut pos = 0;
+    while let Some((_, next, is_format)) = format.next_char(value, pos) {
+        let end = if is_format {
+            format.find_end_format(value, next, value.len())
+        } else if value[pos..].starts_with("%%") && next == pos + 2 {
+            next
+        } else {
+            pos = next;
+            continue;
+        };
+        for flag in &mut inside[pos + 1..end] {
+            *flag = true;
+        }
+        pos = end;
+    }
+    inside
+}
+
+/// Escape a portion of value, returning the escaped string and the line
+/// break overrides for each of its bytes.
+fn escape_portion(portion: &str, directives: &[bool]) -> (String, Vec<Break>) {
+    let mut escaped = String::with_capacity(portion.len() + 8);
+    let mut overrides = Vec::with_capacity(portion.len() + 8);
+    for (pos, c) in portion.char_indices() {
+        // Don't break inside format directives.
+        let brk = if directives[pos] {
+            Break::Prohibited
+        } else {
+            Break::Undefined
+        };
+        if let Some(e) = escape_char(c) {
+            escaped.push('\\');
+            escaped.push(e);
+            overrides.extend([brk, Break::Prohibited]);
+        } else {
+            escaped.push(c);
+            overrides.push(brk);
+            overrides.extend(std::iter::repeat_n(Break::Prohibited, c.len_utf8() - 1));
+        }
+    }
+    // Don't break immediately before the "\n" at the end.
+    if portion.ends_with('\n') {
+        let len = overrides.len();
+        overrides[len - 2] = Break::Prohibited;
+    }
+    (escaped, overrides)
+}
+
+/// Return `true` if `original_block` is a single line with the value
+/// `value` already formatted like GNU `msgcat` would do: no newline except at
+/// the end of the value, canonical escapes and a line which fits in
+/// `page_width` columns (0 for no wrap).
+///
+/// This is a fast check without allocation, for the most common case (short
+/// messages): when it returns `false`, the block may still be well formatted,
+/// see [`format_message_block`].
+pub fn is_single_line_block(original_block: &[u8], value: &str, page_width: usize) -> bool {
+    let Some(body) = original_block.strip_suffix(b"\"\n") else {
+        return false;
+    };
+    let Some(quote_pos) = body.iter().position(|&b| b == b'"') else {
+        return false;
+    };
+    let head = &body[..quote_pos];
+    let mut raw = &body[quote_pos + 1..];
+    // The keyword must be followed by exactly one space, with no prefix (an
+    // obsolete entry has the prefix "#~ ").
+    if head.len() < 2 || head[head.len() - 1] != b' ' || head[head.len() - 2] == b' ' {
+        return false;
+    }
+    if head.starts_with(b"#~") && !head.starts_with(b"#~ ") {
+        return false;
+    }
+    let value_trimmed = value.strip_suffix('\n').unwrap_or(value);
+    if value_trimmed.contains('\n') {
+        return false;
+    }
+    let mut width = head.len() + 2;
+    let mut buf = [0_u8; 4];
+    for c in value.chars() {
+        let expected: &[u8] = if let Some(e) = escape_char(c) {
+            width += 2;
+            buf[0] = b'\\';
+            buf[1] = u8::try_from(e).unwrap_or(b'?');
+            &buf[..2]
+        } else {
+            width += char_width(c);
+            c.encode_utf8(&mut buf).as_bytes()
+        };
+        let Some(rest) = raw.strip_prefix(expected) else {
+            return false;
+        };
+        raw = rest;
+    }
+    raw.is_empty() && (page_width == 0 || width <= page_width)
+}
+
+/// Build the bytes of one message block (`msgctxt`, `msgid`, `msgid_plural`,
+/// `msgstr` or `msgstr[N]`), like GNU `msgcat` would write it.
+///
+/// The value is wrapped to fit `page_width` columns; passing `page_width = 0`
+/// disables wrapping (matching `msgcat --width=0`, `msgcat --no-wrap` and the
+/// `no-wrap` flag): the value is then split only after its newlines. The
+/// format language of the entry (from its flag, e.g. `c-format`) prevents line
+/// breaks inside format string directives.
+///
+/// The keyword form is copied from `original_block` so plural and
 /// obsolete-prefix variants (`msgstr`, `msgstr[N]`, `#~ msgstr`, …) are
-/// preserved.
-pub fn format_msgstr_block(original_block: &[u8], new_value: &str, page_width: usize) -> Vec<u8> {
+/// preserved; all the lines of an obsolete entry are prefixed with `#~ `.
+pub fn format_message_block(
+    original_block: &[u8],
+    value: &str,
+    page_width: usize,
+    format: Language,
+) -> Vec<u8> {
     let quote_pos = original_block
         .iter()
         .position(|&b| b == b'"')
         .unwrap_or(original_block.len());
-    let mut head_end = quote_pos;
-    while head_end > 0 && matches!(original_block[head_end - 1], b' ' | b'\t') {
-        head_end -= 1;
-    }
-    let head = &original_block[..head_end];
+    let head = original_block[..quote_pos].trim_ascii();
+    let (prefix, name): (&[u8], &[u8]) = match head.strip_prefix(b"#~") {
+        Some(name) => (b"#~ ", name.trim_ascii_start()),
+        None => (b"", head),
+    };
+    let directives = format_directives(value, format);
 
-    let escaped = new_value.escape_po();
+    // Columns are signed, like in gettext: the width can be negative for a
+    // tiny page width.
+    let col = |n: usize| isize::try_from(n).unwrap_or(isize::MAX);
+    // Subsequent lines after a break start after the prefix and the quote.
+    let startcol_after_break = col(prefix.len()) + 1;
+    // The line width, with room for the closing quote character.
+    let width = if page_width == 0 {
+        isize::MAX / 2
+    } else {
+        col(page_width)
+    } - 1
+        - startcol_after_break;
 
-    if page_width == 0 {
-        let mut out = Vec::with_capacity(head.len() + escaped.len() + 4);
-        out.extend_from_slice(head);
-        out.push(b' ');
+    let mut out = Vec::with_capacity(original_block.len() + 16);
+    let mut first_line = true;
+    let mut offset = 0;
+    loop {
+        let rest = &value[offset..];
+        let end = rest.find('\n').map_or(rest.len(), |pos| pos + 1);
+        let portion = &rest[..end];
+        let more = end < rest.len();
+        let (escaped, overrides) = escape_portion(portion, &directives[offset..offset + end]);
+
+        // The first line starts after the prefix, the keyword, a space and the
+        // opening quote.
+        let mut startcol = if first_line {
+            col(prefix.len() + name.len()) + 1
+        } else {
+            col(prefix.len())
+        } + 1
+            - startcol_after_break;
+        // Fast path: no line break is inserted if the whole portion fits.
+        let portion_width = col(escaped.chars().map(char_width).sum());
+        // The possible line breaks are computed once, for both start columns.
+        let mut possible: Option<Vec<Break>> = None;
+        let mut linebreaks = |startcol: isize| {
+            if startcol + portion_width <= width {
+                return vec![false; escaped.len()];
+            }
+            let possible = possible.get_or_insert_with(|| {
+                let mut possible = possible_linebreaks(&escaped);
+                apply_overrides(&mut possible, &overrides);
+                possible
+            });
+            insert_linebreaks(&escaped, possible, width, startcol)
+        };
+        let mut breaks = linebreaks(startcol);
+
+        // If this is the first line and the line would wrap, then use an
+        // empty first line and restart.
+        if first_line && !escaped.is_empty() && (more || startcol > width || breaks.contains(&true))
+        {
+            out.extend_from_slice(prefix);
+            out.extend_from_slice(name);
+            out.extend_from_slice(b" \"\"\n");
+            first_line = false;
+            startcol = col(prefix.len()) + 1 - startcol_after_break;
+            breaks = linebreaks(startcol);
+        }
+
+        out.extend_from_slice(prefix);
+        if first_line {
+            out.extend_from_slice(name);
+            out.push(b' ');
+            first_line = false;
+        }
         out.push(b'"');
-        out.extend_from_slice(escaped.as_bytes());
-        out.push(b'"');
-        out.push(b'\n');
-        return out;
-    }
+        for (pos, byte) in escaped.bytes().enumerate() {
+            if breaks[pos] {
+                out.extend_from_slice(b"\"\n");
+                out.extend_from_slice(prefix);
+                out.push(b'"');
+            }
+            out.push(byte);
+        }
+        out.extend_from_slice(b"\"\n");
 
-    let head_str = std::str::from_utf8(head).unwrap_or("");
-    let head_width = display_width(head_str);
-
-    let portions = split_value_at_newlines(new_value);
-    let has_internal_newline = portions.len() > 1;
-
-    // Single-line budget: `head "value"` ≤ page_width  ⇒  value width ≤ page_width - head_width - 3.
-    let first_line_budget = page_width.saturating_sub(head_width).saturating_sub(3);
-    let escaped_width = display_width(&escaped);
-    let escaped_breaks = compute_break_opportunities(&escaped);
-    // msgcat goes multi-line when the value is wider than the first-line budget
-    // *and* any break opportunity exists — the line-breaker will take a break
-    // (even one that overflows the budget) rather than leave the line whole.
-    let needs_first_line_break = escaped_width > first_line_budget && !escaped_breaks.is_empty();
-
-    let use_multi_line = has_internal_newline || needs_first_line_break;
-
-    let mut out = Vec::with_capacity(head.len() + escaped.len() + 8);
-    if !use_multi_line {
-        out.extend_from_slice(head);
-        out.push(b' ');
-        out.push(b'"');
-        out.extend_from_slice(escaped.as_bytes());
-        out.push(b'"');
-        out.push(b'\n');
-        return out;
-    }
-
-    let continuation_budget = page_width.saturating_sub(2);
-    out.extend_from_slice(head);
-    out.extend_from_slice(b" \"\"\n");
-    for portion in &portions {
-        let portion_escaped = portion.escape_po();
-        let portion_breaks = compute_break_opportunities(&portion_escaped);
-        wrap_to_budget(
-            &portion_escaped,
-            &portion_breaks,
-            continuation_budget,
-            &mut out,
-        );
+        offset += end;
+        if offset >= value.len() {
+            break;
+        }
     }
     out
-}
-
-/// Display width (in column cells) of a string, summing per-codepoint widths.
-fn display_width(s: &str) -> usize {
-    s.chars().map(|c| c.width().unwrap_or(0)).sum()
-}
-
-/// Split a string at literal `\n` characters; each returned slice keeps its
-/// trailing `\n` (except possibly the last). An empty input yields a single
-/// empty slice so multi-line emission still produces one empty `""` line.
-fn split_value_at_newlines(value: &str) -> Vec<&str> {
-    if value.is_empty() {
-        return vec![""];
-    }
-    let mut portions = Vec::new();
-    let mut start = 0;
-    for (idx, c) in value.char_indices() {
-        if c == '\n' {
-            let end = idx + c.len_utf8();
-            portions.push(&value[start..end]);
-            start = end;
-        }
-    }
-    if start < value.len() {
-        portions.push(&value[start..]);
-    }
-    portions
-}
-
-/// UAX #14 break opportunities (byte indices where a new line is allowed
-/// to start) in `escaped`, minus the two overrides `msgcat` applies:
-/// no break inside a `\X` escape pair, and no break immediately before a
-/// trailing `\n`.
-fn compute_break_opportunities(escaped: &str) -> Vec<usize> {
-    let mut allowed: Vec<usize> = linebreaks(escaped)
-        .filter(|(_, op)| matches!(op, BreakOpportunity::Allowed))
-        .map(|(p, _)| p)
-        .collect();
-
-    let bytes = escaped.as_bytes();
-    let mut prohibited: HashSet<usize> = HashSet::new();
-    let mut i = 0;
-    while i + 1 < bytes.len() {
-        if bytes[i] == b'\\' {
-            prohibited.insert(i + 1);
-            i += 2;
-        } else {
-            i += 1;
-        }
-    }
-    if bytes.len() >= 2 && bytes[bytes.len() - 2] == b'\\' && bytes[bytes.len() - 1] == b'n' {
-        prohibited.insert(bytes.len() - 2);
-    }
-    allowed.retain(|p| !prohibited.contains(p));
-    allowed.sort_unstable();
-    allowed.dedup();
-    allowed
-}
-
-/// Greedy wrap of `escaped` into continuation lines `"chunk"\n`, each whose
-/// content width is ≤ `budget`. Breaks at the latest valid opportunity that
-/// fits; when nothing fits, emits up to the next opportunity (overflowing)
-/// rather than splitting mid-token.
-fn wrap_to_budget(escaped: &str, breaks: &[usize], budget: usize, out: &mut Vec<u8>) {
-    let break_set: HashSet<usize> = breaks.iter().copied().collect();
-    let bytes = escaped.as_bytes();
-    let mut start = 0;
-    while start < bytes.len() {
-        let mut width = 0;
-        let mut last_break: Option<usize> = None;
-        let mut over_budget = false;
-        for (rel_idx, c) in escaped[start..].char_indices() {
-            let abs_idx = start + rel_idx;
-            let w = c.width().unwrap_or(0);
-            if width + w > budget {
-                over_budget = true;
-                break;
-            }
-            width += w;
-            let char_end = abs_idx + c.len_utf8();
-            if break_set.contains(&char_end) {
-                last_break = Some(char_end);
-            }
-        }
-        if !over_budget {
-            out.push(b'"');
-            out.extend_from_slice(&bytes[start..]);
-            out.push(b'"');
-            out.push(b'\n');
-            return;
-        }
-        let next_start = last_break.or_else(|| breaks.iter().copied().find(|&p| p > start));
-        if let Some(b) = next_start {
-            out.push(b'"');
-            out.extend_from_slice(&bytes[start..b]);
-            out.push(b'"');
-            out.push(b'\n');
-            start = b;
-        } else {
-            out.push(b'"');
-            out.extend_from_slice(&bytes[start..]);
-            out.push(b'"');
-            out.push(b'\n');
-            return;
-        }
-    }
 }
 
 #[cfg(test)]
@@ -206,7 +261,7 @@ mod tests {
 
     fn run(value: &str) -> String {
         let block = b"msgstr \"original\"\n";
-        let bytes = format_msgstr_block(block, value, DEFAULT_PAGE_WIDTH);
+        let bytes = format_message_block(block, value, DEFAULT_PAGE_WIDTH, Language::Null);
         String::from_utf8(bytes).expect("utf-8 output")
     }
 
@@ -215,16 +270,33 @@ mod tests {
         let block = b"msgstr \"original\"\n";
         // Long value with break opportunities is emitted on a single line.
         let value = "the quick brown fox jumps over the lazy dog the quick brown fox jumps over the lazy dog";
-        let bytes = format_msgstr_block(block, value, 0);
+        let bytes = format_message_block(block, value, 0, Language::Null);
         let expected = format!("msgstr \"{value}\"\n");
         assert_eq!(String::from_utf8(bytes).unwrap(), expected);
     }
 
     #[test]
-    fn no_wrap_preserves_internal_newlines_as_escapes() {
+    fn no_wrap_splits_only_after_newlines() {
         let block = b"msgstr \"original\"\n";
-        let bytes = format_msgstr_block(block, "first\nsecond", 0);
-        assert_eq!(bytes, b"msgstr \"first\\nsecond\"\n");
+        let bytes = format_message_block(block, "first\nsecond", 0, Language::Null);
+        assert_eq!(bytes, b"msgstr \"\"\n\"first\\n\"\n\"second\"\n");
+        let long = "word ".repeat(30);
+        let bytes = format_message_block(block, &long, 0, Language::Null);
+        assert_eq!(bytes, format!("msgstr \"{long}\"\n").as_bytes());
+    }
+
+    #[test]
+    fn wrap_obsolete_continuation_lines() {
+        let block = b"#~ msgid \"original\"\n";
+        let value = "This is an obsolete very long line that goes far beyond the seventy-nine \
+                     columns limit";
+        let bytes = format_message_block(block, value, 79, Language::Null);
+        assert_eq!(
+            String::from_utf8(bytes).unwrap(),
+            "#~ msgid \"\"\n\
+             #~ \"This is an obsolete very long line that goes far beyond the seventy-nine \"\n\
+             #~ \"columns limit\"\n"
+        );
     }
 
     #[test]
@@ -292,14 +364,14 @@ mod tests {
     #[test]
     fn wrap_preserves_plural_keyword() {
         let block = b"msgstr[1] \"original\"\n";
-        let bytes = format_msgstr_block(block, "short", DEFAULT_PAGE_WIDTH);
+        let bytes = format_message_block(block, "short", DEFAULT_PAGE_WIDTH, Language::Null);
         assert_eq!(bytes, b"msgstr[1] \"short\"\n");
     }
 
     #[test]
     fn wrap_preserves_obsolete_prefix() {
         let block = b"#~ msgstr \"original\"\n";
-        let bytes = format_msgstr_block(block, "short", DEFAULT_PAGE_WIDTH);
+        let bytes = format_message_block(block, "short", DEFAULT_PAGE_WIDTH, Language::Null);
         assert_eq!(bytes, b"#~ msgstr \"short\"\n");
     }
 
@@ -307,7 +379,7 @@ mod tests {
     fn wrap_respects_custom_page_width() {
         // With a tight page width (40), even a moderate value forces multi-line.
         let value = "the quick brown fox jumps over the lazy dog";
-        let bytes = format_msgstr_block(b"msgstr \"x\"\n", value, 40);
+        let bytes = format_message_block(b"msgstr \"x\"\n", value, 40, Language::Null);
         let out = String::from_utf8(bytes).unwrap();
         assert_eq!(
             out,
@@ -342,7 +414,7 @@ mod tests {
         ];
         for value in &cases {
             let block = b"msgstr \"original\"\n";
-            let our_bytes = format_msgstr_block(block, value, DEFAULT_PAGE_WIDTH);
+            let our_bytes = format_message_block(block, value, DEFAULT_PAGE_WIDTH, Language::Null);
             // Wrap our msgstr in a minimal valid PO file (header + body), run msgcat,
             // then extract msgcat's reformatting of the same msgstr and compare.
             let header =

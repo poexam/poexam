@@ -62,6 +62,11 @@ impl<'d> Parser<'d> {
         self.parse_comments = parse_comments;
     }
 
+    /// Return the data being parsed (raw bytes of the file).
+    pub const fn data(&self) -> &'d [u8] {
+        self.data
+    }
+
     /// Return the encoding name.
     pub fn encoding_name(&self) -> &'static str {
         self.encoding
