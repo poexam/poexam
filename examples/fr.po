@@ -69,6 +69,14 @@ msgstr "Exemple d'e-mail : utilisateur@exemple.com"
 msgid "Escape: \\test"
 msgstr "Échappement : \\\\test"
 
+# rule: format-flag
+#, c-format
+msgid "Copying file %s"
+msgstr "Copie du fichier %s"
+
+msgid "Moving file %s"
+msgstr "Déplacement du fichier %s"
+
 # rule: formats
 #, c-format
 msgid "Name: %s, age: %d"
@@ -174,6 +182,7 @@ msgid "list || add || rename || del"
 msgstr "list || add || rename"
 
 # rule: plurals
+#, c-format
 msgid "%d file"
 msgid_plural "%d files"
 msgstr[0] "%d fichier"
@@ -181,12 +190,14 @@ msgstr[1] "%d fichiers"
 msgstr[2] "%d fichiers"
 
 # rule: plurals-empty
+#, c-format
 msgid "%d directory"
 msgid_plural "%d directories"
 msgstr[0] "%d répertoire"
 msgstr[1] ""
 
 # rule: plurals-same
+#, c-format
 msgid "%d link"
 msgid_plural "%d links"
 msgstr[0] "%d lien"

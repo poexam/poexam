@@ -218,6 +218,7 @@ You can enable them on-demand:
 | double-quotes        | Missing/extra double quotes.                     |
 | double-words         | Translation has consecutive repeated words.      |
 | force-trans          | Words that must be translated.                   |
+| format-flag          | Format strings without a format flag.            |
 | functions            | Missing/extra/different function names.          |
 | fuzzy                | Fuzzy entry.                                     |
 | html-tags            | Missing/extra/different HTML tags.               |

@@ -19,6 +19,7 @@ pub mod emails;
 pub mod encoding;
 pub mod escapes;
 pub mod force_trans;
+pub mod format_flag;
 pub mod formats;
 pub mod functions;
 pub mod fuzzy;

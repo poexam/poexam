@@ -65,6 +65,29 @@ impl From<&str> for Language {
     }
 }
 
+impl Language {
+    /// Return the flag of the language, e.g. `c-format`.
+    pub const fn flag(self) -> &'static str {
+        match self {
+            Self::Null => "",
+            Self::C => "c-format",
+            Self::CSharp => "csharp-format",
+            Self::Java => "java-format",
+            Self::JavaScript => "javascript-format",
+            Self::Lua => "lua-format",
+            Self::ObjectPascal => "object-pascal-format",
+            Self::Perl => "perl-format",
+            Self::PerlBrace => "perl-brace-format",
+            Self::Php => "php-format",
+            Self::Python => "python-format",
+            Self::PythonBrace => "python-brace-format",
+            Self::Qt => "qt-format",
+            Self::Ruby => "ruby-format",
+            Self::Sh => "sh-format",
+        }
+    }
+}
+
 impl std::fmt::Display for Language {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
@@ -153,5 +176,8 @@ mod tests {
         assert_eq!(Language::from("sh"), Language::Sh);
         assert_eq!(Language::from(""), Language::Null);
         assert_eq!(Language::from("unknown"), Language::Null);
+        assert_eq!(Language::C.flag(), "c-format");
+        assert_eq!(Language::PythonBrace.flag(), "python-brace-format");
+        assert_eq!(Language::Null.flag(), "");
     }
 }
