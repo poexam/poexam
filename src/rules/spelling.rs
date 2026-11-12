@@ -221,10 +221,7 @@ impl RuleChecker for SpellingExtractedRule {
     }
 
     fn uses_comments(&self) -> CommentKinds {
-        CommentKinds {
-            extracted: true,
-            ..CommentKinds::NONE
-        }
+        CommentKinds::EXTRACTED
     }
 
     /// Check spelling in the indications for translators (English): the extracted

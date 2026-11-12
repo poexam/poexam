@@ -19,46 +19,38 @@ pub struct Comment {
     pub value: String,
 }
 
-/// Kinds of comments kept by the parser in the entries.
+/// Kinds of comments kept by the parser in the entries (set of bits).
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub struct CommentKinds {
-    /// Translator comments (`# comment`).
-    pub translator: bool,
-    /// Extracted comments (`#. comment`).
-    pub extracted: bool,
-    /// Source references (`#: reference`).
-    pub references: bool,
-}
+pub struct CommentKinds(u8);
 
 impl CommentKinds {
     /// No comments.
-    pub const NONE: Self = Self {
-        translator: false,
-        extracted: false,
-        references: false,
-    };
+    pub const NONE: Self = Self(0);
 
-    /// Translator comments only.
-    pub const TRANSLATOR: Self = Self {
-        translator: true,
-        ..Self::NONE
-    };
+    /// Translator comments (`# comment`).
+    pub const TRANSLATOR: Self = Self(1);
+
+    /// Extracted comments (`#. comment`).
+    pub const EXTRACTED: Self = Self(1 << 1);
+
+    /// Source references (`#: reference`).
+    pub const REFERENCES: Self = Self(1 << 2);
+
+    /// Previous strings (`#| msgid "…"`).
+    pub const PREVIOUS: Self = Self(1 << 3);
 
     /// All kinds of comments.
-    pub const ALL: Self = Self {
-        translator: true,
-        extracted: true,
-        references: true,
-    };
+    pub const ALL: Self = Self(0b1111);
 
     /// Return the kinds of comments in `self` or in `other`.
     #[must_use]
     pub const fn union(self, other: Self) -> Self {
-        Self {
-            translator: self.translator || other.translator,
-            extracted: self.extracted || other.extracted,
-            references: self.references || other.references,
-        }
+        Self(self.0 | other.0)
+    }
+
+    /// Return `true` if all the kinds of comments of `other` are in `self`.
+    pub const fn contains(self, other: Self) -> bool {
+        self.0 & other.0 == other.0
     }
 }
 
@@ -81,6 +73,13 @@ pub struct Entry {
     pub extracted_comments: Vec<Comment>,
     /// Source references (`#: src/main.c:42`).
     pub references: Vec<Comment>,
+    /// Previous strings, set by `msgmerge` on fuzzy entries (`#| msgid "…"`),
+    /// without the prefix `#|`.
+    pub previous: Vec<Comment>,
+    /// Byte range of the previous strings in the original file bytes, from
+    /// the start of the first line to the end of the last line.
+    #[serde(skip)]
+    pub previous_byte_range: Range<usize>,
     pub keywords: Vec<String>,
     pub fuzzy: bool,
     pub obsolete: bool,
@@ -106,6 +105,7 @@ impl PartialEq for Entry {
             && self.translator_comments == other.translator_comments
             && self.extracted_comments == other.extracted_comments
             && self.references == other.references
+            && self.previous == other.previous
             && self.keywords == other.keywords
             && self.fuzzy == other.fuzzy
             && self.obsolete == other.obsolete

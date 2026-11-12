@@ -40,6 +40,7 @@ pub mod paths;
 pub mod pipes;
 pub mod plural_forms;
 pub mod plurals;
+pub mod previous_msgid;
 pub mod punc;
 pub mod punc_space;
 pub mod reused_translation;

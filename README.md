@@ -230,6 +230,7 @@ You can enable them on-demand:
 | options              | Missing/extra/different command-line options.    |
 | paths                | Missing/extra/different paths.                   |
 | plurals-same         | Identical plural forms in translation.           |
+| previous-msgid       | Previous strings on entries not fuzzy.           |
 | reused-translation   | Same translation for different sources.          |
 | spelling-ctxt        | Spelling error in the context.                   |
 | spelling-extracted   | Spelling error in indications for translators.   |
@@ -623,6 +624,12 @@ Rules that currently produce auto-fixes (`Safe: no` fixes require `--unsafe-fixe
 - **Caveats**: with 3 forms or more, the meaning of each form is guessed from the numbers it is
   used for, so some numbers may switch to a form the translator did not write for them; an
   invalid expression gives no hint about the meaning of the forms.
+
+#### previous-msgid
+
+- **Fix**: Delete the previous strings (`#| msgctxt`, `#| msgid` and `#| msgid_plural` lines),
+  like `msgattrib --clear-previous`. Not auto-fixable when the lines are not contiguous.
+- **Safe**: yes.
 
 #### punc-start
 

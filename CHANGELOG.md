@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ### Added
 
+- Add non-default rule "previous-msgid" to check for previous strings (`#| msgid "…"`) on entries not fuzzy.
 - Add non-default rule "format-flag" to check for entries with format strings but without a format flag (e.g. `c-format`).
 - Add non-default rule "wrapping" to check that messages are wrapped like GNU msgcat would do.
 - Add non-default rule "unpluralised" to check for sources with a count and a plural word without plural forms (e.g. `%d files`).

@@ -378,18 +378,30 @@ impl Iterator for Parser<'_> {
                     self.parse_message(msg, &mut entry);
                 }
                 // Extracted comment.
-                [b'#', b'.', text @ ..] if self.parse_comments.extracted => {
+                [b'#', b'.', text @ ..]
+                    if self.parse_comments.contains(CommentKinds::EXTRACTED) =>
+                {
                     let comment = self.new_comment(text);
                     entry.extracted_comments.push(comment);
                 }
                 // Source reference.
-                [b'#', b':', text @ ..] if self.parse_comments.references => {
+                [b'#', b':', text @ ..]
+                    if self.parse_comments.contains(CommentKinds::REFERENCES) =>
+                {
                     let comment = self.new_comment(text);
                     entry.references.push(comment);
                 }
-                // Extracted comments and source references (when comments are not
-                // parsed), previous strings (fuzzy matching) and other obsolete lines:
-                // ignored.
+                // Previous string (fuzzy matching).
+                [b'#', b'|', text @ ..] if self.parse_comments.contains(CommentKinds::PREVIOUS) => {
+                    if entry.previous.is_empty() {
+                        entry.previous_byte_range.start = self.line_offset_start;
+                    }
+                    entry.previous_byte_range.end = self.line_end_offset();
+                    let comment = self.new_comment(text);
+                    entry.previous.push(comment);
+                }
+                // Extracted comments, source references and previous strings (when
+                // they are not parsed) and other obsolete lines: ignored.
                 [b'#', b'.' | b':' | b'|' | b'~', ..] => {}
                 // Translator comment.
                 [b'#', text @ ..] => {
@@ -407,7 +419,7 @@ impl Iterator for Parser<'_> {
                         }
                         _ => {}
                     }
-                    if self.parse_comments.translator {
+                    if self.parse_comments.contains(CommentKinds::TRANSLATOR) {
                         let comment = self.new_comment(text);
                         entry.translator_comments.push(comment);
                     }
@@ -866,6 +878,15 @@ msgstr "bonjour, monde"
         );
         assert!(entries[0].fuzzy);
         assert_eq!(
+            entries[0].previous,
+            vec![Comment::new(11, "msgid \"hello\"")]
+        );
+        let start = content.find("#| msgid").unwrap();
+        assert_eq!(
+            entries[0].previous_byte_range,
+            start..content.find("msgid \"hello, world").unwrap()
+        );
+        assert_eq!(
             entries[0].msgid,
             Some(Message::new(12, "hello, world", 0..0))
         );
@@ -901,11 +922,7 @@ msgstr "bonjour"
 
         // Extracted comments and references.
         let mut parser = Parser::new(content.as_bytes());
-        parser.set_parse_comments(CommentKinds {
-            extracted: true,
-            references: true,
-            ..CommentKinds::NONE
-        });
+        parser.set_parse_comments(CommentKinds::EXTRACTED.union(CommentKinds::REFERENCES));
         let entries = parser.collect::<Vec<Entry>>();
         assert_eq!(entries.len(), 1);
         assert!(entries[0].translator_comments.is_empty());
