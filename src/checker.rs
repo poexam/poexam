@@ -382,17 +382,20 @@ fn apply_fixes_to_data(
     for (start, end) in &entry_deletions {
         replacements.push((*start..*end, Vec::new()));
     }
-    // Re-parse so we can look up each msgstr's decoded value by its byte range,
-    // with the `no-wrap` flag and the format language of its entry.
+    // Re-parse so we can look up the decoded value of each msgstr with edits
+    // by its byte range, with the `no-wrap` flag and the format language of its
+    // entry (not needed if there are only block replacements).
     let mut msgstr_values: HashMap<(usize, usize), (String, bool, Language)> = HashMap::new();
-    for entry in Parser::new(data) {
-        // A message with escape sequences not decoded can not be written back
-        // from its value.
-        for msg in entry.msgstr.values().filter(|msg| !msg.undecoded_escapes) {
-            msgstr_values.insert(
-                (msg.byte_range.start, msg.byte_range.end),
-                (msg.value.clone(), entry.nowrap, entry.format_language),
-            );
+    if !edits_by_range.is_empty() {
+        for entry in Parser::new(data) {
+            // A message with escape sequences not decoded can not be written
+            // back from its value.
+            for msg in entry.msgstr.into_values() {
+                let key = (msg.byte_range.start, msg.byte_range.end);
+                if !msg.undecoded_escapes && edits_by_range.contains_key(&key) {
+                    msgstr_values.insert(key, (msg.value, entry.nowrap, entry.format_language));
+                }
+            }
         }
     }
     // The deleted entries don't overlap: only the last one starting before
