@@ -386,11 +386,16 @@ fn apply_fixes_to_data(
             );
         }
     }
+    // The deleted entries don't overlap: only the last one starting before
+    // the key can contain it.
     let in_deleted_entry = |key: (usize, usize)| {
         entry_deletions
-            .iter()
-            .any(|(es, ee)| *es <= key.0 && key.1 <= *ee)
+            .range(..=(key.0, usize::MAX))
+            .next_back()
+            .is_some_and(|(_, end)| key.1 <= *end)
     };
+    // Msgstr blocks rewritten by their edits.
+    let mut rewritten: HashSet<(usize, usize)> = HashSet::new();
     for (key, edits) in edits_by_range {
         // Skip msgstr fixes whose target lives inside an entry that's being
         // deleted: the msgstr edit would conflict with the parent deletion,
@@ -411,12 +416,13 @@ fn apply_fixes_to_data(
         let original_block = &data[range.clone()];
         let width = if *nowrap { 0 } else { page_width };
         let bytes = format_message_block(original_block, &new_value, width, *format);
+        rewritten.insert(key);
         replacements.push((range, bytes));
     }
     // Replacements of whole blocks, skipped when the block is in a deleted
     // entry or already rewritten by the edits of its msgstr (rewrapped anyway).
     for (key, bytes) in blocks {
-        if in_deleted_entry(key) || replacements.iter().any(|(r, _)| (r.start, r.end) == key) {
+        if in_deleted_entry(key) || rewritten.contains(&key) {
             continue;
         }
         replacements.push((key.0..key.1, bytes.to_vec()));
