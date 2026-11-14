@@ -38,34 +38,67 @@ impl EscapePoExt for str {
         out
     }
 
-    /// Unescape special character sequences in a string from a PO file:
-    /// `\a`, `\b`, `\f`, `\n`, `\r`, `\t`, `\v`, `\"` and `\\` (other sequences
-    /// are kept as-is).
+    /// Unescape special character sequences in a string from a PO file, like
+    /// GNU gettext: `\a`, `\b`, `\f`, `\n`, `\r`, `\t`, `\v`, `\"`, `\\`,
+    /// octal (`\ooo`, 1 to 3 digits) and hexadecimal (`\xhh…`) byte values
+    /// (other sequences are kept as-is).
+    ///
+    /// Bytes given in octal or hexadecimal which do not form valid UTF-8 are
+    /// replaced with U+FFFD.
     fn unescape_po(&self) -> String {
-        let mut out = String::with_capacity(self.len());
-        let mut it = self.chars();
-        while let Some(ch) = it.next() {
-            if ch != '\\' {
-                out.push(ch);
-                continue;
-            }
-            match it.next() {
-                Some('a') => out.push('\u{07}'),
-                Some('b') => out.push('\u{08}'),
-                Some('f') => out.push('\u{0c}'),
-                Some('n') => out.push('\n'),
-                Some('r') => out.push('\r'),
-                Some('t') => out.push('\t'),
-                Some('v') => out.push('\u{0b}'),
-                Some(other @ ('"' | '\\')) => out.push(other),
-                Some(other) => {
-                    out.push('\\');
-                    out.push(other);
+        let bytes = self.as_bytes();
+        let mut out: Vec<u8> = Vec::with_capacity(bytes.len());
+        let mut i = 0;
+        while i < bytes.len() {
+            let Some(pos) = memchr::memchr(b'\\', &bytes[i..]) else {
+                out.extend_from_slice(&bytes[i..]);
+                break;
+            };
+            out.extend_from_slice(&bytes[i..i + pos]);
+            i += pos + 1;
+            let Some(&b) = bytes.get(i) else {
+                out.push(b'\\');
+                break;
+            };
+            i += 1;
+            match b {
+                b'a' => out.push(0x07),
+                b'b' => out.push(0x08),
+                b'f' => out.push(0x0c),
+                b'n' => out.push(b'\n'),
+                b'r' => out.push(b'\r'),
+                b't' => out.push(b'\t'),
+                b'v' => out.push(0x0b),
+                b'"' | b'\\' => out.push(b),
+                b'0'..=b'7' => {
+                    // Up to 3 octal digits, the value is truncated to a byte.
+                    let mut value = u32::from(b - b'0');
+                    for _ in 0..2 {
+                        match bytes.get(i) {
+                            Some(&d @ b'0'..=b'7') => {
+                                value = value * 8 + u32::from(d - b'0');
+                                i += 1;
+                            }
+                            _ => break,
+                        }
+                    }
+                    out.push(value.to_le_bytes()[0]);
                 }
-                None => out.push('\\'),
+                b'x' if bytes.get(i).is_some_and(u8::is_ascii_hexdigit) => {
+                    // Any number of hexadecimal digits, the value is
+                    // truncated to a byte.
+                    let mut value: u8 = 0;
+                    while let Some(d) = bytes.get(i).and_then(|&d| char::from(d).to_digit(16)) {
+                        value = (value << 4) | u8::try_from(d).unwrap_or(0);
+                        i += 1;
+                    }
+                    out.push(value);
+                }
+                _ => out.extend_from_slice(&[b'\\', b]),
             }
         }
-        out
+        String::from_utf8(out)
+            .unwrap_or_else(|e| String::from_utf8_lossy(e.as_bytes()).into_owned())
     }
 }
 
@@ -116,8 +149,27 @@ mod tests {
     }
 
     #[test]
+    fn unescape_octal_hex() {
+        assert_eq!("Esc \\033[1m".unescape_po(), "Esc \u{1b}[1m");
+        assert_eq!("\\x1b[0m".unescape_po(), "\u{1b}[0m");
+        assert_eq!("\\x1B".unescape_po(), "\u{1b}");
+        assert_eq!("\\0".unescape_po(), "\0");
+        assert_eq!("\\1234".unescape_po(), "S4");
+        assert_eq!("\\x41z".unescape_po(), "Az");
+        assert_eq!("\\x4142".unescape_po(), "B");
+        assert_eq!("\\7x".unescape_po(), "\u{07}x");
+        assert_eq!("caf\\303\\251".unescape_po(), "café");
+        assert_eq!("caf\\xc3\\xa9".unescape_po(), "café");
+        assert_eq!("\\303".unescape_po(), "\u{fffd}");
+        // An escaped backslash followed by digits is not an octal value.
+        assert_eq!("\\\\033".unescape_po(), "\\033");
+    }
+
+    #[test]
     fn unescape_unknown_sequence_is_kept() {
         assert_eq!("\\x".unescape_po(), "\\x");
+        assert_eq!("\\xg".unescape_po(), "\\xg");
+        assert_eq!("\\8".unescape_po(), "\\8");
         assert_eq!("test\\qval".unescape_po(), "test\\qval");
     }
 
