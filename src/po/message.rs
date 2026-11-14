@@ -6,6 +6,7 @@
 
 use std::ops::Range;
 
+use encoding_rs::Encoding;
 use serde::Serialize;
 
 use crate::po::escape::EscapePoExt;
@@ -19,6 +20,11 @@ pub struct Message {
     /// freshly emitted block back into the file.
     #[serde(skip)]
     pub byte_range: Range<usize>,
+    /// `true` if some escape sequences were not decoded (kept as-is in the
+    /// value), e.g. bytes not valid in the encoding of the file: the message
+    /// can not be written back from its value.
+    #[serde(skip)]
+    pub undecoded_escapes: bool,
 }
 
 impl PartialEq for Message {
@@ -36,6 +42,7 @@ impl Message {
             line_number,
             value: value.as_ref().to_string(),
             byte_range,
+            undecoded_escapes: false,
         }
     }
 
@@ -44,14 +51,17 @@ impl Message {
         self.value = self.value.escape_po();
     }
 
-    /// Unescape special character sequences in a the value read from PO file.
-    pub fn unescape(&mut self) {
+    /// Unescape special character sequences in the value read from a PO file
+    /// encoded with `encoding`.
+    pub fn unescape(&mut self, encoding: &'static Encoding) {
         // Fast path: if there is no backslash in the value, there is nothing
         // to unescape. Skip the allocation and the per-char walk.
         if memchr::memchr(b'\\', self.value.as_bytes()).is_none() {
             return;
         }
-        self.value = self.value.unescape_po();
+        let unescaped = self.value.unescape_po_with(encoding);
+        self.value = unescaped.value;
+        self.undecoded_escapes = !unescaped.exact;
     }
 }
 
@@ -64,11 +74,11 @@ mod tests {
         let mut msgid = Message::new(8, "test\nline 2", 0..0);
         assert_eq!(
             format!("{msgid:?}"),
-            "Message { line_number: 8, value: \"test\\nline 2\", byte_range: 0..0 }"
+            "Message { line_number: 8, value: \"test\\nline 2\", byte_range: 0..0, undecoded_escapes: false }"
         );
         msgid.escape();
         assert_eq!(msgid.value, "test\\nline 2");
-        msgid.unescape();
+        msgid.unescape(encoding_rs::UTF_8);
         assert_eq!(msgid.value, "test\nline 2");
     }
 

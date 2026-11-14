@@ -48,8 +48,12 @@ impl WrappingRule {
             .chain(entry.msgstr.values());
         for msg in messages {
             let original = &data[msg.byte_range.clone()];
-            // Fast path for short messages, then skip CRLF line endings.
-            if is_single_line_block(original, &msg.value, width) || original.contains(&b'\r') {
+            // Fast path for short messages, then skip CRLF line endings and
+            // messages which can not be written back from their value.
+            if is_single_line_block(original, &msg.value, width)
+                || original.contains(&b'\r')
+                || msg.undecoded_escapes
+            {
                 continue;
             }
             let mut bytes =
@@ -118,9 +122,10 @@ impl RuleChecker for WrappingRule {
     /// All entries are checked, including the header, untranslated, fuzzy
     /// and obsolete entries, as `msgcat` formats them all.
     ///
-    /// Files not encoded in UTF-8, messages with CRLF line endings and entries
-    /// with a format not supported by poexam (e.g. `lisp-format`) are not
-    /// checked: no line break is allowed inside format string directives.
+    /// Files not encoded in UTF-8, messages with CRLF line endings, messages
+    /// with bytes not valid in UTF-8 (e.g. `\377`) and entries with a format
+    /// not supported by poexam (e.g. `lisp-format`) are not checked: no line
+    /// break is allowed inside format string directives.
     ///
     /// Wrong entry:
     /// ```text

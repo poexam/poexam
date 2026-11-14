@@ -386,7 +386,9 @@ fn apply_fixes_to_data(
     // with the `no-wrap` flag and the format language of its entry.
     let mut msgstr_values: HashMap<(usize, usize), (String, bool, Language)> = HashMap::new();
     for entry in Parser::new(data) {
-        for msg in entry.msgstr.values() {
+        // A message with escape sequences not decoded can not be written back
+        // from its value.
+        for msg in entry.msgstr.values().filter(|msg| !msg.undecoded_escapes) {
             msgstr_values.insert(
                 (msg.byte_range.start, msg.byte_range.end),
                 (msg.value.clone(), entry.nowrap, entry.format_language),
@@ -1067,6 +1069,22 @@ msgstr \"monde\"
         assert!(fixed.contains(
             "msgstr \"word word word word word word word word word word word word word word word \"\n"
         ));
+    }
+
+    #[test]
+    fn test_fix_keeps_undecoded_escapes() {
+        let tmp = tmp_dir("fix-undecoded-escapes");
+        let content = "msgid \"\"\nmsgstr \"Content-Type: text/plain; charset=UTF-8\\n\"\n\n\
+                       msgid \"Hello\"\nmsgstr \"\"\n\"Bon\\377jour \"\n";
+        let po_path = write_po(tmp.path(), "fr.po", content);
+        let mut args = default_check_args();
+        args.no_config = true;
+        args.select = Some("wrapping,whitespace-end".to_string());
+        args.fix = true;
+        let _ = check_file(&po_path, &args).expect("file is checked");
+        // The byte not valid in UTF-8 can not be written back: no fix.
+        let fixed = std::fs::read_to_string(&po_path).expect("read fixed file");
+        assert_eq!(fixed, content);
     }
 
     #[test]

@@ -28,7 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 ### Fixed
 
 - Raise a page width (`--width`) smaller than 20 to 20, like GNU msgcat.
-- Decode octal (`\033`) and hexadecimal (`\x1b`) escape sequences in strings, like GNU gettext, so that `--fix` does not turn them into a literal backslash.
+- Decode octal (`\033`) and hexadecimal (`\x1b`) escape sequences in strings with the charset of the file, like GNU gettext, so that `--fix` does not turn them into a literal backslash.
 - Fix wrapping of messages rewritten by `--fix`, now identical to GNU msgcat: line breaking rules and character widths of GNU libunistring, no line break inside format string directives.
 - Fix messages rewritten by `--fix` with `--width 0` or in entries with flag `no-wrap`: split them after newlines, without wrapping.
 - Fix parsing of escape sequences `\a`, `\b`, `\f` and `\v`.

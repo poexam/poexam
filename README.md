@@ -485,7 +485,7 @@ poexam check --fix --unsafe-fixes po/  # safe and unsafe fixes
 
 `--unsafe-fixes` (or the `unsafe_fixes` config key) has no effect on its own; it must be combined with `--fix`.
 
-The rewriter wraps each replaced `msgstr` block exactly like GNU `msgcat` does, with the line breaking rules and character widths of GNU libunistring (used by `msgcat`), no line break inside escape sequences and format string directives, and a default page width of 79, so running `msgcat` on a fixed file does not change the fixed messages. The page width is configurable with `--width N` (or `check.width` in the config file), raised to 20 if smaller, like `msgcat`; `--width 0` disables wrapping (matches `msgcat --width=0` / `msgcat --no-wrap`): the messages are then split only after newlines, like the messages of entries with the flag `no-wrap`.
+The rewriter wraps each replaced `msgstr` block exactly like GNU `msgcat` does, with the line breaking rules and character widths of GNU libunistring (used by `msgcat`), no line break inside escape sequences and format string directives, and a default page width of 79, so running `msgcat` on a fixed file does not change the fixed messages. The page width is configurable with `--width N` (or `check.width` in the config file), raised to 20 if smaller, like `msgcat`; `--width 0` disables wrapping (matches `msgcat --width=0` / `msgcat --no-wrap`): the messages are then split only after newlines, like the messages of entries with the flag `no-wrap`. A `msgstr` with bytes not valid in the encoding of the file (e.g. `\377` in UTF-8) is not rewritten: it could not be written back unchanged.
 
 Rules that currently produce auto-fixes (`Safe: no` fixes require `--unsafe-fixes`):
 
@@ -708,7 +708,8 @@ Rules that currently produce auto-fixes (`Safe: no` fixes require `--unsafe-fixe
 - **Fix**: Rewrite each message (`msgctxt`, `msgid`, `msgid_plural`, `msgstr`) like GNU `msgcat`
   would, with the page width of `--width` (79 by default). All entries are fixed, including
   untranslated, fuzzy and obsolete ones. Files not encoded in UTF-8, messages with CRLF line
-  endings and entries with a format not supported by poexam (e.g. `lisp-format`) are not changed.
+  endings, messages with bytes not valid in UTF-8 (e.g. `\377`) and entries with a format not
+  supported by poexam (e.g. `lisp-format`) are not changed.
   Only the messages are rewritten: comments and the order of entries are kept.
 - **Safe**: yes.
 

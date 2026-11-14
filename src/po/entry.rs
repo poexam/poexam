@@ -9,6 +9,8 @@ use serde::Serialize;
 use std::collections::BTreeMap;
 use std::ops::Range;
 
+use encoding_rs::Encoding;
+
 use crate::{po::escape::EscapePoExt, po::format::language::Language, po::message::Message};
 
 /// Comment line of a PO entry, without its prefix (`#`, `#.` or `#:`) and
@@ -228,20 +230,21 @@ impl Entry {
         }
     }
 
-    /// Unescape all string fields in this entry using the provided unescape function.
-    pub fn unescape_strings(&mut self) {
+    /// Unescape all string fields in this entry, read from a PO file encoded
+    /// with `encoding`.
+    pub fn unescape_strings(&mut self, encoding: &'static Encoding) {
         if let Some(ref mut msg) = self.msgctxt {
-            msg.unescape();
+            msg.unescape(encoding);
         }
         if let Some(ref mut msg) = self.msgid {
-            msg.unescape();
+            msg.unescape(encoding);
         }
         if let Some(ref mut msg) = self.msgid_plural {
-            msg.unescape();
+            msg.unescape(encoding);
         }
         let mut idx: u32 = 0;
         while let Some(msg) = self.msgstr.get_mut(&idx) {
-            msg.unescape();
+            msg.unescape(encoding);
             idx += 1;
         }
     }
@@ -412,7 +415,7 @@ mod tests {
             entry.msgstr.get(&1),
             Some(&Message::new(5, "fichiers\\n", 0..0))
         );
-        entry.unescape_strings();
+        entry.unescape_strings(encoding_rs::UTF_8);
         assert_eq!(entry.msgctxt, Some(Message::new(1, "a file\n", 0..0)));
         assert_eq!(entry.msgid, Some(Message::new(2, "file\n", 0..0)));
         assert_eq!(entry.msgid_plural, Some(Message::new(3, "files\n", 0..0)));

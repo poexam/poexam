@@ -355,7 +355,7 @@ impl Iterator for Parser<'_> {
                 if started {
                     entry.byte_range.end = self.line_end_offset();
                     entry.encoding_error = self.encoding_error;
-                    entry.unescape_strings();
+                    entry.unescape_strings(self.encoding.unwrap_or(encoding_rs::UTF_8));
                     self.parse_header(&entry);
                     return Some(entry);
                 }
@@ -436,7 +436,7 @@ impl Iterator for Parser<'_> {
             // Send the last entry if we reached the end of data.
             entry.byte_range.end = self.line_end_offset();
             entry.encoding_error = self.encoding_error;
-            entry.unescape_strings();
+            entry.unescape_strings(self.encoding.unwrap_or(encoding_rs::UTF_8));
             self.parse_header(&entry);
             Some(entry)
         } else {
@@ -575,6 +575,25 @@ msgstr "testé"
             entries[1].msgstr.get(&0),
             Some(Message::new(6, "testé", 0..0)).as_ref()
         );
+    }
+
+    #[test]
+    fn parse_escaped_bytes_encoding() {
+        // The bytes given in octal or hexadecimal are decoded with the
+        // encoding of the file.
+        let content = "msgid \"\"\nmsgstr \"Content-Type: text/plain; charset=ISO-8859-1\\n\"\n\n\
+                       msgid \"tested\"\nmsgstr \"test\\351 \\xe9\"\n";
+        let entries = Parser::new(content.as_bytes()).collect::<Vec<Entry>>();
+        let msgstr = &entries[1].msgstr[&0];
+        assert_eq!(msgstr.value, "testé é");
+        assert!(!msgstr.undecoded_escapes);
+        // Bytes not valid in UTF-8 are kept as-is.
+        let content = "msgid \"\"\nmsgstr \"Content-Type: text/plain; charset=UTF-8\\n\"\n\n\
+                       msgid \"tested\"\nmsgstr \"test\\351\"\n";
+        let entries = Parser::new(content.as_bytes()).collect::<Vec<Entry>>();
+        let msgstr = &entries[1].msgstr[&0];
+        assert_eq!(msgstr.value, "test\\351");
+        assert!(msgstr.undecoded_escapes);
     }
 
     #[test]
