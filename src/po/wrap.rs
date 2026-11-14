@@ -101,7 +101,11 @@ fn escape_portion(portion: &str, directives: &[bool]) -> (String, Vec<Break>) {
 /// messages): when it returns `false`, the block may still be well formatted,
 /// see [`format_message_block`].
 pub fn is_single_line_block(original_block: &[u8], value: &str, page_width: usize) -> bool {
-    let Some(body) = original_block.strip_suffix(b"\"\n") else {
+    // The last block of a file may have no newline at the end.
+    let Some(body) = original_block
+        .strip_suffix(b"\"\n")
+        .or_else(|| original_block.strip_suffix(b"\""))
+    else {
         return false;
     };
     let Some(quote_pos) = body.iter().position(|&b| b == b'"') else {

@@ -54,7 +54,12 @@ impl WrappingRule {
             if is_single_line_block(original, &msg.value, width) || original.contains(&b'\r') {
                 continue;
             }
-            let bytes = format_message_block(original, &msg.value, width, entry.format_language);
+            let mut bytes =
+                format_message_block(original, &msg.value, width, entry.format_language);
+            // Keep the missing newline at the end of the file.
+            if !original.ends_with(b"\n") {
+                bytes.pop();
+            }
             if bytes == original {
                 continue;
             }
@@ -201,6 +206,17 @@ mod tests {
             fix_bytes(&diags[1]),
             "msgid \"\"\n\"First line\\n\"\n\"second line\"\n"
         );
+    }
+
+    #[test]
+    fn test_no_newline_at_end() {
+        // The last message of the file has no newline at the end.
+        let content = format!("{HEADER}msgid \"a\"\nmsgstr \"b\"");
+        assert!(check(&content).is_empty(), "{:?}", check(&content));
+        let content = format!("{HEADER}msgid \"a\"\nmsgstr \"\"\n\"b\"");
+        let diags = check(&content);
+        assert_eq!(diags.len(), 1);
+        assert_eq!(fix_bytes(&diags[0]), "msgstr \"b\"");
     }
 
     #[test]
