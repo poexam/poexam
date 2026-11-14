@@ -209,8 +209,9 @@ fn parenthesized_plural(s: &str) -> Option<(usize, usize)> {
         let mut from = 0;
         while let Some(pos) = s[from..].find(suffix).map(|p| from + p) {
             let start = s[..pos]
-                .rfind(|c: char| !c.is_alphabetic())
-                .map_or(0, |p| p + 1);
+                .char_indices()
+                .rfind(|(_, c)| !c.is_alphabetic())
+                .map_or(0, |(p, c)| p + c.len_utf8());
             let end = pos + suffix.len();
             if start < pos && !s[end..].starts_with(|c: char| c == '=' || c.is_alphabetic()) {
                 return Some((start, end));
@@ -398,6 +399,8 @@ mod tests {
         assert_eq!(parenthesized_plural("%d match(es)"), Some((3, 12)));
         assert_eq!(parenthesized_plural("%d (s)"), None);
         assert_eq!(parenthesized_plural("alt+enter(s)=set"), None);
+        assert_eq!(parenthesized_plural("%d “file(s)”"), Some((6, 13)));
+        assert_eq!(parenthesized_plural("%d «fichier(s)»"), Some((5, 15)));
     }
 
     #[test]
