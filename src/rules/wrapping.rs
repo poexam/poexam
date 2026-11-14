@@ -11,7 +11,7 @@ use crate::fix::{Fix, FixTarget};
 use crate::po::entry::Entry;
 use crate::po::format::language::Language;
 use crate::po::message::Message;
-use crate::po::wrap::{format_message_block, is_single_line_block};
+use crate::po::wrap::{effective_page_width, format_message_block, is_single_line_block};
 use crate::rules::rule::RuleChecker;
 
 pub struct WrappingRule;
@@ -39,7 +39,7 @@ impl WrappingRule {
         let width = if entry.nowrap {
             0
         } else {
-            checker.config.check.width
+            effective_page_width(checker.config.check.width)
         };
         let mut diags = vec![];
         let messages = entry
@@ -112,7 +112,8 @@ impl RuleChecker for WrappingRule {
 
     /// Check that messages (`msgctxt`, `msgid`, `msgid_plural` and `msgstr`)
     /// are wrapped like GNU `msgcat` would do, with the page width of option
-    /// `--width` (79 by default, 0 to not wrap lines): long lines are split
+    /// `--width` (79 by default, 0 to not wrap lines, raised to 20 if smaller
+    /// like `msgcat` does): long lines are split
     /// at the page width, and after each newline. The messages of entries
     /// with the flag `no-wrap` are split only after newlines.
     ///
@@ -227,6 +228,21 @@ mod tests {
         );
         assert_eq!(check(&content).len(), 1);
         assert!(check_width(&content, 60).is_empty());
+        // A width smaller than 20 is raised to 20, like msgcat: the header and
+        // the msgid must be wrapped.
+        let diags = check_width(&content, 5);
+        assert_eq!(diags.len(), 2);
+        assert_eq!(
+            diags[1].message,
+            "message not wrapped like msgcat (width: 20)"
+        );
+        assert_eq!(
+            fix_bytes(&diags[1]),
+            check_width(&content, 20)
+                .get(1)
+                .map(fix_bytes)
+                .expect("fix at width 20")
+        );
         // Width 0: no wrap.
         let diags = check_width(&content, 0);
         assert_eq!(diags.len(), 1);

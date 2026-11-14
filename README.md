@@ -120,7 +120,7 @@ The following options are available in the `check` section (each option can be o
 | punc_ignore_ellipsis | Boolean          | Ignore ellipsis differences (`...` vs `…`) in punc rules.         |
 | accelerator          | String (char)    | Marker for keyboard accelerators (default: `&`).                  |
 | variable_styles      | Array of strings | Variable syntaxes checked by the rule `variables`.                |
-| width                | Integer          | Output page width for `--fix` (default: 79); 0 disables wrapping. |
+| width                | Integer          | Output page width for `--fix` (default: 79, min: 20); 0: no wrap. |
 | unsafe_fixes         | Boolean          | Also apply unsafe auto-fixes with `--fix` (see auto-fix section). |
 
 Patterns in `exclude` are matched relative to the project root (the directory containing the config file, or containing `.poexam/`), whatever the current directory; patterns given with `--exclude` are matched relative to the current directory.
@@ -485,7 +485,7 @@ poexam check --fix --unsafe-fixes po/  # safe and unsafe fixes
 
 `--unsafe-fixes` (or the `unsafe_fixes` config key) has no effect on its own; it must be combined with `--fix`.
 
-The rewriter wraps each replaced `msgstr` block exactly like GNU `msgcat` does, with the line breaking rules and character widths of GNU libunistring (used by `msgcat`), no line break inside escape sequences and format string directives, and a default page width of 79, so running `msgcat` on a fixed file does not change the fixed messages. The page width is configurable with `--width N` (or `check.width` in the config file); `--width 0` disables wrapping (matches `msgcat --width=0` / `msgcat --no-wrap`): the messages are then split only after newlines, like the messages of entries with the flag `no-wrap`.
+The rewriter wraps each replaced `msgstr` block exactly like GNU `msgcat` does, with the line breaking rules and character widths of GNU libunistring (used by `msgcat`), no line break inside escape sequences and format string directives, and a default page width of 79, so running `msgcat` on a fixed file does not change the fixed messages. The page width is configurable with `--width N` (or `check.width` in the config file), raised to 20 if smaller, like `msgcat`; `--width 0` disables wrapping (matches `msgcat --width=0` / `msgcat --no-wrap`): the messages are then split only after newlines, like the messages of entries with the flag `no-wrap`.
 
 Rules that currently produce auto-fixes (`Safe: no` fixes require `--unsafe-fixes`):
 

@@ -173,8 +173,9 @@ pub struct CheckArgs {
     #[arg(long, requires = "fix")]
     pub unsafe_fixes: bool,
 
-    /// Output page width used by `--fix` when rewriting msgstr blocks (default: 79);
-    /// 0 disables wrapping (matches `msgcat --width=0` / `msgcat --no-wrap`)
+    /// Output page width used by `--fix` when rewriting msgstr blocks (default: 79,
+    /// raised to 20 if smaller, like `msgcat`); 0 disables wrapping (matches
+    /// `msgcat --width=0` / `msgcat --no-wrap`)
     #[arg(long)]
     pub width: Option<usize>,
 }

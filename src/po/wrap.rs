@@ -24,6 +24,21 @@ use crate::po::linebreak::{
 /// Default page width used by GNU `msgcat` (and other gettext tools).
 pub const DEFAULT_PAGE_WIDTH: usize = 79;
 
+/// Minimum page width used by GNU `msgcat` (and other gettext tools): a
+/// smaller page width is raised to this value.
+const MIN_PAGE_WIDTH: usize = 20;
+
+/// Return the page width really used by GNU `msgcat` for the page width
+/// `page_width`: 0 (no wrap) is kept and a width smaller than 20 is raised to
+/// 20.
+pub const fn effective_page_width(page_width: usize) -> usize {
+    if page_width == 0 || page_width >= MIN_PAGE_WIDTH {
+        page_width
+    } else {
+        MIN_PAGE_WIDTH
+    }
+}
+
 /// Return the escape char of `c` (e.g. `n` for a newline), as written by
 /// GNU gettext, or `None` if `c` is not escaped.
 const fn escape_char(c: char) -> Option<char> {
@@ -113,12 +128,14 @@ fn escape_portion(portion: &str, directives: &[bool]) -> (String, Vec<Break>) {
 /// Return `true` if `original_block` is a single line with the value
 /// `value` already formatted like GNU `msgcat` would do: no newline except at
 /// the end of the value, canonical escapes and a line which fits in
-/// `page_width` columns (0 for no wrap).
+/// `page_width` columns (0 for no wrap, raised to 20 if smaller, like
+/// `msgcat`).
 ///
 /// This is a fast check without allocation, for the most common case (short
 /// messages): when it returns `false`, the block may still be well formatted,
 /// see [`format_message_block`].
 pub fn is_single_line_block(original_block: &[u8], value: &str, page_width: usize) -> bool {
+    let page_width = effective_page_width(page_width);
     // The last block of a file may have no newline at the end.
     let Some(body) = original_block
         .strip_suffix(b"\"\n")
@@ -166,9 +183,10 @@ pub fn is_single_line_block(original_block: &[u8], value: &str, page_width: usiz
 /// Build the bytes of one message block (`msgctxt`, `msgid`, `msgid_plural`,
 /// `msgstr` or `msgstr[N]`), like GNU `msgcat` would write it.
 ///
-/// The value is wrapped to fit `page_width` columns; passing `page_width = 0`
-/// disables wrapping (matching `msgcat --width=0`, `msgcat --no-wrap` and the
-/// `no-wrap` flag): the value is then split only after its newlines. The
+/// The value is wrapped to fit `page_width` columns (raised to 20 if smaller,
+/// like `msgcat`); passing `page_width = 0` disables wrapping (matching
+/// `msgcat --width=0`, `msgcat --no-wrap` and the `no-wrap` flag): the value
+/// is then split only after its newlines. The
 /// format language of the entry (from its flag, e.g. `c-format`) prevents line
 /// breaks inside format string directives.
 ///
@@ -181,6 +199,7 @@ pub fn format_message_block(
     page_width: usize,
     format: Language,
 ) -> Vec<u8> {
+    let page_width = effective_page_width(page_width);
     let quote_pos = original_block
         .iter()
         .position(|&b| b == b'"')
@@ -409,6 +428,28 @@ mod tests {
              \"the quick brown fox jumps over the \"\n\
              \"lazy dog\"\n",
         );
+    }
+
+    #[test]
+    fn wrap_min_page_width() {
+        // Like msgcat, a page width smaller than 20 is raised to 20.
+        let value = "the quick brown fox jumps over the lazy dog";
+        let expected = "msgstr \"\"\n\
+                        \"the quick brown \"\n\
+                        \"fox jumps over \"\n\
+                        \"the lazy dog\"\n";
+        for width in [1, 5, 19, 20] {
+            let bytes = format_message_block(b"msgstr \"x\"\n", value, width, Language::Null);
+            assert_eq!(
+                String::from_utf8(bytes).unwrap(),
+                expected,
+                "width: {width}"
+            );
+        }
+        assert!(is_single_line_block(b"msgid \"id 0\"\n", "id 0", 5));
+        assert_eq!(effective_page_width(0), 0);
+        assert_eq!(effective_page_width(10), 20);
+        assert_eq!(effective_page_width(79), 79);
     }
 
     /// End-to-end fidelity check: feed our output through `msgcat` and confirm
