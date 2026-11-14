@@ -13,6 +13,7 @@ use std::{
 };
 
 use colored::Colorize;
+use encoding_rs::Encoding;
 use rayon::prelude::*;
 
 use crate::{
@@ -332,6 +333,21 @@ impl<'d> Checker<'d> {
     }
 }
 
+/// Encode a block built in UTF-8 with `encoding`, or return `None` if a char
+/// can not be encoded (or if the encoding is not compatible with ASCII, e.g.
+/// UTF-16).
+fn encode_block(bytes: Vec<u8>, encoding: &'static Encoding) -> Option<Vec<u8>> {
+    if encoding == encoding_rs::UTF_8 {
+        return Some(bytes);
+    }
+    if encoding.output_encoding() != encoding {
+        return None;
+    }
+    let block = String::from_utf8(bytes).ok()?;
+    let (encoded, _, errors) = encoding.encode(&block);
+    (!errors).then(|| encoded.into_owned())
+}
+
 /// Apply every fixable diagnostic to `data` and return the rewritten bytes
 /// together with the count of distinct fixes that were actually applied
 /// (msgstrs rewritten + entries deleted), or `None` if there is nothing to
@@ -386,10 +402,16 @@ fn apply_fixes_to_data(
     // by its byte range, with the `no-wrap` flag and the format language of its
     // entry (not needed if there are only block replacements).
     let mut msgstr_values: HashMap<(usize, usize), (String, bool, Language)> = HashMap::new();
+    let mut encoding = encoding_rs::UTF_8;
     if !edits_by_range.is_empty() {
-        for entry in Parser::new(data) {
-            // A message with escape sequences not decoded can not be written
-            // back from its value.
+        let mut parser = Parser::new(data);
+        for entry in parser.by_ref() {
+            // An entry not decoded from the encoding of the file, or a message
+            // with escape sequences not decoded can not be written back from
+            // its value.
+            if entry.encoding_error {
+                continue;
+            }
             for msg in entry.msgstr.into_values() {
                 let key = (msg.byte_range.start, msg.byte_range.end);
                 if !msg.undecoded_escapes && edits_by_range.contains_key(&key) {
@@ -397,6 +419,7 @@ fn apply_fixes_to_data(
                 }
             }
         }
+        encoding = parser.encoding();
     }
     // The deleted entries don't overlap: only the last one starting before
     // the key can contain it.
@@ -428,6 +451,11 @@ fn apply_fixes_to_data(
         let original_block = &data[range.clone()];
         let width = if *nowrap { 0 } else { page_width };
         let bytes = format_message_block(original_block, &new_value, width, *format);
+        // The values are decoded to UTF-8: encode the block with the encoding
+        // of the file, skip it if a char can not be encoded.
+        let Some(bytes) = encode_block(bytes, encoding) else {
+            continue;
+        };
         rewritten.insert(key);
         replacements.push((range, bytes));
     }
@@ -1090,6 +1118,46 @@ msgstr \"monde\"
         // be written back: no fix.
         let fixed = std::fs::read_to_string(&po_path).expect("read fixed file");
         assert_eq!(fixed, content);
+    }
+
+    #[test]
+    fn test_fix_encoding() {
+        let tmp = tmp_dir("fix-encoding");
+        let content = "msgid \"\"\nmsgstr \"Content-Type: text/plain; charset=ISO-8859-1\\n\"\n\n\
+                       msgid \"Coffee\"\nmsgstr \"Café \"\n";
+        let po_path = tmp.path().join("fr.po");
+        std::fs::write(&po_path, encoding_rs::WINDOWS_1252.encode(content).0).expect("write");
+        let mut args = default_check_args();
+        args.no_config = true;
+        args.select = Some("whitespace-end".to_string());
+        args.fix = true;
+        let result = check_file(&po_path, &args).expect("file is checked");
+        assert!(result.diagnostics.is_empty(), "{:?}", result.diagnostics);
+        // The fixed message is encoded in ISO-8859-1.
+        let fixed = std::fs::read(&po_path).expect("read fixed file");
+        let expected = content.replace("\"Café \"", "\"Café\"");
+        assert_eq!(
+            fixed,
+            encoding_rs::WINDOWS_1252.encode(&expected).0.as_ref()
+        );
+    }
+
+    #[test]
+    fn test_encode_block() {
+        let block = "msgstr \"Café\"\n".as_bytes().to_vec();
+        assert_eq!(
+            encode_block(block.clone(), encoding_rs::UTF_8),
+            Some(block.clone())
+        );
+        assert_eq!(
+            encode_block(block, encoding_rs::WINDOWS_1252),
+            Some(b"msgstr \"Caf\xe9\"\n".to_vec())
+        );
+        // A char which can not be encoded.
+        let block = "msgstr \"Ω\"\n".as_bytes().to_vec();
+        assert_eq!(encode_block(block.clone(), encoding_rs::WINDOWS_1252), None);
+        // An encoding not compatible with ASCII.
+        assert_eq!(encode_block(block, encoding_rs::UTF_16LE), None);
     }
 
     #[test]

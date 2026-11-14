@@ -67,6 +67,11 @@ impl<'d> Parser<'d> {
         self.data
     }
 
+    /// Return the encoding of the file (UTF-8 by default).
+    pub fn encoding(&self) -> &'static Encoding {
+        self.encoding.unwrap_or(encoding_rs::UTF_8)
+    }
+
     /// Return the encoding name.
     pub fn encoding_name(&self) -> &'static str {
         self.encoding

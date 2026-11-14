@@ -27,6 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ### Fixed
 
+- Encode the translations rewritten by `--fix` with the charset of the file instead of UTF-8, and skip the fix if a char can not be encoded.
 - Ignore negated format flags (e.g. `no-python-format`) to get the format of an entry: with `#, c-format, no-python-format`, the format strings were not checked.
 - Do not rewrite with `--fix` a translation with invalid escape sequences (e.g. `\q`), which turned them into a literal backslash.
 - Raise a page width (`--width`) smaller than 20 to 20, like GNU msgcat.
