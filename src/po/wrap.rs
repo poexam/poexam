@@ -12,6 +12,7 @@
 //! an escape sequence (e.g. `\n`) or a format string directive (e.g. `%s`),
 //! and no break immediately before a trailing `\n`.
 
+use crate::po::escape::escape_char;
 use crate::po::format::{
     FormatParser,
     directives::{c_directives, python_directives},
@@ -36,22 +37,6 @@ pub const fn effective_page_width(page_width: usize) -> usize {
         page_width
     } else {
         MIN_PAGE_WIDTH
-    }
-}
-
-/// Return the escape char of `c` (e.g. `n` for a newline), as written by
-/// GNU gettext, or `None` if `c` is not escaped.
-const fn escape_char(c: char) -> Option<char> {
-    match c {
-        '\u{07}' => Some('a'),
-        '\u{08}' => Some('b'),
-        '\u{0c}' => Some('f'),
-        '\n' => Some('n'),
-        '\r' => Some('r'),
-        '\t' => Some('t'),
-        '\u{0b}' => Some('v'),
-        '\\' | '"' => Some(c),
-        _ => None,
     }
 }
 

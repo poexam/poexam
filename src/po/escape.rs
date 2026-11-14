@@ -4,6 +4,22 @@
 
 //! Utilities for escaping and unescaping strings for PO file format.
 
+/// Return the escape char of `c` (e.g. `n` for a newline), as written by
+/// GNU gettext, or `None` if `c` is not escaped.
+pub const fn escape_char(c: char) -> Option<char> {
+    match c {
+        '\u{07}' => Some('a'),
+        '\u{08}' => Some('b'),
+        '\u{0c}' => Some('f'),
+        '\n' => Some('n'),
+        '\r' => Some('r'),
+        '\t' => Some('t'),
+        '\u{0b}' => Some('v'),
+        '\\' | '"' => Some(c),
+        _ => None,
+    }
+}
+
 pub trait EscapePoExt {
     /// Escape special characters in a string for PO file format.
     fn escape_po(&self) -> String;
@@ -18,22 +34,12 @@ impl EscapePoExt for str {
     fn escape_po(&self) -> String {
         let mut out = String::with_capacity(self.len() * 2);
         for ch in self.chars() {
-            let escaped = match ch {
-                '\u{07}' => 'a',
-                '\u{08}' => 'b',
-                '\u{0c}' => 'f',
-                '\n' => 'n',
-                '\r' => 'r',
-                '\t' => 't',
-                '\u{0b}' => 'v',
-                '"' | '\\' => ch,
-                _ => {
-                    out.push(ch);
-                    continue;
-                }
-            };
-            out.push('\\');
-            out.push(escaped);
+            if let Some(escaped) = escape_char(ch) {
+                out.push('\\');
+                out.push(escaped);
+            } else {
+                out.push(ch);
+            }
         }
         out
     }
