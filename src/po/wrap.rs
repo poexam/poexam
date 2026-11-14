@@ -48,10 +48,11 @@ pub const fn effective_page_width(page_width: usize) -> usize {
 /// stops at the first invalid directive (e.g. `100% …` in a C format string):
 /// line breaks are allowed in this directive and the ones after it.
 /// `translated` is `true` for a translation (`msgstr`).
+///
+/// The returned vector is empty (no allocation) if there is no directive.
 fn format_directives(value: &str, format: Language, translated: bool) -> Vec<bool> {
-    let mut inside = vec![false; value.len()];
     let ranges = match format {
-        Language::Null => return inside,
+        Language::Null => return vec![],
         Language::C => c_directives(value, translated),
         Language::Python => python_directives(value),
         _ => {
@@ -72,6 +73,10 @@ fn format_directives(value: &str, format: Language, translated: bool) -> Vec<boo
             ranges
         }
     };
+    if ranges.is_empty() {
+        return vec![];
+    }
+    let mut inside = vec![false; value.len()];
     for range in ranges {
         for flag in &mut inside[range.start + 1..range.end] {
             *flag = true;
@@ -81,13 +86,14 @@ fn format_directives(value: &str, format: Language, translated: bool) -> Vec<boo
 }
 
 /// Escape a portion of value, returning the escaped string and the line
-/// break overrides for each of its bytes.
+/// break overrides for each of its bytes. `directives` is empty if there is
+/// no format string directive.
 fn escape_portion(portion: &str, directives: &[bool]) -> (String, Vec<Break>) {
     let mut escaped = String::with_capacity(portion.len() + 8);
     let mut overrides = Vec::with_capacity(portion.len() + 8);
     for (pos, c) in portion.char_indices() {
         // Don't break inside format directives.
-        let brk = if directives[pos] {
+        let brk = if directives.get(pos) == Some(&true) {
             Break::Prohibited
         } else {
             Break::Undefined
@@ -217,7 +223,8 @@ pub fn format_message_block(
         let end = rest.find('\n').map_or(rest.len(), |pos| pos + 1);
         let portion = &rest[..end];
         let more = end < rest.len();
-        let (escaped, overrides) = escape_portion(portion, &directives[offset..offset + end]);
+        let portion_directives = directives.get(offset..offset + end).unwrap_or_default();
+        let (escaped, overrides) = escape_portion(portion, portion_directives);
 
         // The first line starts after the prefix, the keyword, a space and the
         // opening quote.

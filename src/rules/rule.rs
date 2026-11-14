@@ -200,8 +200,7 @@ pub trait RuleChecker {
     where
         Self: Sized,
     {
-        let allowed = &checker.config.check.severity;
-        if !allowed.is_empty() && !allowed.contains(&severity) {
+        if !checker.is_severity_enabled(severity) {
             return None;
         }
         Some(Diagnostic::new(

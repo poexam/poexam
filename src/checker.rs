@@ -102,6 +102,13 @@ impl<'d> Checker<'d> {
         self.parser.data()
     }
 
+    /// Return `true` if the diagnostics with this severity are reported
+    /// (option `--severity`, all by default).
+    pub fn is_severity_enabled(&self, severity: Severity) -> bool {
+        let allowed = &self.config.check.severity;
+        allowed.is_empty() || allowed.contains(&severity)
+    }
+
     /// Return the encoding name.
     pub fn encoding_name(&self) -> &'static str {
         self.parser.encoding_name()

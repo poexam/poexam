@@ -20,9 +20,12 @@ impl WrappingRule {
     /// Check that the messages of the entry are wrapped like GNU `msgcat`
     /// would do.
     fn check_messages(&self, checker: &Checker, entry: &Entry) -> Vec<Diagnostic> {
+        // Skip the formatting of messages if the diagnostics are not reported.
         // The values are decoded to UTF-8: the bytes of other encodings can not
         // be compared.
-        if checker.encoding_name() != encoding_rs::UTF_8.name() {
+        if !checker.is_severity_enabled(Severity::Info)
+            || checker.encoding_name() != encoding_rs::UTF_8.name()
+        {
             return vec![];
         }
         // No line break is allowed inside format string directives: an entry
@@ -202,6 +205,16 @@ mod tests {
             fix_bytes(&diags[1]),
             "msgid \"\"\n\"First line\\n\"\n\"second line\"\n"
         );
+    }
+
+    #[test]
+    fn test_severity_filtered() {
+        let content = format!("{HEADER}msgid \"Hello\"\nmsgstr \"\"\n\"Bonjour\"\n");
+        let mut checker = Checker::new(content.as_bytes());
+        checker.config.check.severity = vec![Severity::Warning, Severity::Error];
+        let rules = Rules::new(vec![Box::new(WrappingRule {})]);
+        checker.do_all_checks(&rules);
+        assert!(checker.diagnostics.is_empty());
     }
 
     #[test]
