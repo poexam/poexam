@@ -8,6 +8,7 @@ use std::borrow::Cow;
 
 use crate::po::format::language::Language;
 
+pub mod directives;
 pub mod iter;
 pub mod lang_c;
 pub mod lang_csharp;

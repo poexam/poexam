@@ -268,6 +268,22 @@ mod tests {
     }
 
     #[test]
+    fn test_invalid_format_directives() {
+        // Like msgcat: the directives after an invalid one ("% …" in C, mixed
+        // named and unnamed arguments in Python) can be split.
+        let content = format!(
+            "{HEADER}#, c-format\nmsgid \"\"\n\
+             \"Ficheiro %s, estado: 100% … completado, total de ficheiros (%llu %\"\n\
+             \"%)\"\nmsgstr \"\"\n\n\
+             #, python-format\nmsgid \"a\"\nmsgstr \"\"\n\
+             \"Ficheiro %(name)s, estado: %d de ficheiros, total ficheiros (%\"\n\
+             \"(n)d %%)\"\n"
+        );
+        let diags = check_width(&content, 68);
+        assert!(diags.is_empty(), "{diags:?}");
+    }
+
+    #[test]
     fn test_skipped() {
         // Unsupported format.
         let content = format!("{HEADER}#, lisp-format\nmsgid \"\"\n\"Hello\"\nmsgstr \"\"\n");

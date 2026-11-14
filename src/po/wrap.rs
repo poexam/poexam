@@ -12,7 +12,11 @@
 //! an escape sequence (e.g. `\n`) or a format string directive (e.g. `%s`),
 //! and no break immediately before a trailing `\n`.
 
-use crate::po::format::{FormatParser, language::Language};
+use crate::po::format::{
+    FormatParser,
+    directives::{c_directives, python_directives},
+    language::Language,
+};
 use crate::po::linebreak::{
     Break, apply_overrides, char_width, insert_linebreaks, possible_linebreaks,
 };
@@ -39,25 +43,39 @@ const fn escape_char(c: char) -> Option<char> {
 /// Return for each byte of `value` whether it is inside a format string
 /// directive, except its first byte: no line break is allowed there. An
 /// escaped percent (`%%`) is a directive too.
-fn format_directives(value: &str, format: Language) -> Vec<bool> {
+///
+/// For C and Python, the directives are found like GNU gettext does, which
+/// stops at the first invalid directive (e.g. `100% …` in a C format string):
+/// line breaks are allowed in this directive and the ones after it.
+/// `translated` is `true` for a translation (`msgstr`).
+fn format_directives(value: &str, format: Language, translated: bool) -> Vec<bool> {
     let mut inside = vec![false; value.len()];
-    if format == Language::Null {
-        return inside;
-    }
-    let mut pos = 0;
-    while let Some((_, next, is_format)) = format.next_char(value, pos) {
-        let end = if is_format {
-            format.find_end_format(value, next, value.len())
-        } else if value[pos..].starts_with("%%") && next == pos + 2 {
-            next
-        } else {
-            pos = next;
-            continue;
-        };
-        for flag in &mut inside[pos + 1..end] {
+    let ranges = match format {
+        Language::Null => return inside,
+        Language::C => c_directives(value, translated),
+        Language::Python => python_directives(value),
+        _ => {
+            let mut ranges = vec![];
+            let mut pos = 0;
+            while let Some((_, next, is_format)) = format.next_char(value, pos) {
+                let end = if is_format {
+                    format.find_end_format(value, next, value.len())
+                } else if value[pos..].starts_with("%%") && next == pos + 2 {
+                    next
+                } else {
+                    pos = next;
+                    continue;
+                };
+                ranges.push(pos..end);
+                pos = end;
+            }
+            ranges
+        }
+    };
+    for range in ranges {
+        for flag in &mut inside[range.start + 1..range.end] {
             *flag = true;
         }
-        pos = end;
     }
     inside
 }
@@ -172,7 +190,7 @@ pub fn format_message_block(
         Some(name) => (b"#~ ", name.trim_ascii_start()),
         None => (b"", head),
     };
-    let directives = format_directives(value, format);
+    let directives = format_directives(value, format, name.starts_with(b"msgstr"));
 
     // Columns are signed, like in gettext: the width can be negative for a
     // tiny page width.
