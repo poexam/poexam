@@ -175,12 +175,14 @@ impl Entry {
         self.msgid_plural.is_some()
     }
 
-    /// Return `true` if this entry has a format flag (e.g. `c-format`), or with
-    /// `negated` = `true`, a negated format flag too (e.g. `no-c-format`).
+    /// Return `true` if this entry has a format flag (e.g. `c-format` or
+    /// `possible-c-format`), or with `negated` = `true`, a negated format flag
+    /// too (e.g. `no-c-format` or `impossible-c-format`).
     pub fn has_format_flag(&self, negated: bool) -> bool {
-        self.keywords
-            .iter()
-            .any(|k| k.ends_with("-format") && (negated || !k.starts_with("no-")))
+        self.keywords.iter().any(|k| {
+            k.ends_with("-format")
+                && (negated || !(k.starts_with("no-") || k.starts_with("impossible-")))
+        })
     }
 
     /// Return `true` if this entry has at least one non-empty translation string
@@ -340,6 +342,11 @@ mod tests {
         entry.keywords = vec!["fuzzy".to_string(), "no-c-format".to_string()];
         assert!(!entry.has_format_flag(false));
         assert!(entry.has_format_flag(true));
+        entry.keywords = vec!["impossible-c-format".to_string()];
+        assert!(!entry.has_format_flag(false));
+        assert!(entry.has_format_flag(true));
+        entry.keywords = vec!["possible-c-format".to_string()];
+        assert!(entry.has_format_flag(false));
         entry.keywords.push("python-format".to_string());
         assert!(entry.has_format_flag(false));
         assert!(entry.has_format_flag(true));

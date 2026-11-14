@@ -186,10 +186,14 @@ impl<'d> Parser<'d> {
                             .map(|r| String::from_utf8_lossy(r.trim_ascii()).into_owned())
                             .collect();
                     } else if let Some(stripped) = kw.strip_suffix(b"-format")
-                        // A negated flag (e.g. `no-python-format`) does not
-                        // change the format of the entry.
+                        // A negated flag (e.g. `no-python-format` or
+                        // `impossible-python-format`) does not change the
+                        // format of the entry; a format possible (e.g.
+                        // `possible-c-format`) is a format, like for gettext.
                         && !stripped.starts_with(b"no-")
-                        && let Ok(s) = str::from_utf8(stripped)
+                        && !stripped.starts_with(b"impossible-")
+                        && let Ok(s) =
+                            str::from_utf8(stripped.strip_prefix(b"possible-").unwrap_or(stripped))
                     {
                         entry.format_language = Language::from(s);
                     }
@@ -592,6 +596,13 @@ msgstr "testé"
         let entries = Parser::new(content.as_bytes()).collect::<Vec<Entry>>();
         assert_eq!(entries[0].format_language, Language::C);
         assert_eq!(entries[1].format_language, Language::Null);
+        let content = "#, possible-c-format\nmsgid \"%d\"\nmsgstr \"%d\"\n\n\
+                       #, c-format, impossible-python-format\nmsgid \"%d\"\nmsgstr \"%d\"\n\n\
+                       #, impossible-c-format\nmsgid \"%d\"\nmsgstr \"%d\"\n";
+        let entries = Parser::new(content.as_bytes()).collect::<Vec<Entry>>();
+        assert_eq!(entries[0].format_language, Language::C);
+        assert_eq!(entries[1].format_language, Language::C);
+        assert_eq!(entries[2].format_language, Language::Null);
     }
 
     #[test]
