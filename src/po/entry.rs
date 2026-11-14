@@ -173,6 +173,14 @@ impl Entry {
         self.msgid_plural.is_some()
     }
 
+    /// Return `true` if this entry has a format flag (e.g. `c-format`), or with
+    /// `negated` = `true`, a negated format flag too (e.g. `no-c-format`).
+    pub fn has_format_flag(&self, negated: bool) -> bool {
+        self.keywords
+            .iter()
+            .any(|k| k.ends_with("-format") && (negated || !k.starts_with("no-")))
+    }
+
     /// Return `true` if this entry has at least one non-empty translation string
     /// (even if the entry is marked as fuzzy).
     pub fn is_translated(&self) -> bool {
@@ -319,6 +327,19 @@ mod tests {
         entry.msgid = Some(Message::new(2, "file\\n", 0..0));
         assert!(!entry.is_header());
         assert!(entry.is_translated());
+    }
+
+    #[test]
+    fn test_has_format_flag() {
+        let mut entry = Entry::new(1);
+        assert!(!entry.has_format_flag(false));
+        assert!(!entry.has_format_flag(true));
+        entry.keywords = vec!["fuzzy".to_string(), "no-c-format".to_string()];
+        assert!(!entry.has_format_flag(false));
+        assert!(entry.has_format_flag(true));
+        entry.keywords.push("python-format".to_string());
+        assert!(entry.has_format_flag(false));
+        assert!(entry.has_format_flag(true));
     }
 
     #[test]

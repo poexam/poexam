@@ -95,12 +95,6 @@ fn format_strings(msg: &Message, language: Language) -> Vec<(usize, usize)> {
     positions
 }
 
-/// Return `true` if the entry has a format flag, e.g. `c-format` or
-/// `no-c-format`.
-fn has_format_flag(entry: &Entry) -> bool {
-    entry.keywords.iter().any(|k| k.ends_with("-format"))
-}
-
 impl RuleChecker for FormatFlagRule {
     fn name(&self) -> &'static str {
         "format-flag"
@@ -184,7 +178,8 @@ impl RuleChecker for FormatFlagRule {
         }
         let mut diags = vec![];
         for entry in entries {
-            if has_format_flag(entry) {
+            // A negated flag (e.g. `no-c-format`) is not reported either.
+            if entry.has_format_flag(true) {
                 continue;
             }
             let Some(msgid) = &entry.msgid else {

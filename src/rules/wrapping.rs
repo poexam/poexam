@@ -27,12 +27,7 @@ impl WrappingRule {
         }
         // No line break is allowed inside format string directives: an entry
         // with a format not supported can not be checked.
-        if entry.format_language == Language::Null
-            && entry
-                .keywords
-                .iter()
-                .any(|k| k.ends_with("-format") && !k.starts_with("no-"))
-        {
+        if entry.format_language == Language::Null && entry.has_format_flag(false) {
             return vec![];
         }
         let data = checker.data();
