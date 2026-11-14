@@ -126,6 +126,13 @@ impl RuleChecker for FormatFlagRule {
     /// `c-format` nor `no-c-format`) is reported if its source (`msgid` or
     /// `msgid_plural`) contains format strings of one of these languages.
     ///
+    /// Only the checked entries are used, for both the format languages of
+    /// the file and the entries reported: by default, untranslated, fuzzy and
+    /// obsolete entries are not checked, so a file where all the entries with
+    /// a format flag are fuzzy has no diagnostic. These entries are checked
+    /// with option `--fuzzy`, `--obsolete`, or with the rule `untranslated`
+    /// (resp. `fuzzy`, `obsolete`) enabled.
+    ///
     /// Like `xgettext` does, a source with an invalid format string is not
     /// considered as a format string of this language, e.g. `%d/%m/%Y` (date
     /// format) is not a C format string. To prevent false positives, are also
