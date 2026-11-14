@@ -12,7 +12,7 @@
 //! an escape sequence (e.g. `\n`) or a format string directive (e.g. `%s`),
 //! and no break immediately before a trailing `\n`.
 
-use crate::po::escape::escape_char;
+use crate::po::escape::escape_sequence;
 use crate::po::format::{
     FormatParser,
     directives::{c_directives, python_directives},
@@ -85,12 +85,26 @@ fn format_directives(value: &str, format: Language, translated: bool) -> Vec<boo
     inside
 }
 
-/// Escape a portion of value, returning the escaped string and the line
-/// break overrides for each of its bytes. `directives` is empty if there is
-/// no format string directive.
-fn escape_portion(portion: &str, directives: &[bool]) -> (String, Vec<Break>) {
-    let mut escaped = String::with_capacity(portion.len() + 8);
+/// Return the escaped form of `c` as written by GNU gettext (e.g. `\n` for a
+/// newline, `c` itself if it is not escaped), stored in `buf`, and its width
+/// in columns.
+#[inline]
+fn escaped(c: char, buf: &mut [u8; 4]) -> (&str, usize) {
+    match escape_sequence(c) {
+        // An escape sequence has only printable ASCII chars.
+        Some(sequence) => (sequence, sequence.len()),
+        None => (c.encode_utf8(buf), char_width(c)),
+    }
+}
+
+/// Escape a portion of value, returning the escaped string, the line break
+/// overrides for each of its bytes and its width in columns. `directives` is
+/// empty if there is no format string directive.
+fn escape_portion(portion: &str, directives: &[bool]) -> (String, Vec<Break>, usize) {
+    let mut escaped_portion = String::with_capacity(portion.len() + 8);
     let mut overrides = Vec::with_capacity(portion.len() + 8);
+    let mut width = 0;
+    let mut buf = [0_u8; 4];
     for (pos, c) in portion.char_indices() {
         // Don't break inside format directives.
         let brk = if directives.get(pos) == Some(&true) {
@@ -98,22 +112,19 @@ fn escape_portion(portion: &str, directives: &[bool]) -> (String, Vec<Break>) {
         } else {
             Break::Undefined
         };
-        if let Some(e) = escape_char(c) {
-            escaped.push('\\');
-            escaped.push(e);
-            overrides.extend([brk, Break::Prohibited]);
-        } else {
-            escaped.push(c);
-            overrides.push(brk);
-            overrides.extend(std::iter::repeat_n(Break::Prohibited, c.len_utf8() - 1));
-        }
+        // No break inside an escape sequence or a multibyte char.
+        let (e, e_width) = escaped(c, &mut buf);
+        escaped_portion.push_str(e);
+        width += e_width;
+        overrides.push(brk);
+        overrides.extend(std::iter::repeat_n(Break::Prohibited, e.len() - 1));
     }
     // Don't break immediately before the "\n" at the end.
     if portion.ends_with('\n') {
         let len = overrides.len();
         overrides[len - 2] = Break::Prohibited;
     }
-    (escaped, overrides)
+    (escaped_portion, overrides, width)
 }
 
 /// Return `true` if `original_block` is a single line with the value
@@ -154,16 +165,9 @@ pub fn is_single_line_block(original_block: &[u8], value: &str, page_width: usiz
     let mut width = head.len() + 2;
     let mut buf = [0_u8; 4];
     for c in value.chars() {
-        let expected: &[u8] = if let Some(e) = escape_char(c) {
-            width += 2;
-            buf[0] = b'\\';
-            buf[1] = u8::try_from(e).unwrap_or(b'?');
-            &buf[..2]
-        } else {
-            width += char_width(c);
-            c.encode_utf8(&mut buf).as_bytes()
-        };
-        let Some(rest) = raw.strip_prefix(expected) else {
+        let (e, e_width) = escaped(c, &mut buf);
+        width += e_width;
+        let Some(rest) = raw.strip_prefix(e.as_bytes()) else {
             return false;
         };
         raw = rest;
@@ -177,9 +181,9 @@ pub fn is_single_line_block(original_block: &[u8], value: &str, page_width: usiz
 /// The value is wrapped to fit `page_width` columns (raised to 20 if smaller,
 /// like `msgcat`); passing `page_width = 0` disables wrapping (matching
 /// `msgcat --width=0`, `msgcat --no-wrap` and the `no-wrap` flag): the value
-/// is then split only after its newlines. The
-/// format language of the entry (from its flag, e.g. `c-format`) prevents line
-/// breaks inside format string directives.
+/// is then split only after its newlines. The format language of the entry
+/// (from its flag, e.g. `c-format`) prevents line breaks inside format string
+/// directives.
 ///
 /// The keyword form is copied from `original_block` so plural and
 /// obsolete-prefix variants (`msgstr`, `msgstr[N]`, `#~ msgstr`, …) are
@@ -224,7 +228,7 @@ pub fn format_message_block(
         let portion = &rest[..end];
         let more = end < rest.len();
         let portion_directives = directives.get(offset..offset + end).unwrap_or_default();
-        let (escaped, overrides) = escape_portion(portion, portion_directives);
+        let (escaped, overrides, escaped_width) = escape_portion(portion, portion_directives);
 
         // The first line starts after the prefix, the keyword, a space and the
         // opening quote.
@@ -235,7 +239,7 @@ pub fn format_message_block(
         } + 1
             - startcol_after_break;
         // Fast path: no line break is inserted if the whole portion fits.
-        let portion_width = col(escaped.chars().map(char_width).sum());
+        let portion_width = col(escaped_width);
         // The possible line breaks are computed once, for both start columns.
         let mut possible: Option<Vec<Break>> = None;
         let mut linebreaks = |startcol: isize| {

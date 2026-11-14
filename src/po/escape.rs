@@ -6,18 +6,19 @@
 
 use encoding_rs::Encoding;
 
-/// Return the escape char of `c` (e.g. `n` for a newline), as written by
-/// GNU gettext, or `None` if `c` is not escaped.
-pub const fn escape_char(c: char) -> Option<char> {
+/// Return the escape sequence of `c` (e.g. `\n` for a newline), as written
+/// by GNU gettext, or `None` if `c` is not escaped.
+pub const fn escape_sequence(c: char) -> Option<&'static str> {
     match c {
-        '\u{07}' => Some('a'),
-        '\u{08}' => Some('b'),
-        '\u{0c}' => Some('f'),
-        '\n' => Some('n'),
-        '\r' => Some('r'),
-        '\t' => Some('t'),
-        '\u{0b}' => Some('v'),
-        '\\' | '"' => Some(c),
+        '\u{07}' => Some("\\a"),
+        '\u{08}' => Some("\\b"),
+        '\u{0c}' => Some("\\f"),
+        '\n' => Some("\\n"),
+        '\r' => Some("\\r"),
+        '\t' => Some("\\t"),
+        '\u{0b}' => Some("\\v"),
+        '\\' => Some("\\\\"),
+        '"' => Some("\\\""),
         _ => None,
     }
 }
@@ -49,9 +50,8 @@ impl EscapePoExt for str {
     fn escape_po(&self) -> String {
         let mut out = String::with_capacity(self.len() * 2);
         for ch in self.chars() {
-            if let Some(escaped) = escape_char(ch) {
-                out.push('\\');
-                out.push(escaped);
+            if let Some(escaped) = escape_sequence(ch) {
+                out.push_str(escaped);
             } else {
                 out.push(ch);
             }

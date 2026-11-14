@@ -37,7 +37,7 @@ impl WrappingRule {
         let width = if entry.nowrap {
             0
         } else {
-            effective_page_width(checker.config.check.width)
+            checker.config.check.width
         };
         let mut diags = vec![];
         let messages = entry
@@ -68,7 +68,10 @@ impl WrappingRule {
             let message = if width == 0 {
                 "message not wrapped like msgcat (no wrap)".to_string()
             } else {
-                format!("message not wrapped like msgcat (width: {width})")
+                format!(
+                    "message not wrapped like msgcat (width: {})",
+                    effective_page_width(width)
+                )
             };
             if let Some(diag) = self.new_diag(checker, Severity::Info, message) {
                 diags.push(diag.with_msg(msg).with_fix(Fix {
