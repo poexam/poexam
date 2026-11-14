@@ -23,7 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ### Changed
 
-- Report unknown rules given with `--select` or `--ignore` only once instead of once per file, and exit with code 2.
+- **Breaking:** report unknown rules given with `--select` or `--ignore` only once instead of once per file, and exit with code 2 instead of 1.
 
 ### Fixed
 
