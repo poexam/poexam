@@ -123,9 +123,10 @@ impl RuleChecker for WrappingRule {
     /// and obsolete entries, as `msgcat` formats them all.
     ///
     /// Files not encoded in UTF-8, messages with CRLF line endings, messages
-    /// with bytes not valid in UTF-8 (e.g. `\377`) and entries with a format
-    /// not supported by poexam (e.g. `lisp-format`) are not checked: no line
-    /// break is allowed inside format string directives.
+    /// with bytes not valid in UTF-8 (e.g. `\377`) or invalid escape
+    /// sequences (e.g. `\q`) and entries with a format not supported by poexam
+    /// (e.g. `lisp-format`) are not checked: no line break is allowed inside
+    /// format string directives.
     ///
     /// Wrong entry:
     /// ```text

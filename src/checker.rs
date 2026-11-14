@@ -1075,14 +1075,16 @@ msgstr \"monde\"
     fn test_fix_keeps_undecoded_escapes() {
         let tmp = tmp_dir("fix-undecoded-escapes");
         let content = "msgid \"\"\nmsgstr \"Content-Type: text/plain; charset=UTF-8\\n\"\n\n\
-                       msgid \"Hello\"\nmsgstr \"\"\n\"Bon\\377jour \"\n";
+                       msgid \"Hello\"\nmsgstr \"\"\n\"Bon\\377jour \"\n\n\
+                       msgid \"World\"\nmsgstr \"\"\n\"Mon\\qde \"\n";
         let po_path = write_po(tmp.path(), "fr.po", content);
         let mut args = default_check_args();
         args.no_config = true;
         args.select = Some("wrapping,whitespace-end".to_string());
         args.fix = true;
         let _ = check_file(&po_path, &args).expect("file is checked");
-        // The byte not valid in UTF-8 can not be written back: no fix.
+        // The byte not valid in UTF-8 and the invalid escape sequence can not
+        // be written back: no fix.
         let fixed = std::fs::read_to_string(&po_path).expect("read fixed file");
         assert_eq!(fixed, content);
     }

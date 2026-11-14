@@ -29,7 +29,7 @@ pub struct Unescaped {
     /// `true` if all escape sequences were decoded: the escaped string can be
     /// written back from the value. Otherwise, the sequences not decoded are
     /// kept as-is in the value: bytes not valid in the encoding of the file
-    /// (e.g. `\377` in UTF-8).
+    /// (e.g. `\377` in UTF-8) and unknown sequences (e.g. `\q`).
     pub exact: bool,
 }
 
@@ -62,7 +62,7 @@ impl EscapePoExt for str {
     /// Unescape special character sequences in a string from a PO file, like
     /// GNU gettext: `\a`, `\b`, `\f`, `\n`, `\r`, `\t`, `\v`, `\"`, `\\`,
     /// octal (`\ooo`, 1 to 3 digits) and hexadecimal (`\xhh…`) byte values
-    /// (other sequences are kept as-is).
+    /// (other sequences, invalid for GNU gettext, are kept as-is).
     ///
     /// The string is already decoded from the encoding of the file, but not
     /// the bytes given in octal or hexadecimal: each run of these bytes is
@@ -89,9 +89,10 @@ impl EscapePoExt for str {
             i = start + 1;
             let Some(&b) = bytes.get(i) else {
                 if !run.is_empty() {
-                    exact &= flush_run(&mut out, &mut run, &self[run_start..start], encoding);
+                    flush_run(&mut out, &mut run, &self[run_start..start], encoding);
                 }
                 out.push('\\');
+                exact = false;
                 break;
             };
             i += 1;
@@ -142,8 +143,9 @@ impl EscapePoExt for str {
                 b'v' => out.push('\u{0b}'),
                 b'"' | b'\\' => out.push(char::from(b)),
                 _ => {
-                    // Unknown sequence: kept as-is.
+                    // Unknown sequence (invalid for GNU gettext): kept as-is.
                     out.push('\\');
+                    exact = false;
                     let c = self[i - 1..].chars().next().unwrap_or_default();
                     out.push(c);
                     i += c.len_utf8() - 1;
@@ -270,6 +272,12 @@ mod tests {
         assert_eq!(unescaped.value, "Bon\\377jour");
         assert!(!unescaped.exact);
         assert!("a\\n\\t\\\\b".unescape_po_with(encoding_rs::UTF_8).exact);
+        // Unknown sequences.
+        for s in ["a\\qb", "\\x", "\\xg", "\\8", "a\\", "\\é"] {
+            let unescaped = s.unescape_po_with(encoding_rs::UTF_8);
+            assert_eq!(unescaped.value, s);
+            assert!(!unescaped.exact, "{s}");
+        }
     }
 
     #[test]
