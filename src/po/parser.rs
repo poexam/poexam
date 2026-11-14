@@ -181,6 +181,9 @@ impl<'d> Parser<'d> {
                             .map(|r| String::from_utf8_lossy(r.trim_ascii()).into_owned())
                             .collect();
                     } else if let Some(stripped) = kw.strip_suffix(b"-format")
+                        // A negated flag (e.g. `no-python-format`) does not
+                        // change the format of the entry.
+                        && !stripped.starts_with(b"no-")
                         && let Ok(s) = str::from_utf8(stripped)
                     {
                         entry.format_language = Language::from(s);
@@ -575,6 +578,15 @@ msgstr "testé"
             entries[1].msgstr.get(&0),
             Some(Message::new(6, "testé", 0..0)).as_ref()
         );
+    }
+
+    #[test]
+    fn parse_negated_format_flag() {
+        let content = "#, c-format, no-python-format\nmsgid \"%d\"\nmsgstr \"%d\"\n\n\
+                       #, no-c-format\nmsgid \"%d\"\nmsgstr \"%d\"\n";
+        let entries = Parser::new(content.as_bytes()).collect::<Vec<Entry>>();
+        assert_eq!(entries[0].format_language, Language::C);
+        assert_eq!(entries[1].format_language, Language::Null);
     }
 
     #[test]

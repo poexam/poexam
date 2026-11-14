@@ -27,6 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ### Fixed
 
+- Ignore negated format flags (e.g. `no-python-format`) to get the format of an entry: with `#, c-format, no-python-format`, the format strings were not checked.
 - Do not rewrite with `--fix` a translation with invalid escape sequences (e.g. `\q`), which turned them into a literal backslash.
 - Raise a page width (`--width`) smaller than 20 to 20, like GNU msgcat.
 - Decode octal (`\033`) and hexadecimal (`\x1b`) escape sequences in strings with the charset of the file, like GNU gettext, so that `--fix` does not turn them into a literal backslash.
