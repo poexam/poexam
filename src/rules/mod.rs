@@ -6,6 +6,7 @@
 
 pub mod accelerators;
 pub mod acronyms;
+pub mod apostrophes;
 pub mod blank;
 pub mod brackets;
 pub mod caps_start;

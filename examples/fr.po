@@ -29,6 +29,10 @@ msgstr "Enregistrer"
 msgid "Open the URL"
 msgstr "Ouvrir le lien"
 
+# rule: apostrophes
+msgid "Open the archive"
+msgstr "Ouvrir l’archive"
+
 # rule: blank
 msgid "Test: blank translation"
 msgstr " "

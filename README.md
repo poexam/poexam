@@ -211,6 +211,7 @@ You can enable them on-demand:
 | Rule name            | Diagnostic reported                              |
 |----------------------|--------------------------------------------------|
 | acronyms             | Acronyms from the source missing in translation. |
+| apostrophes          | Mixed straight and typographic apostrophes.      |
 | brackets             | Missing/extra brackets.                          |
 | caps-start           | Inconsistent capitalization of the first letter. |
 | changed              | Translation is different from the source string. |
@@ -253,11 +254,11 @@ poexam check examples/fr.po
 Example of diagnostic reported:
 
 ```text
-examples/fr.po:37: [info:brackets] missing opening and closing square brackets '[' (1 / 0) and ']' (1 / 0)
+examples/fr.po:41: [info:brackets] missing opening and closing square brackets '[' (1 / 0) and ']' (1 / 0)
         |
-     37 | Test [brackets]
+     41 | Test [brackets]
         |
-     38 | Test crochets
+     42 | Test crochets
         |
 ```
 
@@ -488,6 +489,12 @@ poexam check --fix --unsafe-fixes po/  # safe and unsafe fixes
 The rewriter wraps each replaced `msgstr` block exactly like GNU `msgcat` does, with the line breaking rules and character widths of GNU libunistring (used by `msgcat`), no line break inside escape sequences and format string directives, and a default page width of 79, so running `msgcat` on a fixed file does not change the fixed messages. The page width is configurable with `--width N` (or `check.width` in the config file), raised to 20 if smaller, like `msgcat`; `--width 0` disables wrapping (matches `msgcat --width=0` / `msgcat --no-wrap`): the messages are then split only after newlines, like the messages of entries with the flag `no-wrap`. A `msgstr` with bytes not valid in the encoding of the file (e.g. `\377` in UTF-8) or invalid escape sequences (e.g. `\q`) is not rewritten: it could not be written back unchanged. The rewritten `msgstr` is encoded with the charset of the file, and not rewritten if one of its chars can not be encoded in this charset.
 
 Rules that currently produce auto-fixes (`Safe: no` fixes require `--unsafe-fixes`):
+
+#### apostrophes
+
+- **Fix**: Replace each apostrophe of the less used kind with the apostrophe used the most in the
+  translations of the file (`'` or `’`).
+- **Safe**: yes.
 
 #### caps-start
 

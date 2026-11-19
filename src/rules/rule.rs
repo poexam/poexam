@@ -16,13 +16,13 @@ use crate::{
         message::Message,
     },
     rules::{
-        accelerators, acronyms, blank, brackets, caps_start, changed, compendium, compilation,
-        double_quotes, double_spaces, double_words, emails, encoding, escapes, force_trans,
-        format_flag, formats, functions, fuzzy, header, html_tags, lang_path, long, markdown,
-        max_length, multiple_capitals, newlines, no_trans, noqa, numbers, obsolete, options, paths,
-        pipes, plural_forms, plurals, previous_msgid, punc, punc_space, reused_translation, short,
-        spelling, tabs, todo_comments, unchanged, unicode_ctrl, unpluralised, untranslated, urls,
-        variables, whitespace, wrapping,
+        accelerators, acronyms, apostrophes, blank, brackets, caps_start, changed, compendium,
+        compilation, double_quotes, double_spaces, double_words, emails, encoding, escapes,
+        force_trans, format_flag, formats, functions, fuzzy, header, html_tags, lang_path, long,
+        markdown, max_length, multiple_capitals, newlines, no_trans, noqa, numbers, obsolete,
+        options, paths, pipes, plural_forms, plurals, previous_msgid, punc, punc_space,
+        reused_translation, short, spelling, tabs, todo_comments, unchanged, unicode_ctrl,
+        unpluralised, untranslated, urls, variables, whitespace, wrapping,
     },
     table::render_table,
 };
@@ -217,6 +217,7 @@ fn get_all_rules() -> Vec<Rule> {
     vec![
         Box::new(accelerators::AcceleratorsRule {}),
         Box::new(acronyms::AcronymsRule {}),
+        Box::new(apostrophes::ApostrophesRule {}),
         Box::new(blank::BlankRule {}),
         Box::new(brackets::BracketsRule {}),
         Box::new(caps_start::CapsStartRule {}),
