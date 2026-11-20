@@ -81,12 +81,11 @@ fn apostrophes<'a>(
                 .rev()
                 .find(|c| !is_combining_mark(*c))?;
             let after = value[idx + s.len()..].chars().next()?;
-            (is_letter(before)
-                && is_letter(after)
-                && !sources
-                    .iter()
-                    .any(|src| src.contains(letters_around(value, idx, idx + s.len()))))
-            .then_some((idx, c))
+            if !is_letter(before) || !is_letter(after) {
+                return None;
+            }
+            let word = letters_around(value, idx, idx + s.len());
+            (!sources.iter().any(|src| src.contains(word))).then_some((idx, c))
         })
 }
 
