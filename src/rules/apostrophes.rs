@@ -78,14 +78,10 @@ fn apostrophes<'a>(
         })
 }
 
-/// Return the sources of an entry (`msgid` and `msgid_plural`).
-fn sources(entry: &Entry) -> Vec<&str> {
-    entry
-        .msgid
-        .iter()
-        .chain(entry.msgid_plural.iter())
-        .map(|msg| msg.value.as_str())
-        .collect()
+/// Return the sources of an entry (`msgid` and `msgid_plural`, empty if
+/// missing).
+fn sources(entry: &Entry) -> [&str; 2] {
+    [&entry.msgid, &entry.msgid_plural].map(|msg| msg.as_ref().map_or("", |m| m.value.as_str()))
 }
 
 /// Return the number of straight and typographic apostrophes of `value`.
@@ -166,8 +162,7 @@ impl RuleChecker for ApostrophesRule {
                 entry
                     .msgstr
                     .values()
-                    .map(|msg| count_apostrophes(&msg.value, &sources))
-                    .collect::<Vec<_>>()
+                    .map(move |msg| count_apostrophes(&msg.value, &sources))
             })
             .fold((0, 0), |(s1, t1), (s2, t2)| (s1 + s2, t1 + t2));
         if straight == 0 || typo == 0 {
