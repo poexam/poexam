@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ### Fixed
 
+- Fix apostrophes after a decomposed letter (with a combining mark, like `e` + U+0301) ignored by the rule "apostrophes".
 - Fix quotes next to halfwidth katakana/Hangul and CJK ideographs of the extension planes reported as apostrophes by the rule "apostrophes".
 
 ## [0.5.0] - 2026-11-19

@@ -9,6 +9,7 @@ use crate::checker::Checker;
 use crate::diagnostic::{Diagnostic, Severity};
 use crate::fix::{Edit, Fix, FixTarget};
 use crate::po::entry::Entry;
+use crate::po::linebreak::is_combining_mark;
 use crate::rules::rule::RuleChecker;
 
 pub struct ApostrophesRule;
@@ -39,17 +40,24 @@ fn is_letter(c: char) -> bool {
             | '\u{20000}'..='\u{3FFFF}')
 }
 
+/// Return `true` if the character is part of a word around an apostrophe: a
+/// letter (see [`is_letter`]) or a combining mark (e.g. the accent of a
+/// decomposed `é`).
+fn is_word_char(c: char) -> bool {
+    is_letter(c) || is_combining_mark(c)
+}
+
 /// Return the letters of `value` around the apostrophe at `start..end`, with
 /// the apostrophe (e.g. `d'abord` in `d'abord,` or `d'O` in `d'O'Reilly`).
 fn letters_around(value: &str, start: usize, end: usize) -> &str {
     let first = value[..start]
         .char_indices()
         .rev()
-        .take_while(|(_, c)| c.is_alphabetic())
+        .take_while(|(_, c)| is_word_char(*c))
         .last()
         .map_or(start, |(pos, _)| pos);
     let last = value[end..]
-        .find(|c: char| !c.is_alphabetic())
+        .find(|c: char| !is_word_char(c))
         .map_or(value.len(), |pos| end + pos);
     &value[first..last]
 }
@@ -67,7 +75,11 @@ fn apostrophes<'a>(
         .match_indices([STRAIGHT, TYPOGRAPHIC])
         .filter_map(move |(idx, s)| {
             let c = s.chars().next()?;
-            let before = value[..idx].chars().next_back()?;
+            // Letter before the apostrophe, ignoring its combining marks.
+            let before = value[..idx]
+                .chars()
+                .rev()
+                .find(|c| !is_combining_mark(*c))?;
             let after = value[idx + s.len()..].chars().next()?;
             (is_letter(before)
                 && is_letter(after)
@@ -278,6 +290,21 @@ mod tests {
         assert_eq!(apostrophes("𠀀'𠀁", &[]).count(), 0);
         assert_eq!(letters_around("d'O'Reilly", 1, 2), "d'O");
         assert_eq!(letters_around("à l’été", 4, 7), "l’été");
+        // Decomposed letters (with combining marks).
+        assert_eq!(
+            apostrophes("ve\u{301}rite\u{301}'s l'e\u{301}te\u{301}", &[]).count(),
+            2
+        );
+        assert_eq!(
+            letters_around("l'e\u{301}te\u{301}", 1, 2),
+            "l'e\u{301}te\u{301}"
+        );
+        assert_eq!(
+            apostrophes("l'e\u{301}te\u{301}", &["l'e\u{301}t"]).count(),
+            1
+        );
+        // Words stop at CJK characters.
+        assert_eq!(letters_around("檔案l'option", 7, 8), "l'option");
     }
 
     #[test]

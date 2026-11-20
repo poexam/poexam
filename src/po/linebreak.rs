@@ -69,6 +69,12 @@ pub fn char_width(uc: char) -> usize {
         .map_or(1, |index| usize::from(WIDTH_VALUES[index]))
 }
 
+/// Return `true` if the character is a combining mark (line breaking class
+/// CM, without the control characters), e.g. U+0301 COMBINING ACUTE ACCENT.
+pub fn is_combining_mark(uc: char) -> bool {
+    !uc.is_control() && prop(lookup(uc)) == LBP_CM
+}
+
 /// Return the line breaking class of a property.
 const fn prop(prop_ea: u8) -> u8 {
     prop_ea >> 1
@@ -520,6 +526,17 @@ mod tests {
         assert_eq!(char_width('가'), 2);
         // Spacing vowel sign (Malayalam): width 1 in libunistring.
         assert_eq!(char_width('\u{0D3E}'), 1);
+    }
+
+    #[test]
+    fn test_is_combining_mark() {
+        assert!(is_combining_mark('\u{0301}'));
+        assert!(is_combining_mark('\u{0308}'));
+        assert!(!is_combining_mark('a'));
+        assert!(!is_combining_mark('é'));
+        assert!(!is_combining_mark('\t'));
+        assert!(!is_combining_mark('\u{0085}'));
+        assert!(!is_combining_mark('\''));
     }
 
     #[test]
