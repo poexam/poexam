@@ -25,7 +25,18 @@ const TYPOGRAPHIC: char = '’';
 fn is_letter(c: char) -> bool {
     c.is_alphabetic()
         && !matches!(c,
-            '\u{2E80}'..='\u{9FFF}' | '\u{AC00}'..='\u{D7AF}' | '\u{F900}'..='\u{FAFF}')
+            // Hangul Jamo.
+            '\u{1100}'..='\u{11FF}'
+            // CJK radicals, kana, Hangul compatibility Jamo, CJK ideographs.
+            | '\u{2E80}'..='\u{9FFF}'
+            // Hangul syllables.
+            | '\u{AC00}'..='\u{D7AF}'
+            // CJK compatibility ideographs.
+            | '\u{F900}'..='\u{FAFF}'
+            // Halfwidth katakana and Hangul.
+            | '\u{FF66}'..='\u{FFDC}'
+            // CJK ideographs extensions (supplementary and tertiary planes).
+            | '\u{20000}'..='\u{3FFFF}')
 }
 
 /// Return the letters of `value` around the apostrophe at `start..end`, with
@@ -268,6 +279,8 @@ mod tests {
         assert_eq!(letters_around("(l'option)", 2, 3), "l'option");
         // Quotes in CJK scripts.
         assert_eq!(apostrophes("檔案'%s'出現", &[]).count(), 0);
+        assert_eq!(apostrophes("ｶﾀｶﾅ'ﾃｽﾄ'", &[]).count(), 0);
+        assert_eq!(apostrophes("𠀀'𠀁", &[]).count(), 0);
         assert_eq!(letters_around("d'O'Reilly", 1, 2), "d'O");
         assert_eq!(letters_around("à l’été", 4, 7), "l’été");
     }
